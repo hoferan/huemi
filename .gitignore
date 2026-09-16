@@ -42,3 +42,7 @@ coverage/
 
 # Claude Code local state
 .claude/settings.local.json
+
+# Transient planning documents: specs, plans, briefs and ledgers.
+# See docs/adr/0007-transient-plans-durable-decisions.md
+docs/superpowers/

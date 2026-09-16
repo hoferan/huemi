@@ -24,6 +24,23 @@ message on `main`. Write the title as a Conventional Commit and keep the body
 worth reading in `git log`. Squashing drops the co-author trailers from the
 individual commits, so put them at the end of the pull request body instead.
 
+## Working documents and decisions
+
+Planning documents are transient. Specs, implementation plans, task briefs and
+execution ledgers live under `docs/superpowers/`, which is gitignored, and they are
+not part of the repository. They describe what was intended for one milestone, and
+they diverge from the code as soon as review changes anything.
+
+Decisions that outlive their milestone have to land somewhere durable. In order of
+preference: a test, a lint rule or a type; a comment in the file the decision
+constrains; this file, for conventions about how work is done; or an architecture
+decision record in `docs/adr/`.
+
+A decision recorded only in a plan is not recorded. Where something already enforces
+a decision, point at the enforcement rather than restating the rule.
+
+See [ADR 0007](docs/adr/0007-transient-plans-durable-decisions.md).
+
 ## When the stack arrives
 
 The build-output section of `.gitignore` is a stub holding `dist/`, `build/` and
