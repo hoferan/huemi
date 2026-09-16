@@ -37,6 +37,8 @@ node_modules/
 dist/
 build/
 coverage/
+.tsbuild/
+*.tsbuildinfo
 
 # Claude Code local state
 .claude/settings.local.json
