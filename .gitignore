@@ -46,3 +46,6 @@ coverage/
 # Transient planning documents: specs, plans, briefs and ledgers.
 # See docs/adr/0007-transient-plans-durable-decisions.md
 docs/superpowers/
+
+# Worktrees created by the desktop app.
+.claude/worktrees/

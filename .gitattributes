@@ -25,3 +25,6 @@
 *.lock linguist-generated=true -diff
 package-lock.json linguist-generated=true -diff
 pnpm-lock.yaml linguist-generated=true -diff
+
+# Vendored third-party skills: not huemi source, excluded from language stats.
+.claude/skills/** linguist-vendored
