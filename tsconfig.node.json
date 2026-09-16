@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "target": "ES2023",
+    "lib": ["ES2023"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    // tsconfig.json references this project, and TypeScript requires a
+    // referenced project to be composite — which in turn forbids noEmit,
+    // since a composite project must be able to emit for the reference to
+    // mean anything. outDir keeps that forced emit out of the repo root so
+    // a stray vite.config.js can never shadow the real vite.config.ts.
+    "composite": true,
+    "outDir": "./.tsbuild/node",
+    "skipLibCheck": true,
+    "types": ["node"]
+  },
+  "include": ["vite.config.ts", "playwright.config.ts"]
+}

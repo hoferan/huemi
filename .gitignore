@@ -33,10 +33,12 @@ tmp/
 temp/
 
 # Build output and dependencies
-# Extend this section once the stack is chosen.
+node_modules/
 dist/
 build/
 coverage/
+.tsbuild/
+*.tsbuildinfo
 
 # Claude Code local state
 .claude/settings.local.json
