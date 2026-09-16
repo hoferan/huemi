@@ -30,3 +30,4 @@ supersedes it, in which case both say so.
 | [0005](0005-outfits-store-hexes.md) | Store outfit pieces as hexes, never as suggestion indices |
 | [0006](0006-color-engine-before-screens.md) | Build the color engine before any screen |
 | [0007](0007-transient-plans-durable-decisions.md) | Keep working documents transient and decisions durable |
+| [0008](0008-gherkin-feature-files-for-e2e.md) | Write end-to-end tests as Gherkin feature files |
