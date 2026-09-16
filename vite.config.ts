@@ -1,4 +1,7 @@
-import { defineConfig, type Plugin } from 'vite';
+// defineConfig comes from vitest/config, not vite: the `test` block below
+// is a Vitest option, and Vite's own defineConfig types reject it.
+import { defineConfig } from 'vitest/config';
+import type { Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import stylex from '@stylexjs/unplugin';
 
