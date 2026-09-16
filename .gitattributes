@@ -1,0 +1,27 @@
+# Normalise line endings to LF everywhere, on every platform.
+* text=auto eol=lf
+
+# Windows-native scripts keep CRLF.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Binary assets are never diffed or line-ending converted.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.avif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+*.pdf binary
+*.zip binary
+
+# Lockfiles are generated: collapse them in diffs and reviews.
+*.lock linguist-generated=true -diff
+package-lock.json linguist-generated=true -diff
+pnpm-lock.yaml linguist-generated=true -diff

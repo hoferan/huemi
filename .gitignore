@@ -1,0 +1,42 @@
+# Operating system
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Editors and IDEs
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json.example
+*.swp
+*.swo
+*~
+*.sublime-workspace
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Logs and temporary output
+*.log
+logs/
+tmp/
+temp/
+
+# Build output and dependencies
+# Extend this section once the stack is chosen.
+dist/
+build/
+coverage/
+
+# Claude Code local state
+.claude/settings.local.json
