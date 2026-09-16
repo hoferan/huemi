@@ -24,6 +24,23 @@ message on `main`. Write the title as a Conventional Commit and keep the body
 worth reading in `git log`. Squashing drops the co-author trailers from the
 individual commits, so put them at the end of the pull request body instead.
 
+## Skills
+
+`.claude/skills/` holds a vendored copy of the superpowers skill library, so the same
+working practices apply in a browser session on a phone as on the desktop app.
+
+Invoke a relevant skill before responding, including before asking clarifying
+questions. If a skill applies to the task, use it. Process skills come first and set
+the approach: brainstorming before any creative or design work, systematic-debugging
+before proposing a fix for any bug or unexpected behavior, test-driven-development
+before writing implementation code, verification-before-completion before claiming
+anything works.
+
+Start with `using-superpowers`, which explains how the rest fit together.
+
+These files are third-party and MIT licensed. See `.claude/skills/README.md` for
+provenance and why they carry no hook.
+
 ## Working documents and decisions
 
 Planning documents are transient. Specs, implementation plans, task briefs and
