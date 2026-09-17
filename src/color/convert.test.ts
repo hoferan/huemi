@@ -32,11 +32,25 @@ describe('rgbToHsl', () => {
 });
 
 describe('hslToHex', () => {
-  it('round-trips through rgbToHsl for every palette-like colour', () => {
-    for (const value of ['#1f2a44', '#a4522d', '#e9dfc9', '#2f4a3a']) {
+  it('round-trips through rgbToHsl for every palette-like color', () => {
+    for (const value of ['#1f2a44', '#a4522d', '#e9dfc9', '#2f4a3a', '#000000', '#ffffff']) {
       const hex = parseHex(value);
       const [h, s, l] = rgbToHsl(hexToRgb(hex));
       expect(hslToHex(h, s, l)).toBe(hex);
     }
+  });
+
+  it('black has lightness 0, zero saturation, and zero hue', () => {
+    const [h, s, l] = rgbToHsl(hexToRgb(parseHex('#000000')));
+    expect(l).toBeCloseTo(0, 5);
+    expect(s).toBeCloseTo(0, 5);
+    expect(h).toBeCloseTo(0, 5);
+  });
+
+  it('white has lightness 100, zero saturation, and zero hue', () => {
+    const [h, s, l] = rgbToHsl(hexToRgb(parseHex('#ffffff')));
+    expect(l).toBeCloseTo(100, 5);
+    expect(s).toBeCloseTo(0, 5);
+    expect(h).toBeCloseTo(0, 5);
   });
 });
