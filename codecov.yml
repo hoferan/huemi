@@ -1,0 +1,21 @@
+coverage:
+  status:
+    project:
+      default:
+        target: auto
+        threshold: 1%
+        if_ci_failed: error
+    patch:
+      default:
+        target: 90%
+        threshold: 0%
+        if_ci_failed: error
+        only_pulls: true
+ignore:
+  - 'e2e/**'
+  - 'docs/**'
+  - '**/*.stylex.ts'
+  - '**/*.d.ts'
+comment:
+  layout: 'condensed_header, diff, flags, files'
+  require_changes: true

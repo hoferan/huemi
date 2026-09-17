@@ -31,7 +31,7 @@ later, and the project is on 1.63.0.
 Feature files and their step definitions are committed and reviewed like code.
 
 The generation step runs before the tests, in the `e2e` script and in continuous
-integration, and the generated directory is gitignored.
+integration, and the generated output is excluded from version control.
 
 ## Consequences
 
@@ -56,3 +56,17 @@ Playwright project and does not prevent ordinary specs living alongside, so thos
 assertions stay as plain Playwright and unit tests. The rule of thumb is that a
 scenario describes something a person does, and an invariant describes something
 that must always be true.
+
+Implementation surfaced a constraint this decision didn't anticipate:
+`playwright-bdd`'s generated tests resolve their config at runtime by the
+running project's `testDir`, and that has to be exactly the `outputDir` passed
+to `defineBddConfig`, not merely a parent of it. A project's plain Playwright
+specs have to live under that same `testDir` to be discovered at all, so the
+generated feature specs and the hand-written invariant specs share `e2e/`
+directly rather than the generated files sitting in their own subfolder. There
+is no dedicated directory to gitignore as a result; the generated
+`*.feature.spec.js` files are excluded by filename pattern instead, in
+`.gitignore`, `.prettierignore`, and `eslint.config.js` (each carries a comment
+pointing back here). The outcome the decision wanted — generated output never
+committed, linted, or reformatted — still holds; only the mechanism differs
+from what was assumed when this ADR was written.

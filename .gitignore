@@ -40,6 +40,16 @@ coverage/
 .tsbuild/
 *.tsbuildinfo
 
+# Playwright
+playwright-report/
+test-results/
+
+# playwright-bdd generates these from e2e/features/*.feature directly into
+# e2e/ (its output dir must match Playwright's testDir exactly, so it cannot
+# live in its own gitignored subfolder — see the comment in
+# playwright.config.ts and docs/adr/0008-gherkin-feature-files-for-e2e.md).
+e2e/**/*.feature.spec.js
+
 # Claude Code local state
 .claude/settings.local.json
 

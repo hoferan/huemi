@@ -1,6 +1,6 @@
 // defineConfig comes from vitest/config, not vite: the `test` block below
 // is a Vitest option, and Vite's own defineConfig types reject it.
-import { defineConfig } from 'vitest/config';
+import { defaultExclude, defineConfig } from 'vitest/config';
 import type { Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import stylex from '@stylexjs/unplugin';
@@ -39,6 +39,10 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: ['./src/test-setup.ts'],
+    // Vitest's default include glob otherwise also matches e2e/invariants.spec.ts
+    // and the generated e2e/*.feature.spec.js: both are Playwright tests, run
+    // through `npm run e2e`, not Vitest.
+    exclude: [...defaultExclude, 'e2e/**'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'lcov'],
