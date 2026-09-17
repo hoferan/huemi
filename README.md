@@ -30,7 +30,7 @@ the design record, and `A11Y.md` for the accessibility invariants.
 | `CLAUDE.md`      | Conventions for Claude Code sessions |
 | `SECURITY.md`    | How to report a vulnerability        |
 | `.editorconfig`  | Whitespace and encoding rules        |
-| `.gitattributes` | Line endings and diff behaviour      |
+| `.gitattributes` | Line endings and diff behavior       |
 | `LICENSE`        | MIT                                  |
 
 ## Working on it

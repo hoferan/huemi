@@ -35,7 +35,7 @@ Recorded so nobody reproduces them by copying faithfully.
 1. The foreground flip thresholds luminance at 0.35 when the crossover is near
    0.18, giving Grey 3.13:1, Camel 2.83:1 and Khaki 2.48:1 — all under 4.5:1.
    The handoff notes also name Denim as suspect; it passes at 5.65:1.
-2. The slot caption runs at `opacity: .8`, which drops five colours under
+2. The slot caption runs at `opacity: .8`, which drops five colors under
    4.5:1 even with the best foreground.
 3. The swipe reads `clientX` and never `clientY`, so "ignore when vertical
    movement dominates" is unimplemented.
