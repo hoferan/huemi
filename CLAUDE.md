@@ -36,6 +36,10 @@ Playwright against a real build, never in a unit test. See
 Node is pinned in `.nvmrc`. With `engine-strict` on, any other version refuses to
 install.
 
+`.claude/launch.json` is tracked, against the global ignore Claude Code suggests for
+that path. It sets `autoPort`, so the desktop app gives the dev server a free port,
+and `vite.config.ts` reads that port from `PORT`. Neither half works alone.
+
 ## Where to look
 
 `docs/adr/` records the decisions that shaped the project and would otherwise be
