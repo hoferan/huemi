@@ -3,11 +3,50 @@
 Color-blocking web application. Public repository, MIT licensed, hosted at
 `github.com/hoferan/huemi`.
 
-## Where the project stands
+## Stack and commands
 
-No stack has been chosen, so the repository has no dependencies and no build. If
-you are reaching for a build or test command, it does not exist yet. Ask instead
-of guessing at one.
+React 19 and TypeScript on Vite 8, built as a static single-page app. StyleX for
+styling, Radix UI for unstyled primitives, lucide-react for icons. Vitest with
+Testing Library for unit tests, Playwright for browser tests, Codecov for coverage.
+
+| | |
+| --- | --- |
+| `npm run dev` | Dev server |
+| `npm run build` | Production build |
+| `npm run preview` | Serve the build |
+| `npm test` | Unit tests |
+| `npm run test:coverage` | Unit tests with coverage |
+| `npm run typecheck` | `tsc` over the app and the build config |
+| `npm run lint` | ESLint |
+
+**Every dependency is pinned exactly.** `.npmrc` sets `save-exact=true` and
+`engine-strict=true`. Do not introduce range specifiers; Dependabot raises updates as
+reviewable pull requests.
+
+**TypeScript is pinned to 6.0.3 deliberately**, behind the current release.
+`typescript-eslint` supports only below 6.1.0, and TypeScript 7 ships no importable
+compiler API until 7.1, so upgrading it silently removes typed linting. See
+[ADR 0001](docs/adr/0001-client-side-spa-on-vite.md).
+
+**StyleX produces no CSS under Vitest.** Its plugin injects the stylesheet from a
+build hook that Vitest never calls, so assert rendered color and computed style in
+Playwright against a real build, never in a unit test. See
+[ADR 0002](docs/adr/0002-stylex-over-tailwind.md).
+
+Node is pinned in `.nvmrc`. With `engine-strict` on, any other version refuses to
+install.
+
+## Where to look
+
+`docs/adr/` records the decisions that shaped the project and would otherwise be
+reconstructed from guesswork.
+
+`docs/design/` holds the original brief and the Claude Design prototypes the
+interface came from, along with the known defects in them. The prototypes are a first
+draft and the code supersedes them; where the two disagree, the code is right.
+
+`A11Y.md` lists the accessibility invariants, separating what the code enforces today
+from what later milestones still owe.
 
 ## Conventions
 
@@ -58,12 +97,15 @@ a decision, point at the enforcement rather than restating the rule.
 
 See [ADR 0007](docs/adr/0007-transient-plans-durable-decisions.md).
 
-## When the stack arrives
+## Still outstanding
 
-The build-output section of `.gitignore` is a stub holding `dist/`, `build/` and
-`coverage/`. Extend it with whatever the toolchain produces, and record the build
-and test commands here so later sessions can find them.
+These were waiting on the stack choice and are now unblocked, but not yet done.
 
-Dependabot security updates are on but do nothing until a lockfile exists. A
-`.github/dependabot.yml` for version updates, CodeQL scanning, and a
-`required_status_checks` rule on the ruleset all wait on the stack choice.
+A `.github/workflows/ci.yml` running lint, typecheck, tests with coverage, the build
+and the browser suite, with a `codecov.yml` gate. A `.github/dependabot.yml` for
+version updates, grouped and prefixed so its pull requests satisfy the Conventional
+Commit title check. CodeQL, through GitHub's default setup rather than a committed
+workflow, with `docs/design/**` excluded. A `required_status_checks` rule on the
+`main` ruleset, requiring one always-running gate job rather than the individual
+jobs, because a required check that is skipped never reports and blocks the pull
+request forever.
