@@ -25,7 +25,18 @@ export const PALETTE: readonly NamedColor[] = [
   { name: 'Mustard', hex: parseHex('#c39a3a') },
 ];
 
-/** Nearest palette name by perceptual distance. */
+/**
+ * Nearest palette name by OKLab perceptual distance.
+ *
+ * OKLab provides perceptually uniform color distance, which is the appropriate
+ * default for camera-read colors of unknown origin. The color name is the only
+ * non-color channel available to users with color vision deficiency, making
+ * naming accuracy an accessibility feature. For this palette of 18 muted colors,
+ * RGB and OKLab distance metrics agree everywhere except where an input sits
+ * between two palette entries; even there, margins are small and near-ties
+ * are common. OKLab is chosen as the principled default rather than an
+ * empirically superior alternative.
+ */
 export function nearestName(hex: Hex): string {
   let best = PALETTE[0]!;
   let bestDistance = oklabDistance(best.hex, hex);

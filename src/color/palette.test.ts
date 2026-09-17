@@ -37,14 +37,13 @@ describe('blockLabel', () => {
   });
 });
 
-describe('nearestName discrimination', () => {
-  it('uses OKLab distance, not RGB Euclidean distance', () => {
-    // This color sits between Olive and Camel: RGB(145, 123, 70), HSL(42°, 35%, 42%).
-    // It is lighter and warmer than Olive (hue 59°, L 33%), so Camel is the
-    // perceptually correct match.
-    // RGB: Euclidean distance to Olive is 42.2, to Camel is 43.8 (tie, picks Olive).
-    // OKLab: distance to Olive is 0.0819, to Camel is 0.0772 (picks Camel).
-    // RGB incorrectly picks the darker, greener option.
+describe('nearestName metric regression', () => {
+  it('detects if the distance metric switches away from OKLab', () => {
+    // A color sitting between two palette entries where the metrics differ.
+    // This is a near-tie on both metrics—either answer is defensible—but it pins
+    // the current OKLab-based implementation as the regression baseline.
+    // RGB: Olive 42.2, Camel 43.8 (3.8% gap). OKLab: Camel 0.0772, Olive 0.0819 (6.1% gap).
+    // If the metric accidentally reverts to RGB Euclidean, this test fails.
     const testHex = parseHex('#917b46');
     expect(nearestName(testHex)).toBe('Camel');
   });
