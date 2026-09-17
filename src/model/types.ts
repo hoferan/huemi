@@ -45,3 +45,18 @@ export type Suggestion = {
   name: string;
   slot: Slot;
 };
+
+/**
+ * Roughly how much of an outfit each slot covers, used to weight the chroma
+ * budget (ADR 0009). What is load-bearing here is the ordering, which is what
+ * Moon and Spencer's area finding actually licenses: a coat carries more color
+ * than a bag. The magnitudes are a first cut, tuned against the corpus in #11,
+ * and a test pins the ordering so tuning cannot quietly invert it.
+ */
+export const SLOT_AREA: Readonly<Record<Slot, number>> = {
+  outerwear: 1,
+  top: 0.8,
+  bottom: 0.8,
+  shoes: 0.15,
+  accessory: 0.05,
+};

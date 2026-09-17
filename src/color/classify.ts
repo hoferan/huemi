@@ -1,5 +1,5 @@
 import type { Hex } from '../model/hex';
-import { hexToOklab } from './oklab';
+import { hexToOklch } from './oklab';
 
 /**
  * Below this OKLab chroma a color reads as a neutral regardless of hue.
@@ -16,13 +16,8 @@ const NEUTRAL_CHROMA = 0.02;
 const WARM_FROM = 320;
 const WARM_TO = 130;
 
-function hueDegrees(a: number, b: number): number {
-  return ((Math.atan2(b, a) * 180) / Math.PI + 360) % 360;
-}
-
 export function chroma(hex: Hex): number {
-  const [, a, b] = hexToOklab(hex);
-  return Math.hypot(a, b);
+  return hexToOklch(hex).c;
 }
 
 export function isNeutral(hex: Hex): boolean {
@@ -30,8 +25,7 @@ export function isNeutral(hex: Hex): boolean {
 }
 
 export function temperature(hex: Hex): 'warm' | 'cool' | 'neutral' {
-  const [, a, b] = hexToOklab(hex);
-  if (Math.hypot(a, b) < NEUTRAL_CHROMA) return 'neutral';
-  const hue = hueDegrees(a, b);
-  return hue >= WARM_FROM || hue < WARM_TO ? 'warm' : 'cool';
+  const { c, h } = hexToOklch(hex);
+  if (c < NEUTRAL_CHROMA) return 'neutral';
+  return h >= WARM_FROM || h < WARM_TO ? 'warm' : 'cool';
 }

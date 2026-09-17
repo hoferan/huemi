@@ -26,6 +26,26 @@ export function hexToOklab(hex: Hex): Oklab {
   ];
 }
 
+/** Lightness 0-1, chroma 0-~0.4, hue 0-360 degrees. */
+export type Oklch = { l: number; c: number; h: number };
+
+/**
+ * The polar reading of the same color. The engine reasons in lightness, chroma
+ * and hue separately (ADR 0009), so it wants these named rather than the
+ * cartesian a and b.
+ *
+ * Hue is meaningless as chroma approaches zero: Black and Grey both land at 90
+ * here on rounding noise alone. Callers test neutrality before reading `h`.
+ */
+export function hexToOklch(hex: Hex): Oklch {
+  const [l, a, b] = hexToOklab(hex);
+  return {
+    l,
+    c: Math.hypot(a, b),
+    h: ((Math.atan2(b, a) * 180) / Math.PI + 360) % 360,
+  };
+}
+
 /** Perceptual distance. Replaces the prototype's RGB Euclidean metric. */
 export function oklabDistance(a: Hex, b: Hex): number {
   const [l1, a1, b1] = hexToOklab(a);
