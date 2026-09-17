@@ -28,3 +28,6 @@ pnpm-lock.yaml linguist-generated=true -diff
 
 # Vendored third-party skills: not huemi source, excluded from language stats.
 .claude/skills/** linguist-vendored
+
+# Design prototypes: exported, not authored, and excluded from language stats.
+docs/design/prototypes/** linguist-vendored

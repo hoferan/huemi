@@ -2,10 +2,26 @@
 
 A color-blocking web application.
 
-## Status
+## Getting started
 
-The repository holds housekeeping files and nothing else. No stack has been
-picked yet, so there is nothing to install or run.
+Node 24.21.0, pinned in `.nvmrc`.
+
+```bash
+npm ci
+```
+
+|                         |                                 |
+| ----------------------- | ------------------------------- |
+| `npm run dev`           | Dev server                      |
+| `npm run build`         | Production build                |
+| `npm test`              | Unit tests                      |
+| `npm run test:coverage` | Unit tests with coverage        |
+| `npm run e2e`           | Playwright, needs a build first |
+| `npm run lint`          | ESLint                          |
+| `npm run typecheck`     | `tsc --noEmit`                  |
+
+See `CLAUDE.md` for the full stack and its pinning policy, `docs/design/` for
+the design record, and `A11Y.md` for the accessibility invariants.
 
 ## Layout
 
