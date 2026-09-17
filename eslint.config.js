@@ -82,7 +82,8 @@ export default tseslint.config(
       '@stylexjs/no-unused': 'error',
 
       // Layering for the zones that exist today: model, color and storage
-      // may each only import themselves and model. Nothing imports app.
+      // may each only import themselves and model. Nothing outside app
+      // imports app (enforced together with the override block below).
       // session, ui, and features arrive in a later milestone; add zones for
       // them then rather than assuming this list already covers them.
       'import-x/no-restricted-paths': [
@@ -92,14 +93,24 @@ export default tseslint.config(
             { target: './src/model', from: './src', except: ['./model'] },
             { target: './src/color', from: './src', except: ['./model', './color'] },
             { target: './src/storage', from: './src', except: ['./model', './storage'] },
-            {
-              target: ['./src/model', './src/color', './src/storage'],
-              from: './src/app',
-            },
+            { target: './src', from: './src/app' },
           ],
         },
       ],
       'import-x/no-cycle': 'error',
+    },
+  },
+  {
+    // The zone above targets all of `./src`, including app's own files, so
+    // it would otherwise flag app importing from itself. Turning the rule
+    // off here instead of adding an `except` path exempts app without
+    // relying on a directory list that future top-level folders (styles
+    // today, session/ui/features later) could silently fall outside of.
+    // This costs nothing: zones 1-3 target model, color and storage
+    // specifically, so they never matched app's files either way.
+    files: ['src/app/**'],
+    rules: {
+      'import-x/no-restricted-paths': 'off',
     },
   },
   prettier,
