@@ -26,11 +26,11 @@ export default tseslint.config(
   ...tseslint.configs.recommendedTypeChecked,
   {
     // typescript-eslint's base config sets the TS parser with no `files`
-    // restriction, so type-checked rules reach plain JS files too (this repo
-    // has exactly one: eslint.config.js itself) even though no parserOptions
-    // project covers them. Turn the typed rules back off there instead of
-    // giving every JS file a tsconfig project it doesn't need.
-    files: ['**/*.js'],
+    // restriction, so type-checked rules reach this file even though no
+    // parserOptions project covers it. Scoped to this one file, not `**/*.js`
+    // generally: the project is TypeScript throughout, and a blanket JS
+    // exemption would silently cover any future `.js` file too.
+    files: ['eslint.config.js'],
     extends: [tseslint.configs.disableTypeChecked],
   },
   {
@@ -81,8 +81,10 @@ export default tseslint.config(
       '@stylexjs/enforce-extension': 'error',
       '@stylexjs/no-unused': 'error',
 
-      // Layering: model <- color <- session <- features -> ui, app -> features,
-      // and nothing imports app.
+      // Layering for the zones that exist today: model, color and storage
+      // may each only import themselves and model. Nothing imports app.
+      // session, ui, and features arrive in a later milestone; add zones for
+      // them then rather than assuming this list already covers them.
       'import-x/no-restricted-paths': [
         'error',
         {
@@ -90,7 +92,10 @@ export default tseslint.config(
             { target: './src/model', from: './src', except: ['./model'] },
             { target: './src/color', from: './src', except: ['./model', './color'] },
             { target: './src/storage', from: './src', except: ['./model', './storage'] },
-            { target: './src', from: './src/app', except: ['./app'] },
+            {
+              target: ['./src/model', './src/color', './src/storage'],
+              from: './src/app',
+            },
           ],
         },
       ],
