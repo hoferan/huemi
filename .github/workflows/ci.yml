@@ -1,0 +1,113 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  # Never cancel on main: a cancelled run leaves a required check unreported.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      # '!cancelled()' so one run surfaces every failure, not just the first.
+      - run: npm run typecheck
+        if: ${{ !cancelled() }}
+      - run: npm run test:coverage
+        if: ${{ !cancelled() }}
+      - run: npm run build
+        if: ${{ !cancelled() }}
+      - name: Upload coverage
+        # codecov/codecov-action v7.1.0
+        uses: codecov/codecov-action@0b35c9ecc4f0529d0eb674914510c22f85b196b4
+        if: ${{ !cancelled() }}
+        with:
+          use_oidc: true
+          files: ./coverage/lcov.info
+          fail_ci_if_error: true
+
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Resolve Playwright version
+        id: pw
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v6
+        id: pw-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.pw.outputs.version }}
+      # Always run with --with-deps on a miss: the cache holds browser
+      # binaries, not the apt-installed OS libraries they need.
+      - run: npx playwright install --with-deps chromium
+        if: steps.pw-cache.outputs.cache-hit != 'true'
+      - run: npx playwright install-deps chromium
+        if: steps.pw-cache.outputs.cache-hit == 'true'
+      - run: npm run build
+      # TODO(Task 11): generate Playwright specs from the .feature files via
+      # playwright-bdd before running the suite (e.g. its `bddgen` step).
+      # Read playwright-bdd's own docs for the exact invocation rather than
+      # guessing here.
+      - run: npm run e2e
+      - uses: actions/upload-artifact@v7
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+
+  # Job id uses an underscore, not a hyphen: `needs.pr-title.result` parses as
+  # a subtraction in a GitHub expression and silently evaluates to nothing.
+  pr_title:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    steps:
+      # amannn/action-semantic-pull-request v6.1.1
+      - uses: amannn/action-semantic-pull-request@48f256284bd46cdaab1048c3721360e808335d50
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  all-green:
+    if: always()
+    needs: [verify, e2e, pr_title]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fail unless every dependency succeeded
+        run: |
+          echo "verify=${{ needs.verify.result }}"
+          echo "e2e=${{ needs.e2e.result }}"
+          echo "pr_title=${{ needs.pr_title.result }}"
+          [ "${{ needs.verify.result }}" = "success" ] || exit 1
+          [ "${{ needs.e2e.result }}" = "success" ] || exit 1
+          # pr_title is skipped on pushes to main; that is not a failure.
+          [ "${{ needs.pr_title.result }}" = "success" ] || [ "${{ needs.pr_title.result }}" = "skipped" ] || exit 1
