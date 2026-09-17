@@ -35,6 +35,12 @@ export default defineConfig({
     stylexPlugin,
     react(),
   ],
+  server: {
+    // The preview harness assigns a free port and passes it in PORT, which
+    // Vite does not read on its own. Leaving the value undefined falls back
+    // to Vite's default, so a plain `npm run dev` still serves on 5173.
+    port: process.env.PORT ? Number(process.env.PORT) : undefined,
+  },
   test: {
     environment: 'jsdom',
     globals: true,
