@@ -52,6 +52,13 @@ draft and the code supersedes them; where the two disagree, the code is right.
 `A11Y.md` lists the accessibility invariants, separating what the code enforces today
 from what later milestones still owe.
 
+`src/dev/` is the color engine's harness, served at `/harness.html` while the dev
+server runs. It renders candidate combinations as large blocks with their measured
+numbers, so the regression corpus is authored by looking at colors rather than at a
+table of hex values (ADR 0006). It is a development instrument: Vite builds only
+`index.html`, so nothing under `src/dev/` reaches the bundle, and it is excluded from
+coverage because what it is for is judgement no assertion replaces.
+
 ## Conventions
 
 Whitespace and encoding come from `.editorconfig`: UTF-8, LF, two-space indent,

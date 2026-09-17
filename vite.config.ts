@@ -61,6 +61,10 @@ export default defineConfig({
         'src/main.tsx',
         'src/test-setup.ts',
         'src/vite-env.d.ts',
+        // The harness is a development instrument, served from harness.html
+        // and never built. It is deliberately untested: what it is for is
+        // looking at colors, which no assertion replaces.
+        'src/dev/**',
       ],
     },
   },
