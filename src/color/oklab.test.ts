@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { parseHex } from '../model/hex';
-import { hexToOklab, oklabDistance } from './oklab';
+import { hexToOklab, hexToOklch, oklabDistance } from './oklab';
 
 describe('hexToOklab', () => {
   it('puts white at L=1 with no chroma', () => {
@@ -12,6 +12,30 @@ describe('hexToOklab', () => {
 
   it('puts black at L=0', () => {
     expect(hexToOklab(parseHex('#000000'))[0]).toBeCloseTo(0, 3);
+  });
+});
+
+describe('hexToOklch', () => {
+  it('reports no chroma for a pure grey', () => {
+    expect(hexToOklch(parseHex('#8a8a8a')).c).toBeCloseTo(0, 5);
+  });
+
+  it('carries the same lightness as hexToOklab', () => {
+    const hex = parseHex('#4a6285');
+    expect(hexToOklch(hex).l).toBeCloseTo(hexToOklab(hex)[0], 10);
+  });
+
+  it('reports hue in degrees, wrapped into 0 to 360', () => {
+    for (const hex of ['#a4522d', '#1f2a44', '#2f4a3a', '#6b2733']) {
+      const { h } = hexToOklch(parseHex(hex));
+      expect(h, hex).toBeGreaterThanOrEqual(0);
+      expect(h, hex).toBeLessThan(360);
+    }
+  });
+
+  it('puts rust in the warm half and navy in the cool half', () => {
+    expect(hexToOklch(parseHex('#a4522d')).h).toBeLessThan(130);
+    expect(hexToOklch(parseHex('#1f2a44')).h).toBeGreaterThan(130);
   });
 });
 
