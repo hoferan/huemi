@@ -110,13 +110,28 @@ export function rate(base: Hex, candidate: Hex, slot: Slot, baseSlot: Slot): num
   );
 }
 
+type Ranked = { suggestion: Suggestion; score: number };
+
+/**
+ * Score first, then name.
+ *
+ * Exported so the tie-break can be asserted directly, the way `contrast.ts`
+ * exports its foreground pair. No two palette colors score equal today, so a
+ * test driving this through `suggest` never reaches the second clause, and the
+ * second clause is the whole point: without it equal scores fall back to the
+ * sort's stability, which is to say to the order the palette happens to be
+ * written in.
+ */
+export function byScoreThenName(a: Ranked, b: Ranked): number {
+  return b.score - a.score || a.suggestion.name.localeCompare(b.suggestion.name);
+}
+
 /**
  * Colors for one slot against a locked base, best first.
  *
  * The whole palette comes back rather than a top few: the suggestions screen
  * offers alternatives for any slot, and where to cut the list is its decision,
- * not the engine's. Ties break on name so the order never depends on how the
- * palette happens to be written down.
+ * not the engine's.
  */
 export function suggest(base: Hex, slot: Slot, baseSlot: Slot): Suggestion[] {
   return PALETTE.filter((color) => !(slot === baseSlot && color.hex === base))
@@ -124,6 +139,6 @@ export function suggest(base: Hex, slot: Slot, baseSlot: Slot): Suggestion[] {
       suggestion: { hex: color.hex, name: color.name, slot },
       score: rate(base, color.hex, slot, baseSlot),
     }))
-    .sort((a, b) => b.score - a.score || a.suggestion.name.localeCompare(b.suggestion.name))
+    .sort(byScoreThenName)
     .map((ranked) => ranked.suggestion);
 }

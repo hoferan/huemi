@@ -3,7 +3,7 @@ import { parseHex, type Hex } from '../model/hex';
 import type { Slot } from '../model/types';
 import { PALETTE } from './palette';
 
-import { suggest } from './engine';
+import { byScoreThenName, suggest } from './engine';
 
 const NAVY = parseHex('#1f2a44');
 const RUST = parseHex('#a4522d');
@@ -103,5 +103,26 @@ describe('suggest, reading the candidate as the figure', () => {
   it('does not collapse to the hues nearest the base', () => {
     const ranked = suggest(WHITE, 'top', 'bottom');
     expect(ranked[0]!.name).not.toBe('Light grey');
+  });
+});
+
+describe('byScoreThenName', () => {
+  const ranked = (name: string, score: number) => ({
+    suggestion: { hex: parseHex('#1b1b1b'), name, slot: 'top' as Slot },
+    score,
+  });
+
+  it('puts the higher score first, whatever the names are', () => {
+    expect(byScoreThenName(ranked('Zinc', 2), ranked('Amber', 1))).toBeLessThan(0);
+    expect(byScoreThenName(ranked('Amber', 1), ranked('Zinc', 2))).toBeGreaterThan(0);
+  });
+
+  it('breaks a tie on name, so the order never follows the palette order', () => {
+    expect(byScoreThenName(ranked('Rust', 1), ranked('Cream', 1))).toBeGreaterThan(0);
+    expect(byScoreThenName(ranked('Cream', 1), ranked('Rust', 1))).toBeLessThan(0);
+  });
+
+  it('is zero only when both agree', () => {
+    expect(byScoreThenName(ranked('Rust', 1), ranked('Rust', 1))).toBe(0);
   });
 });
