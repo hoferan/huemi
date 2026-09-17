@@ -37,10 +37,16 @@ jobs:
         if: ${{ !cancelled() }}
       - run: npm run build
         if: ${{ !cancelled() }}
+      # Skipped for pull requests from forks. Those runs get a read-only token
+      # and no OIDC, so the upload would fail and, because all-green is a
+      # required check, an outside contributor's pull request could never pass.
+      # Everything that actually verifies the change still runs for them; only
+      # the coverage upload is skipped. On pushes to main the pull_request
+      # context is absent, so the condition is true and coverage uploads.
       - name: Upload coverage
         # codecov/codecov-action v7.1.0
         uses: codecov/codecov-action@0b35c9ecc4f0529d0eb674914510c22f85b196b4
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && github.event.pull_request.head.repo.fork != true }}
         with:
           use_oidc: true
           files: ./coverage/lcov.info
