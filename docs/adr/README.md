@@ -21,13 +21,13 @@ supersedes it, in which case both say so.
 
 ## Records
 
-| | Decision |
-| --- | --- |
-| [0001](0001-client-side-spa-on-vite.md) | Build huemi as a client-side single-page app on Vite |
-| [0002](0002-stylex-over-tailwind.md) | Style with StyleX rather than Tailwind |
-| [0003](0003-radix-over-shadcn.md) | Use Radix primitives rather than shadcn/ui |
-| [0004](0004-black-and-white-foreground.md) | Put black or white text on color, not a softened pair |
-| [0005](0005-outfits-store-hexes.md) | Store outfit pieces as hexes, never as suggestion indices |
-| [0006](0006-color-engine-before-screens.md) | Build the color engine before any screen |
-| [0007](0007-transient-plans-durable-decisions.md) | Keep working documents transient and decisions durable |
-| [0008](0008-gherkin-feature-files-for-e2e.md) | Write end-to-end tests as Gherkin feature files |
+|                                                   | Decision                                                  |
+| ------------------------------------------------- | --------------------------------------------------------- |
+| [0001](0001-client-side-spa-on-vite.md)           | Build huemi as a client-side single-page app on Vite      |
+| [0002](0002-stylex-over-tailwind.md)              | Style with StyleX rather than Tailwind                    |
+| [0003](0003-radix-over-shadcn.md)                 | Use Radix primitives rather than shadcn/ui                |
+| [0004](0004-black-and-white-foreground.md)        | Put black or white text on color, not a softened pair     |
+| [0005](0005-outfits-store-hexes.md)               | Store outfit pieces as hexes, never as suggestion indices |
+| [0006](0006-color-engine-before-screens.md)       | Build the color engine before any screen                  |
+| [0007](0007-transient-plans-durable-decisions.md) | Keep working documents transient and decisions durable    |
+| [0008](0008-gherkin-feature-files-for-e2e.md)     | Write end-to-end tests as Gherkin feature files           |

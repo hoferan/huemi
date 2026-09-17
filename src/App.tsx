@@ -15,7 +15,7 @@ const styles = stylex.create({
   block: (background: string) => ({
     backgroundColor: background,
     borderRadius: tokens.radius,
-    flex: 1,
+    flex: '1',
     minHeight: tokens.touchTarget,
   }),
 });

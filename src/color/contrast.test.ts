@@ -10,9 +10,24 @@ import {
 } from './contrast';
 
 const PALETTE_HEXES = [
-  '#1b1b1b', '#3d3d3f', '#8a8a8a', '#e6e5e2', '#f7f6f3', '#e9dfc9',
-  '#1f2a44', '#4a6285', '#a9bfd4', '#2f4a3a', '#6b6a3f', '#a89c78',
-  '#b58a5a', '#c9ad86', '#5a3e2e', '#6b2733', '#a4522d', '#c39a3a',
+  '#1b1b1b',
+  '#3d3d3f',
+  '#8a8a8a',
+  '#e6e5e2',
+  '#f7f6f3',
+  '#e9dfc9',
+  '#1f2a44',
+  '#4a6285',
+  '#a9bfd4',
+  '#2f4a3a',
+  '#6b6a3f',
+  '#a89c78',
+  '#b58a5a',
+  '#c9ad86',
+  '#5a3e2e',
+  '#6b2733',
+  '#a4522d',
+  '#c39a3a',
 ];
 
 describe('relativeLuminance', () => {
@@ -43,7 +58,11 @@ describe('readableForeground', () => {
 
   it('fixes the three colors the prototype fails', () => {
     // The prototype's 0.35 threshold gives 3.13, 2.83 and 2.48 here.
-    for (const [value, atLeast] of [['#8a8a8a', 5.3], ['#b58a5a', 5.9], ['#a89c78', 6.7]] as const) {
+    for (const [value, atLeast] of [
+      ['#8a8a8a', 5.3],
+      ['#b58a5a', 5.9],
+      ['#a89c78', 6.7],
+    ] as const) {
       expect(readableForeground(parseHex(value)).ratio).toBeGreaterThan(atLeast);
     }
   });

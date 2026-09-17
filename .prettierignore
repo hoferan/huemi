@@ -1,0 +1,13 @@
+dist
+coverage
+playwright-report
+test-results
+package-lock.json
+docs/design
+.claude/skills
+
+# Gitignored, transient working documents and scratch space (see CLAUDE.md
+# and .gitignore). They aren't this project's source, so leave them
+# formatted however their own tooling produced them.
+.superpowers
+tmp
