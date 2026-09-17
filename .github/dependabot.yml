@@ -12,6 +12,18 @@ updates:
       prod-minor:
         dependency-type: production
         update-types: [minor, patch]
+    ignore:
+      # @types/node majors track the Node line they describe, and package.json
+      # pins engines to node >=24.21.0 <25. Types past 24.x would describe APIs
+      # this runtime does not have, and tsc would accept calls that fail at run
+      # time. Raise this together with the engines range.
+      - dependency-name: '@types/node'
+        update-types: [version-update:semver-major]
+      # typescript-eslint caps its typescript peer at <6.1.0, so a TypeScript
+      # major fails to install at all: npm ci stops on ERESOLVE before any code
+      # runs. Drop this once typescript-eslint widens the range.
+      - dependency-name: typescript
+        update-types: [version-update:semver-major]
     commit-message:
       prefix: chore
       include: scope
