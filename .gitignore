@@ -53,6 +53,11 @@ e2e/**/*.feature.spec.js
 # Claude Code local state
 .claude/settings.local.json
 
+# This dev server launch config holds nothing machine-specific: it names only
+# `npm run dev` and lets the harness assign the port. Claude Code suggests
+# ignoring the path globally; a rule here outranks that.
+!.claude/launch.json
+
 # Transient planning documents: specs, plans, briefs and ledgers.
 # See docs/adr/0007-transient-plans-durable-decisions.md
 docs/superpowers/
