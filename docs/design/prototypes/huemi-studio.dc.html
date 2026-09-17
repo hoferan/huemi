@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600&display=swap">
+  <style>
+    *,*::before,*::after{box-sizing:border-box}
+    body{margin:0;background:#bdb9b2;font-family:'Outfit',system-ui,sans-serif;color:#151413;-webkit-font-smoothing:antialiased}
+    h1,h2{font-family:'Outfit',system-ui,sans-serif;font-weight:600;margin:0;letter-spacing:-0.02em}
+    a{color:#101010} a:hover{color:#4a4845}
+    button{font-family:inherit}
+    button:focus-visible{outline:2px solid #151413;outline-offset:2px}
+    input.hm-range{-webkit-appearance:none !important;appearance:none !important;width:100%;height:36px;margin:0;padding:0;border:0;background:transparent !important;cursor:pointer;accent-color:#1c1b1a}
+    input.hm-range::-webkit-slider-runnable-track{height:14px;border-radius:999px;background:var(--track,rgba(0,0,0,.22))}
+    input.hm-range::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:30px;height:30px;margin-top:-8px;border-radius:50%;background:#fff;border:3px solid #1c1b1a;box-shadow:0 3px 10px rgba(0,0,0,.2)}
+    input.hm-range::-moz-range-track{height:14px;border-radius:999px;background:var(--track,rgba(0,0,0,.22))}
+    input.hm-range::-moz-range-thumb{width:24px;height:24px;border-radius:50%;background:#fff;border:3px solid #1c1b1a}
+  </style>
+</helmet>
+<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:32px 16px">
+  <div data-screen-label="huemi phone" style="--bg:#d8d5cf;--surface:#cbc7c0;--ink:#151413;--ink2:#4a4845;--line:rgba(0,0,0,.2);--dark:#1c1b1a;--darkfg:#f3f1ee;--primary:#1c1b1a;--primaryfg:#f3f1ee;--fh:'Outfit',system-ui,sans-serif;--fb:'Outfit',system-ui,sans-serif;--r:14px;--rm:10px;position:relative;width:390px;height:844px;flex:none;border-radius:44px;background:var(--bg);color:var(--ink);font-family:var(--fb);box-shadow:0 24px 60px rgba(0,0,0,.28);overflow:hidden;display:flex;flex-direction:column">
+
+    <!-- top bar -->
+    <div style="display:flex;align-items:center;gap:8px;padding:56px 16px 12px;min-height:104px">
+      <sc-if value="{{ canBack }}" hint-placeholder-val="{{ false }}">
+        <button onClick="{{ back }}" aria-label="Back" style="width:44px;height:44px;border-radius:999px;border:1px solid var(--line);background:transparent;display:grid;place-items:center;cursor:pointer;color:var(--ink)" style-hover="background:var(--surface)">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"></path></svg>
+        </button>
+      </sc-if>
+      <h1 style="font-size:{{ titleSize }};margin:0;flex:1;line-height:1;letter-spacing:{{ titleLs }};display:flex;align-items:center;gap:10px" data-comment-anchor="fb1a802f25-h1"><sc-if value="{{ isEntry }}" hint-placeholder-val="{{ true }}"><span style="display:flex;flex-direction:column;flex:none;width:28px;height:40px;border-radius:9px;overflow:hidden"><sc-for list="{{ logoStripes }}" as="c" hint-placeholder-count="4"><span style="flex:1;background:{{ c }}"></span></sc-for></span></sc-if>{{ title }}</h1>
+      <sc-if value="{{ showSave }}" hint-placeholder-val="{{ false }}">
+        <button onClick="{{ toggleSaved }}" aria-label="Save outfit" style="width:44px;height:44px;border-radius:999px;border:1px solid var(--line);background:transparent;display:grid;place-items:center;cursor:pointer;color:var(--ink)" style-hover="background:var(--surface)">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="{{ savedFill }}" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"></path></svg>
+        </button>
+      </sc-if>
+    </div>
+
+    <!-- ONBOARDING -->
+    <sc-if value="{{ isOnboard }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="Onboarding" style="position:absolute;inset:0;z-index:2;background:var(--bg);display:flex;flex-direction:column;padding:96px 24px 24px;gap:24px">
+        <div style="display:flex;gap:6px;height:180px">
+          <span style="flex:1;border-radius:var(--rm);background:#3d3d3f"></span>
+          <span style="flex:1;border-radius:var(--rm);background:#e9dfc9;box-shadow:inset 0 0 0 1px var(--line)"></span>
+          <span style="flex:1;border-radius:var(--rm);background:#1f2a44"></span>
+          <span style="flex:1;border-radius:var(--rm);background:#5a3e2e"></span>
+        </div>
+        <h2 style="font-size:32px;line-height:1.05;letter-spacing:-.02em;max-width:300px;text-wrap:pretty">One piece you own. The rest that goes with it.</h2>
+        <div style="display:flex;flex-direction:column;gap:14px;font-size:16px;line-height:1.4;color:var(--ink2);flex:1">
+          <p style="margin:0"><span style="color:var(--ink);font-weight:600">Start with a garment.</span> Photograph it, or pick its color.</p>
+          <p style="margin:0"><span style="color:var(--ink);font-weight:600">Swipe a block</span> to see another option.</p>
+          <p style="margin:0"><span style="color:var(--ink);font-weight:600">Hold a block</span> to keep it while you shuffle the rest.</p>
+        </div>
+        <button onClick="{{ finishOnboard }}" style="display:inline-flex;align-items:center;justify-content:center;border-radius:999px;border:none;background:var(--primary);color:var(--primaryfg);font-family:var(--fh);font-weight:600;cursor:pointer;min-height:56px;font-size:17px">Start</button>
+      </div>
+    </sc-if>
+
+    <!-- ENTRY -->
+    <sc-if value="{{ isEntry }}" hint-placeholder-val="{{ true }}">
+      <div data-screen-label="Entry" style="flex:1;display:flex;flex-direction:column;gap:12px;padding:0 16px 24px" data-comment-anchor="5680ff1e90-div">
+        <p style="font-size:18px;line-height:1.4;max-width:320px;margin:0 0 12px;text-wrap:pretty">Start from one garment you own. <span style="font-family:var(--fh);font-weight:600">huemi</span> tells you what goes with it.</p>
+        <button onClick="{{ goCamera }}" style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:flex-start;gap:4px;padding:16px;border-radius:var(--r);border:none;background:var(--dark);color:var(--darkfg);cursor:pointer;text-align:left" style-hover="background:var(--dark)" data-comment-anchor="eb838a36c8-button">
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:auto"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"></path><circle cx="12" cy="13" r="3"></circle></svg>
+          <span style="font-family:var(--fh);font-size:24px;line-height:1.1">Photograph a garment</span>
+          <span style="font-size:14px;opacity:.75">Or use a photo you already have.</span>
+        </button>
+        <button onClick="{{ goPick }}" style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:flex-start;gap:4px;padding:16px;border-radius:var(--r);border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer;text-align:left" style-hover="background:var(--surface)">
+          <span style="display:flex;gap:4px;margin-bottom:auto"><span style="width:28px;height:28px;border-radius:8px;background:#6b2733"></span><span style="width:28px;height:28px;border-radius:8px;background:#e9dfc9;box-shadow:inset 0 0 0 1px var(--line)"></span><span style="width:28px;height:28px;border-radius:8px;background:#3d3d3f"></span></span>
+          <span style="font-family:var(--fh);font-size:24px;line-height:1.1">Pick a color</span>
+          <span style="font-size:14px;opacity:.7">Already know it? Choose it directly.</span>
+        </button>
+        <button onClick="{{ goSaved }}" style="display:flex;align-items:center;gap:12px;padding:12px 16px;min-height:64px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer;text-align:left;font-size:16px" style-hover="background:var(--surface)">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"></path></svg>
+          <span style="flex:1">Saved outfits</span>
+          <span style="font-size:14px;color:var(--ink2)">{{ savedCount }}</span>
+        </button>
+        <button onClick="{{ goRate }}" style="display:flex;align-items:center;gap:12px;padding:12px 16px;min-height:64px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer;text-align:left;font-size:16px" style-hover="background:var(--surface)">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"></path></svg>
+          <span style="flex:1">Check an outfit</span>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg>
+        </button>
+      </div>
+    </sc-if>
+
+    <!-- WHICH GARMENT -->
+    <sc-if value="{{ isSlot }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="Which garment" style="flex:1;display:flex;flex-direction:column;gap:10px;padding:0 16px 16px;min-height:0" data-comment-anchor="df9c1448d7-div">
+        <p style="margin:0 0 4px;font-size:15px;color:var(--ink2)">The piece you're starting from.</p>
+        <sc-for list="{{ slotRows }}" as="s" hint-placeholder-count="5">
+          <button onClick="{{ s.pick }}" style="flex:1;display:flex;align-items:center;gap:14px;padding:0 18px;border-radius:var(--r);border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer;text-align:left;font:inherit;min-height:60px" style-hover="background:var(--dark);color:var(--darkfg)">
+            <span style="font-family:var(--fh);font-weight:600;font-size:22px;flex:1">{{ s.label }}</span>
+            <span style="font-size:14px;opacity:.7">{{ s.examples }}</span>
+          </button>
+        </sc-for>
+      </div>
+    </sc-if>
+
+    <!-- COLOR INPUT -->
+    <sc-if value="{{ isPick }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="Color input" style="flex:1;display:flex;flex-direction:column;gap:12px;padding:0 16px 16px;min-height:0">
+        <div style="display:flex;gap:8px">
+          <button onClick="{{ setModePalette }}" style="flex:1;min-height:44px;border-radius:999px;border:1px solid var(--line);background:{{ palTabBg }};color:{{ palTabFg }};font:inherit;font-size:15px;cursor:pointer">Common colors</button>
+          <button onClick="{{ setModeFree }}" style="flex:1;min-height:44px;border-radius:999px;border:1px solid var(--line);background:{{ freeTabBg }};color:{{ freeTabFg }};font:inherit;font-size:15px;cursor:pointer">Any color</button>
+        </div>
+        <sc-if value="{{ isPalette }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex;align-items:center;gap:8px;min-height:32px" data-comment-anchor="1d09c46940-div">
+            <span style="font-size:14px;color:var(--ink2);flex:1">{{ seasonNote }}</span>
+            <button onClick="{{ toggleSeason }}" style="background:none;border:none;padding:6px 0;font:inherit;font-size:14px;color:var(--ink);text-decoration:underline;text-underline-offset:3px;cursor:pointer">{{ seasonAction }}</button>
+          </div>
+          <div style="flex:1;display:grid;grid-template-columns:repeat(3,1fr);gap:10px;min-height:0">
+            <sc-for list="{{ palette }}" as="c" hint-placeholder-count="18">
+              <button onClick="{{ c.pick }}" aria-label="{{ c.n }}" style="border-radius:var(--rm);border:{{ c.border }};background:{{ c.h }};cursor:pointer;display:flex;align-items:flex-end;padding:8px 10px;min-height:44px" style-hover="transform:scale(.97)">
+                <span style="font-size:13px;color:{{ c.fg }};opacity:.9">{{ c.n }}</span>
+              </button>
+            </sc-for>
+          </div>
+        </sc-if>
+        <sc-if value="{{ isFree }}" hint-placeholder-val="{{ false }}">
+          <div style="flex:1;display:flex;flex-direction:column;gap:12px;min-height:0">
+            <div style="flex:1;border-radius:var(--r);background:{{ freeHex }};display:flex;align-items:flex-end;padding:12px">
+              <span style="font-size:13px;color:{{ freeFg }};opacity:.85">{{ freeHex }}</span>
+            </div>
+            <label style="display:block;font-size:14px;color:var(--ink2)">Hue
+              <input class="hm-range" type="range" min="0" max="360" value="{{ hue }}" onChange="{{ setHue }}" style="--track:linear-gradient(90deg,#c44,#cc4,#4c4,#4cc,#44c,#c4c,#c44)">
+            </label>
+            <label style="display:block;font-size:14px;color:var(--ink2)">Depth
+              <input class="hm-range" type="range" min="0" max="100" value="{{ sat }}" onChange="{{ setSat }}" style="--track:linear-gradient(90deg,#999,{{ freeSatEnd }})">
+            </label>
+            <label style="display:block;font-size:14px;color:var(--ink2)">Light
+              <input class="hm-range" type="range" min="8" max="92" value="{{ lit }}" onChange="{{ setLit }}" style="--track:linear-gradient(90deg,#111,#eee)">
+            </label>
+            <button onClick="{{ useFree }}" style="display:inline-flex;align-items:center;justify-content:center;border-radius:999px;border:none;background:var(--primary);color:var(--primaryfg);font-family:var(--fh);font-weight:600;cursor:pointer;min-height:52px;font-size:17px">Use this color</button>
+          </div>
+        </sc-if>
+      </div>
+    </sc-if>
+
+    <!-- CAMERA -->
+    <sc-if value="{{ isCamera }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="Camera capture" style="flex:1;display:flex;flex-direction:column;gap:12px;padding:0 16px 16px;min-height:0">
+        <sc-if value="{{ camOk }}" hint-placeholder-val="{{ true }}">
+          <div style="flex:1;border-radius:var(--r);background:radial-gradient(circle at 50% 45%,{{ camHi }} 0,{{ camMid }} 55%,{{ camLo }} 100%);position:relative;display:grid;place-items:center;overflow:hidden;transition:background .3s">
+            <div style="width:170px;height:170px;border-radius:50%;border:3px dashed rgba(255,255,255,.85)"></div>
+            <div style="position:absolute;bottom:12px;left:12px;right:12px;display:flex;flex-direction:column;gap:6px;align-items:flex-start">
+              <sc-if value="{{ camDark }}" hint-placeholder-val="{{ false }}">
+                <span style="font-size:13px;color:#141414;background:#f5b83d;padding:6px 12px;border-radius:999px;font-weight:600">Too dark to read the color. Move to a window or turn on a light.</span>
+              </sc-if>
+              <span style="font-size:13px;color:#fff;background:rgba(0,0,0,.45);padding:6px 12px;border-radius:999px">Fill the circle with the fabric</span>
+            </div>
+          </div>
+        </sc-if>
+        <sc-if value="{{ camDenied }}" hint-placeholder-val="{{ false }}">
+          <div data-screen-label="Camera denied" style="flex:1;border-radius:var(--r);background:var(--surface);border:1px solid var(--line);display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-end;gap:10px;padding:20px">
+            <h2 style="font-size:24px;line-height:1.1">huemi can't see your camera</h2>
+            <p style="margin:0;font-size:15px;line-height:1.45;color:var(--ink2);text-wrap:pretty">Allow camera access in Settings, or pick the color by hand. You can also choose a photo you already have.</p>
+            <div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap">
+              <button onClick="{{ camRetry }}" style="display:inline-flex;align-items:center;justify-content:center;border-radius:999px;border:none;background:var(--primary);color:var(--primaryfg);font-family:var(--fh);font-weight:600;cursor:pointer;min-height:44px;padding:0 18px;font-size:15px">Open Settings</button>
+              <button onClick="{{ goPickDirect }}" style="display:inline-flex;align-items:center;justify-content:center;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--ink);font-family:var(--fh);font-weight:600;cursor:pointer;min-height:44px;padding:0 18px;font-size:15px">Pick a color</button>
+            </div>
+          </div>
+        </sc-if>
+        <div style="display:flex;justify-content:center;gap:8px;font-size:12px;color:var(--ink2)">
+          <span>Demo:</span>
+          <button onClick="{{ camSimDark }}" style="background:none;border:none;padding:0;font:inherit;color:var(--ink);text-decoration:underline;cursor:pointer">{{ camDarkLabel }}</button>
+          <span>·</span>
+          <button onClick="{{ camSimDenied }}" style="background:none;border:none;padding:0;font:inherit;color:var(--ink);text-decoration:underline;cursor:pointer">{{ camDeniedLabel }}</button>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:center;gap:24px">
+          <button onClick="{{ goPickDirect }}" aria-label="Pick manually" style="width:52px;height:52px;border-radius:50%;border:1px solid var(--line);background:transparent;cursor:pointer;display:grid;place-items:center;color:var(--ink)" style-hover="background:var(--surface)">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="8.5" cy="10" r="1"></circle><circle cx="15.5" cy="10" r="1"></circle><circle cx="12" cy="15.5" r="1"></circle></svg>
+          </button>
+          <button onClick="{{ capture }}" aria-label="Capture" style="width:78px;height:78px;border-radius:50%;border:5px solid var(--dark);background:#fff;cursor:pointer;padding:5px;background-clip:content-box" style-hover="background-color:var(--line)"></button>
+          <button onClick="{{ uploadPhoto }}" aria-label="Choose from photos" title="Choose from photos" style="width:52px;height:52px;border-radius:50%;border:1px solid var(--line);background:transparent;cursor:pointer;display:grid;place-items:center;color:var(--ink)" style-hover="background:var(--surface)">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><path d="m21 15-5-5L5 21"></path></svg>
+          </button>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- CONFIRM -->
+    <sc-if value="{{ isConfirm }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="Color confirmation" style="flex:1;display:flex;flex-direction:column;gap:12px;padding:0 16px 16px;min-height:0">
+        <div style="flex:1;display:flex;gap:8px;min-height:0">
+          <div style="flex:1;border-radius:var(--r) var(--rm) var(--rm) var(--r);background:radial-gradient(circle at 45% 40%,{{ readPhotoHi }} 0,{{ readPhotoBase }} 45%,{{ readPhotoLo }} 100%);position:relative;overflow:hidden">
+            <span style="position:absolute;top:12px;left:12px;font-size:13px;color:#fff;background:rgba(0,0,0,.45);padding:6px 12px;border-radius:999px">Your photo</span>
+          </div>
+          <div style="flex:1;border-radius:var(--rm) var(--r) var(--r) var(--rm);background:{{ readHex }};display:flex;flex-direction:column;justify-content:flex-end;padding:12px;gap:2px">
+            <span style="font-size:13px;color:{{ readFg }};opacity:.75">{{ readLabel }}</span>
+            <span style="font-family:var(--fh);font-weight:600;font-size:22px;color:{{ readFg }}">{{ readName }}</span>
+          </div>
+        </div>
+        <sc-if value="{{ adjusting }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <span style="font-size:14px;color:var(--ink2)">Closer to one of these?</span>
+            <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px">
+              <sc-for list="{{ nearby }}" as="c" hint-placeholder-count="5">
+                <button onClick="{{ c.pick }}" aria-label="{{ c.n }}" style="height:64px;border-radius:var(--rm);border:{{ c.border }};background:{{ c.h }};cursor:pointer"></button>
+              </sc-for>
+            </div>
+            <label style="display:block;font-size:14px;color:var(--ink2)">Lighter or darker
+              <input class="hm-range" type="range" min="-30" max="30" value="{{ litShift }}" onChange="{{ setLitShift }}" style="--track:linear-gradient(90deg,#111,{{ readHex }},#eee)">
+            </label>
+          </div>
+        </sc-if>
+        <div style="display:flex;gap:8px">
+          <button onClick="{{ toggleAdjust }}" style="display:inline-flex;align-items:center;justify-content:center;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--ink);font-family:var(--fh);font-weight:600;cursor:pointer;flex:1;min-height:52px;font-size:16px">{{ adjustLabel }}</button>
+          <button onClick="{{ confirmRead }}" style="display:inline-flex;align-items:center;justify-content:center;border-radius:999px;border:none;background:var(--primary);color:var(--primaryfg);font-family:var(--fh);font-weight:600;cursor:pointer;flex:1.4;min-height:52px;font-size:17px">Looks right</button>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- SUGGESTIONS -->
+    <sc-if value="{{ isSuggest }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="Suggestions" style="flex:1;display:flex;flex-direction:column;gap:12px;padding:0 16px 16px;min-height:0">
+        <sc-for list="{{ slots }}" as="s" hint-placeholder-count="5">
+          <div onPointerDown="{{ s.down }}" onPointerUp="{{ s.up }}" onPointerLeave="{{ s.cancel }}" onContextMenu="{{ s.noMenu }}" style="flex:{{ s.grow }};min-height:0;border-radius:var(--r);background:{{ s.hex }};display:flex;align-items:center;padding:0 0 0 14px;gap:8px;cursor:{{ s.cursor }};touch-action:pan-y;user-select:none;transition:background .18s;box-shadow:{{ s.edge }};position:relative;overflow:hidden">
+            <sc-if value="{{ s.locked }}" hint-placeholder-val="{{ false }}">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="{{ s.fg }}" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            </sc-if>
+            <button onClick="{{ s.openAlts }}" style="background:none;border:none;padding:8px 0;font:inherit;font-size:15px;color:{{ s.fg }};cursor:pointer;text-align:left;flex:1;min-height:44px">
+              <span style="display:block;font-size:12px;letter-spacing:.08em;text-transform:uppercase;opacity:.8">{{ s.label }}</span>
+              <span style="display:block;font-family:var(--fh);font-size:{{ s.nameSize }}">{{ s.name }}</span>
+            </button>
+            <sc-if value="{{ s.swipable }}" hint-placeholder-val="{{ true }}">
+              <div style="display:flex;gap:5px;align-items:center;margin-right:10px">
+                <sc-for list="{{ s.dots }}" as="d" hint-placeholder-count="4">
+                  <span style="width:7px;height:7px;border-radius:50%;background:{{ s.fg }};opacity:{{ d.op }}"></span>
+                </sc-for>
+              </div>
+              <button onClick="{{ s.next }}" aria-label="Next suggestion" title="Next suggestion" style="align-self:stretch;width:44px;flex:none;border:none;border-left:2px solid var(--bg);background:{{ s.nextHex }};display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;padding:0;color:{{ s.nextFg }}">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg>
+                <span style="font-size:10px;letter-spacing:.06em;text-transform:uppercase">next</span>
+              </button>
+            </sc-if>
+          </div>
+        </sc-for>
+        <div style="display:flex;align-items:center;gap:10px">
+          <p style="margin:0;flex:1;font-size:14px;color:var(--ink2)">{{ suggestHint }}</p>
+          <button onClick="{{ shuffle }}" style="display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 16px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--ink);font:inherit;font-size:14px;cursor:pointer;white-space:nowrap" style-hover="background:var(--surface)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M2 18h1.4c1.3 0 2.5-.6 3.3-1.7l6.1-8.6c.8-1.1 2-1.7 3.3-1.7H22"></path><path d="m18 2 4 4-4 4"></path><path d="M2 6h1.9c1.5 0 2.9.9 3.6 2.2"></path><path d="M22 18h-5.9c-1.3 0-2.6-.7-3.3-1.8l-.5-.8"></path><path d="m18 14 4 4-4 4"></path></svg>
+            {{ shuffleLabel }}
+          </button>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- ALTERNATIVES SHEET -->
+    <sc-if value="{{ sheetOpen }}" hint-placeholder-val="{{ false }}">
+      <div onClick="{{ closeSheet }}" style="position:absolute;inset:0;background:rgba(32,30,29,.45)"></div>
+      <div data-screen-label="Slot alternatives" style="position:absolute;left:0;right:0;bottom:0;height:72%;border-radius:var(--r) var(--r) 0 0;background:var(--bg);box-shadow:0 12px 32px rgba(0,0,0,.25);display:flex;flex-direction:column;gap:12px;padding:12px 16px 16px">
+        <div style="width:44px;height:5px;border-radius:999px;background:var(--ink2);align-self:center"></div>
+        <div style="display:flex;align-items:baseline;justify-content:space-between">
+          <h2 style="font-size:22px;margin:0">{{ sheetTitle }}</h2>
+          <span style="font-size:14px;color:var(--ink2)">with your {{ baseName }} {{ baseSlotLabel }}</span>
+        </div>
+        <div style="flex:1;display:grid;grid-template-columns:1fr 1fr;gap:12px;min-height:0">
+          <sc-for list="{{ sheetAlts }}" as="a" hint-placeholder-count="4">
+            <button onClick="{{ a.pick }}" style="border-radius:var(--r);border:{{ a.border }};background:{{ a.h }};cursor:pointer;display:flex;align-items:flex-end;padding:12px;min-height:44px;outline-offset:3px" style-hover="transform:scale(.98)">
+              <span style="font-size:14px;color:{{ a.fg }}">{{ a.n }}</span>
+            </button>
+          </sc-for>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- SAVED -->
+    <sc-if value="{{ isSaved }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="Saved collection" style="flex:1;display:flex;flex-direction:column;gap:12px;padding:0 16px 16px;min-height:0;overflow-y:auto">
+        <sc-for list="{{ savedList }}" as="o" hint-placeholder-count="3">
+          <div onClick="{{ o.open }}" role="button" tabIndex="{{ 0 }}" style="display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:var(--r);border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer" style-hover="background:var(--surface)">
+            <div style="display:flex;gap:8px;height:88px">
+              <sc-for list="{{ o.blocks }}" as="b" hint-placeholder-count="5">
+                <span role="img" aria-label="{{ b.n }}" title="{{ b.n }}" style="flex:1;border-radius:var(--rm);background:{{ b.h }};border:{{ b.border }}"></span>
+              </sc-for>
+            </div>
+            <div onClick="{{ o.stop }}" style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+              <sc-if value="{{ o.renaming }}" hint-placeholder-val="{{ false }}">
+                <input value="{{ o.draft }}" onChange="{{ o.setDraft }}" onBlur="{{ o.commit }}" onKeyDown="{{ o.key }}" autoFocus="{{ true }}" style="flex:1;font-family:var(--fh);font-weight:600;font-size:18px;padding:6px 10px;border-radius:10px;border:1px solid var(--ink);background:var(--surface);color:var(--ink);min-width:0">
+              </sc-if>
+              <sc-if value="{{ o.notRenaming }}" hint-placeholder-val="{{ true }}">
+                <span style="flex:1;font-family:var(--fh);font-weight:600;font-size:18px">{{ o.name }}</span>
+                <span style="font-size:13px;color:var(--ink2)">{{ o.when }}</span>
+              </sc-if>
+              <button onClick="{{ o.menu }}" aria-label="Manage outfit" style="width:44px;height:44px;border-radius:999px;border:none;background:transparent;display:grid;place-items:center;cursor:pointer;color:var(--ink)" style-hover="background:var(--surface)">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2.2"></circle><circle cx="12" cy="12" r="2.2"></circle><circle cx="19" cy="12" r="2.2"></circle></svg>
+              </button>
+            </div>
+            <sc-if value="{{ o.editingNote }}" hint-placeholder-val="{{ false }}">
+              <textarea onClick="{{ o.stop }}" value="{{ o.noteDraft }}" onChange="{{ o.setNoteDraft }}" onBlur="{{ o.commitNote }}" autoFocus="{{ true }}" rows="{{ 2 }}" placeholder="e.g. Looked great at the gala" style="width:100%;font:inherit;font-size:14px;line-height:1.4;padding:8px 10px;border-radius:10px;border:1px solid var(--ink);background:var(--surface);color:var(--ink);resize:none"></textarea>
+            </sc-if>
+            <sc-if value="{{ o.hasNote }}" hint-placeholder-val="{{ false }}">
+              <p style="margin:0;font-size:14px;line-height:1.4;color:var(--ink2);text-wrap:pretty">{{ o.note }}</p>
+            </sc-if>
+          </div>
+        </sc-for>
+        <sc-if value="{{ savedEmpty }}" hint-placeholder-val="{{ false }}">
+          <div data-screen-label="Saved empty" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;text-align:center;padding:0 12px">
+            <div style="display:flex;gap:6px;height:72px;width:180px">
+              <span style="flex:1;border-radius:10px;border:2px dashed var(--line)"></span><span style="flex:1;border-radius:10px;border:2px dashed var(--line)"></span><span style="flex:1;border-radius:10px;border:2px dashed var(--line)"></span><span style="flex:1;border-radius:10px;border:2px dashed var(--line)"></span>
+            </div>
+            <h2 style="font-size:22px;line-height:1.1">Nothing saved yet</h2>
+            <p style="margin:0;font-size:15px;line-height:1.45;color:var(--ink2);text-wrap:pretty">When a combination works, tap the bookmark on the suggestions screen and it lands here.</p>
+            <button onClick="{{ goCamera }}" style="display:inline-flex;align-items:center;justify-content:center;border-radius:999px;border:none;background:var(--primary);color:var(--primaryfg);font-family:var(--fh);font-weight:600;cursor:pointer;min-height:48px;padding:0 22px;font-size:16px">Start with a garment</button>
+          </div>
+        </sc-if>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ toastOpen }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="Toast" style="position:absolute;left:16px;right:16px;bottom:24px;display:flex;align-items:center;gap:12px;min-height:52px;padding:6px 6px 6px 18px;border-radius:999px;background:var(--dark);color:var(--darkfg);box-shadow:0 10px 28px rgba(0,0,0,.3);font-size:15px">
+        <span style="flex:1">{{ toastText }}</span>
+        <sc-if value="{{ toastHasAction }}" hint-placeholder-val="{{ false }}">
+          <button onClick="{{ toastAction }}" style="min-height:40px;padding:0 16px;border-radius:999px;border:none;background:var(--darkfg);color:var(--dark);font-family:var(--fh);font-weight:600;font-size:14px;cursor:pointer">{{ toastActionLabel }}</button>
+        </sc-if>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ manageOpen }}" hint-placeholder-val="{{ false }}">
+      <div onClick="{{ closeManage }}" style="position:absolute;inset:0;background:rgba(32,30,29,.45)"></div>
+      <div data-screen-label="Manage outfit" style="position:absolute;left:0;right:0;bottom:0;border-radius:var(--r) var(--r) 0 0;background:var(--bg);box-shadow:0 12px 32px rgba(0,0,0,.25);display:flex;flex-direction:column;gap:6px;padding:12px 16px 24px">
+        <div style="width:44px;height:5px;border-radius:999px;background:var(--ink2);align-self:center;margin-bottom:6px"></div>
+        <h2 style="font-size:20px;margin:0 0 8px">{{ manageName }}</h2>
+        <sc-for list="{{ manageActions }}" as="a" hint-placeholder-count="4">
+          <button onClick="{{ a.run }}" style="display:flex;align-items:center;gap:14px;min-height:52px;padding:0 12px;border-radius:14px;border:none;background:transparent;color:{{ a.color }};font:inherit;font-size:17px;cursor:pointer;text-align:left" style-hover="background:var(--surface)">
+            <span style="flex:1">{{ a.label }}</span>
+            <span style="font-size:13px;opacity:.6">{{ a.hint }}</span>
+          </button>
+        </sc-for>
+      </div>
+    </sc-if>
+
+    <!-- RATE: CAPTURE -->
+    <sc-if value="{{ isRateCapture }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="Rate: capture" style="flex:1;display:flex;flex-direction:column;gap:12px;padding:0 16px 16px;min-height:0">
+        <div style="flex:1;border-radius:var(--r);background:radial-gradient(circle at 50% 40%,#5e5a54 0,#33302c 55%,#211f1d 100%);position:relative;display:grid;place-items:center;overflow:hidden">
+          <div style="width:150px;height:300px;border-radius:75px;border:3px dashed rgba(255,255,255,.85)"></div>
+          <span style="position:absolute;bottom:12px;left:12px;font-size:13px;color:#fff;background:rgba(0,0,0,.45);padding:6px 12px;border-radius:999px">Whole outfit, head to toe, in the frame</span>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:center;gap:24px">
+          <button onClick="{{ rateManual }}" aria-label="Tap colors instead" style="width:52px;height:52px;border-radius:50%;border:1px solid var(--line);background:transparent;cursor:pointer;display:grid;place-items:center;color:var(--ink)" style-hover="background:var(--surface)">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="8.5" cy="10" r="1"></circle><circle cx="15.5" cy="10" r="1"></circle><circle cx="12" cy="15.5" r="1"></circle></svg>
+          </button>
+          <button onClick="{{ rateCapture }}" aria-label="Capture outfit" style="width:78px;height:78px;border-radius:50%;border:5px solid var(--dark);background:#fff;cursor:pointer;padding:5px;background-clip:content-box" style-hover="background-color:var(--surface)"></button>
+          <span style="width:52px;height:52px"></span>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- RATE: TAP COLORS -->
+    <sc-if value="{{ isRateManual }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="Rate: tap colors" style="flex:1;display:flex;flex-direction:column;gap:10px;padding:0 16px 16px;min-height:0">
+        <p style="margin:0;font-size:15px;color:var(--ink2)">Tap each piece, then pick its color.</p>
+        <sc-for list="{{ manualRows }}" as="m" hint-placeholder-count="4">
+          <button onClick="{{ m.open }}" style="flex:1;display:flex;align-items:center;gap:14px;padding:0 18px;border-radius:var(--r);border:{{ m.border }};background:{{ m.bg }};color:{{ m.fg }};cursor:pointer;text-align:left;font:inherit;min-height:60px">
+            <span style="font-family:var(--fh);font-weight:600;font-size:20px;flex:1">{{ m.label }}</span>
+            <span style="font-size:14px;opacity:.75">{{ m.value }}</span>
+          </button>
+        </sc-for>
+        <button onClick="{{ rateFromManual }}" style="display:inline-flex;align-items:center;justify-content:center;border-radius:999px;border:none;background:var(--primary);color:var(--primaryfg);font-family:var(--fh);font-weight:600;cursor:pointer;min-height:52px;font-size:17px;opacity:{{ manualReadyOp }}">How does it work together?</button>
+      </div>
+    </sc-if>
+    <sc-if value="{{ manualSheet }}" hint-placeholder-val="{{ false }}">
+      <div onClick="{{ closeManual }}" style="position:absolute;inset:0;background:rgba(32,30,29,.45)"></div>
+      <div style="position:absolute;left:0;right:0;bottom:0;height:64%;border-radius:var(--r) var(--r) 0 0;background:var(--bg);box-shadow:0 12px 32px rgba(0,0,0,.25);display:flex;flex-direction:column;gap:12px;padding:12px 16px 16px">
+        <div style="width:44px;height:5px;border-radius:999px;background:var(--ink2);align-self:center"></div>
+        <h2 style="font-size:22px;margin:0">{{ manualSheetTitle }}</h2>
+        <div style="flex:1;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;min-height:0">
+          <sc-for list="{{ manualPalette }}" as="c" hint-placeholder-count="18">
+            <button onClick="{{ c.pick }}" aria-label="{{ c.n }}" style="border-radius:var(--rm);border:{{ c.border }};background:{{ c.h }};cursor:pointer;min-height:44px"></button>
+          </sc-for>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- RATING -->
+    <sc-if value="{{ isRate }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="Outfit rating" style="flex:1;display:flex;flex-direction:column;gap:12px;padding:0 16px 16px;min-height:0">
+        <div style="flex:1;border-radius:var(--r);background:linear-gradient(180deg,#4a4642 0,#2c2926 100%);position:relative;display:flex;align-items:flex-end;justify-content:center;padding:12px;gap:10px;overflow:hidden">
+          <span style="position:absolute;top:12px;left:12px;font-size:13px;color:#fff;background:rgba(0,0,0,.45);padding:6px 12px;border-radius:999px">Outfit photo</span>
+          <sc-for list="{{ rated }}" as="c" hint-placeholder-count="4">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:6px">
+              <span style="width:54px;height:54px;border-radius:50%;background:{{ c.h }};box-shadow:0 0 0 2px rgba(255,255,255,.6)"></span>
+              <span style="font-size:12px;color:#fff;opacity:.85">{{ c.label }}</span>
+            </div>
+          </sc-for>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;align-items:center;gap:10px">
+            <h2 style="font-size:24px;line-height:1.1;flex:1">{{ scoreHead }}</h2>
+            <span style="flex:none;font-size:13px;font-weight:600;padding:5px 10px;border-radius:999px;background:var(--dark);color:var(--darkfg)">{{ score }} / 10</span>
+          </div>
+          <p style="margin:0;font-size:16px;line-height:1.45;color:var(--ink);text-wrap:pretty">{{ scoreBody }}</p>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button onClick="{{ back }}" style="display:inline-flex;align-items:center;justify-content:center;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--ink);font-family:var(--fh);font-weight:600;cursor:pointer;flex:1;min-height:52px;font-size:16px">Retake</button>
+          <button onClick="{{ rateToSuggest }}" style="display:inline-flex;align-items:center;justify-content:center;border-radius:999px;border:none;background:var(--primary);color:var(--primaryfg);font-family:var(--fh);font-weight:600;cursor:pointer;flex:1.4;min-height:52px;font-size:16px;white-space:nowrap;gap:0"><span>Swap the {{ weakSlot }}</span></button>
+        </div>
+      </div>
+    </sc-if>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;accessorySlot&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Slots&quot;},&quot;sampleScore&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:7,&quot;min&quot;:1,&quot;max&quot;:10,&quot;step&quot;:1,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Rating&quot;}}">
+const PALETTE = [
+  {n:'Black',h:'#1b1b1b'},{n:'Charcoal',h:'#3d3d3f'},{n:'Grey',h:'#8a8a8a'},{n:'Light grey',h:'#e6e5e2'},{n:'White',h:'#f7f6f3'},{n:'Cream',h:'#e9dfc9'},
+  {n:'Navy',h:'#1f2a44'},{n:'Denim',h:'#4a6285'},{n:'Pale blue',h:'#a9bfd4'},{n:'Forest',h:'#2f4a3a'},{n:'Olive',h:'#6b6a3f'},{n:'Khaki',h:'#a89c78'},
+  {n:'Camel',h:'#b58a5a'},{n:'Tan',h:'#c9ad86'},{n:'Brown',h:'#5a3e2e'},{n:'Burgundy',h:'#6b2733'},{n:'Rust',h:'#a4522d'},{n:'Mustard',h:'#c39a3a'}
+];
+const SEASON = { summer: ['White','Cream','Pale blue','Khaki','Tan','Denim','Light grey','Navy','Olive','Mustard','Camel','Grey'], winter: ['Black','Charcoal','Navy','Forest','Burgundy','Brown','Camel','Grey','Cream','Rust','Olive','Denim'] };
+const SLOTS = [{id:'outerwear',label:'Outerwear'},{id:'top',label:'Top'},{id:'bottom',label:'Bottom'},{id:'shoes',label:'Shoes'},{id:'accessory',label:'Accessory'}];
+const hex2rgb = h => [1,3,5].map(i => parseInt(h.slice(i,i+2),16));
+const rgb2hex = ([r,g,b]) => '#' + [r,g,b].map(v => Math.round(Math.max(0,Math.min(255,v))).toString(16).padStart(2,'0')).join('');
+const lum = h => { const [r,g,b] = hex2rgb(h).map(v => { v/=255; return v<=.03928? v/12.92 : Math.pow((v+.055)/1.055,2.4); }); return .2126*r+.7152*g+.0722*b; };
+const fg = h => lum(h) > .35 ? '#141414' : '#f4f4f2';
+const hsl2hex = (h,s,l) => { s/=100; l/=100; const k=n=>(n+h/30)%12, a=s*Math.min(l,1-l), f=n=>l-a*Math.max(-1,Math.min(k(n)-3,Math.min(9-k(n),1))); return rgb2hex([255*f(0),255*f(8),255*f(4)]); };
+const rgb2hsl = ([r,g,b]) => { r/=255; g/=255; b/=255; const mx=Math.max(r,g,b), mn=Math.min(r,g,b), l=(mx+mn)/2; if (mx===mn) return [0,0,l*100]; const d=mx-mn, s=l>.5? d/(2-mx-mn) : d/(mx+mn); let h = mx===r ? (g-b)/d + (g<b?6:0) : mx===g ? (b-r)/d+2 : (r-g)/d+4; return [h*60, s*100, l*100]; };
+const temp = h => { const [hue,s] = rgb2hsl(hex2rgb(h)); if (s < 14) return 'neutral'; return (hue < 70 || hue > 320) ? 'warm' : 'cool'; };
+const dist = (a,b) => { const x=hex2rgb(a), y=hex2rgb(b); return Math.hypot(x[0]-y[0],x[1]-y[1],x[2]-y[2]); };
+const nearestName = h => PALETTE.reduce((best,c) => dist(c.h,h) < dist(best.h,h) ? c : best, PALETTE[0]).n;
+
+// Wireframe-grade matching: neutrals first, value contrast, same temperature group, few saturated colors.
+function suggest(baseHex, slotId, baseSlot) {
+  const L = lum(baseHex), T = temp(baseHex);
+  let cands = PALETTE.filter(c => c.h !== baseHex && Math.abs(lum(c.h) - L) > 0.08);
+  cands = cands.filter(c => temp(c.h) === 'neutral' || T === 'neutral' || temp(c.h) === T);
+  const wantDark = slotId === 'shoes' || slotId === 'outerwear';
+  const score = c => { const l = lum(c.h); let s = Math.abs(l - L) * 2; if (temp(c.h) === 'neutral') s += 0.6; if (wantDark) s += (1 - l) * 1.2; else if (slotId === 'top') s += l * 0.6; return s; };
+  cands.sort((a,b) => score(b) - score(a));
+  const rot = SLOTS.findIndex(s => s.id === slotId);
+  // stagger start per slot so adjacent slots lead with different colors
+  const list = cands.slice(0, 8);
+  return list.slice(rot % 3).concat(list.slice(0, rot % 3)).slice(0, 4);
+}
+
+class Component extends DCLogic {
+  state = { screen: (typeof localStorage !== 'undefined' && localStorage.getItem('huemi.onboarded')) ? 'entry' : 'onboard', history: [], camDark: false, camDenied: false, mode: 'palette', seasonSort: true, after: 'pick', locks: {}, manual: {}, manualSheet: null, manage: null, renaming: null, draft: '', toast: null, editingNote: null, noteDraft: '', savedList: [
+    { name: 'Navy & camel', when: 'Mon', note: 'Worked well at the gala. Trousers are the Zalando pair.', baseHex: '#1f2a44', baseSlot: 'bottom', picks: { outerwear: 0, top: 1, shoes: 2, accessory: 3 } },
+    { name: 'Olive shop find', when: 'Sat', baseHex: '#6b6a3f', baseSlot: 'top', picks: { outerwear: 1, bottom: 0, shoes: 2, accessory: 3 } }
+  ], hue: 210, sat: 35, lit: 40, baseSlot: 'bottom', baseHex: '#1f2a44', readHex: '#4a6285', photoHex: '#4a6285', litShift: 0, adjusting: false, picks: { outerwear: 0, top: 1, shoes: 2, accessory: 3 }, sheet: null, saved: false };
+  season() { const m = new Date().getMonth(); return (m >= 3 && m <= 8) ? 'summer' : 'winter'; }
+  toast(text, actionLabel, action, ms) {
+    clearTimeout(this._toastT);
+    this.setState({ toast: { text, actionLabel, action } });
+    this._toastT = setTimeout(() => this.setState({ toast: null }), ms || (action ? 5000 : 2500));
+  }
+  go(screen) { this.setState(s => ({ screen, history: [...s.history, s.screen], sheet: null })); }
+  back = () => this.setState(s => { const h = [...s.history]; const prev = h.pop() || 'entry'; return { screen: prev, history: h, sheet: null }; });
+  initialPicks(baseHex, baseSlot, given) {
+    const used = new Set([baseHex]), picks = {};
+    for (const s of SLOTS) { if (s.id === baseSlot) continue; const alts = suggest(baseHex, s.id, baseSlot); let i = given && given[s.id] !== undefined ? given[s.id] % alts.length : -1; if (i < 0 || used.has(alts[i].h)) { const f = alts.findIndex(c => !used.has(c.h)); i = f >= 0 ? f : (i < 0 ? 0 : i); } picks[s.id] = i; used.add(alts[i].h); }
+    return picks;
+  }
+  setBase(hex, extra) { const baseSlot = (extra && extra.baseSlot) || this.state.baseSlot; this.setState({ baseHex: hex, ...extra, locks: {}, picks: this.initialPicks(hex, baseSlot) }); this.go('suggest'); }
+  slotsFor(baseHex, baseSlot) {
+    const showAcc = this.props.accessorySlot ?? true;
+    return SLOTS.filter(s => showAcc || s.id !== 'accessory');
+  }
+  renderVals() {
+    const st = this.state, p = this.props;
+    const titles = { entry: 'huemi', slot: 'Which garment?', rateCapture: 'Frame the outfit', rateManual: 'What are you wearing?', onboard: 'huemi', pick: 'Its color', camera: 'Frame the garment', confirm: 'Is this the color?', suggest: 'Goes with it', rate: 'How it works together', saved: 'Saved outfits' };
+    const slotChoices = SLOTS.map(s => ({ label: s.label, pick: () => this.setState({ baseSlot: s.id }), bg: st.baseSlot === s.id ? 'var(--dark)' : 'transparent', fg: st.baseSlot === s.id ? 'var(--darkfg)' : 'var(--ink)' }));
+    const seasonNames = SEASON[this.season()];
+    const ordered = st.seasonSort ? [...seasonNames.map(n => PALETTE.find(c => c.n === n)), ...PALETTE.filter(c => !seasonNames.includes(c.n))] : PALETTE;
+    const palette = ordered.map(c => ({ ...c, fg: fg(c.h), border: lum(c.h) > .45 ? '1px solid var(--line)' : 'none', pick: () => this.setBase(c.h) }));
+    const freeHex = hsl2hex(st.hue, st.sat, st.lit);
+    const readBase = st.readHex; const [rh, rs, rl] = rgb2hsl(hex2rgb(readBase));
+    const readHex = hsl2hex(rh, rs, Math.max(5, Math.min(95, rl + st.litShift)));
+    const nearby = [...PALETTE].sort((a,b) => dist(a.h, readBase) - dist(b.h, readBase)).slice(0,5).map(c => ({ ...c, border: c.h === readBase ? '3px solid var(--dark)' : (lum(c.h) > .45 ? '1px solid var(--line)' : 'none'), pick: () => this.setState({ readHex: c.h, litShift: 0 }) }));
+    const visible = this.slotsFor();
+    const slots = visible.map(s => {
+      const isBase = s.id === st.baseSlot;
+      const pinned = !isBase && !!st.locks[s.id];
+      const locked = isBase || pinned;
+      const alts = isBase ? [] : suggest(st.baseHex, s.id, st.baseSlot);
+      const idx = st.picks[s.id] ?? 0;
+      let pressTimer = null;
+      const cur = isBase ? { n: nearestName(st.baseHex), h: st.baseHex } : alts[idx % alts.length];
+      const cycle = d => this.setState(x => {
+        const shown = new Set([x.baseHex]);
+        for (const o of SLOTS) { if (o.id === s.id || o.id === x.baseSlot) continue; const oa = suggest(x.baseHex, o.id, x.baseSlot); shown.add(oa[(x.picks[o.id] ?? 0) % oa.length].h); }
+        let i = (x.picks[s.id] ?? 0), n = alts.length;
+        for (let k = 0; k < n; k++) { i = (i + d + n) % n; if (!shown.has(alts[i].h)) break; }
+        return { picks: { ...x.picks, [s.id]: i } };
+      });
+      let x0 = 0;
+      return {
+        id: s.id, label: isBase ? s.label + ' · your base' : (pinned ? s.label + ' · kept' : s.label), name: cur.n, hex: cur.h, fg: fg(cur.h), locked, swipable: !locked,
+        grow: isBase ? 1.6 : 1, nameSize: isBase ? '26px' : '19px',
+        edge: lum(cur.h) > .45 ? 'inset 0 0 0 1px rgba(0,0,0,.18)' : 'none',
+        nextHex: isBase ? cur.h : alts[(idx + 1) % alts.length].h, nextFg: isBase ? cur.h : fg(alts[(idx + 1) % alts.length].h),
+        noMenu: e => e.preventDefault(),
+        cancel: () => { clearTimeout(pressTimer); },
+        cursor: locked ? 'default' : 'grab',
+        dots: alts.map((_, i) => ({ op: i === idx % alts.length ? 1 : .35 })),
+        down: e => { x0 = e.clientX; if (!isBase) { clearTimeout(pressTimer); pressTimer = setTimeout(() => { pressTimer = 'fired'; this.setState(x => ({ locks: { ...x.locks, [s.id]: !x.locks[s.id] } })); }, 450); } },
+        up: e => { if (pressTimer === 'fired') { pressTimer = null; return; } clearTimeout(pressTimer); if (locked || e.target.closest('button[aria-label="Next suggestion"]')) return; const dx = e.clientX - x0; if (Math.abs(dx) > 30) cycle(dx < 0 ? 1 : -1); },
+        idx: idx % Math.max(1, alts.length),
+        next: e => { e.stopPropagation(); if (!locked) cycle(1); },
+        openAlts: () => { if (pressTimer === 'fired') { pressTimer = null; return; } if (!locked) this.setState({ sheet: s.id }); }
+      };
+    });
+    const sheetSlot = SLOTS.find(s => s.id === st.sheet);
+    const sheetAlts = sheetSlot ? suggest(st.baseHex, sheetSlot.id, st.baseSlot).map((c, i) => ({ ...c, fg: fg(c.h), border: (st.picks[sheetSlot.id] ?? 0) === i ? '3px solid var(--dark)' : (lum(c.h) > .45 ? '1px solid var(--line)' : 'none'), pick: () => this.setState(x => ({ picks: { ...x.picks, [sheetSlot.id]: i }, sheet: null })) })) : [];
+    const currentOutfit = () => ({ name: nearestName(st.baseHex) + ' ' + ((SLOTS.find(s => s.id === st.baseSlot) || {}).label || '').toLowerCase(), when: 'Now', baseHex: st.baseHex, baseSlot: st.baseSlot, picks: Object.fromEntries(slots.filter(s => !s.locked).map(s => [s.id, st.picks[s.id] ?? slots.find(x => x.id === s.id).idx])) });
+    const isSavedNow = st.savedList.some(o => o.baseHex === st.baseHex && o.baseSlot === st.baseSlot && slots.every(s => s.locked || (o.picks[s.id] ?? 0) === s.idx));
+    const savedList = st.savedList.map((o, i) => ({
+      name: o.name, when: o.when, renaming: st.renaming === i, notRenaming: st.renaming !== i, draft: st.draft,
+      stop: e => e.stopPropagation(),
+      note: o.note || '', hasNote: !!o.note && st.editingNote !== i, editingNote: st.editingNote === i, noteDraft: st.noteDraft,
+      setNoteDraft: e => this.setState({ noteDraft: e.target.value }),
+      commitNote: () => this.setState(x => ({ savedList: x.savedList.map((q, j) => j === i ? { ...q, note: x.noteDraft.trim() } : q), editingNote: null })),
+      setDraft: e => this.setState({ draft: e.target.value }),
+      commit: () => this.setState(x => ({ savedList: x.savedList.map((q, j) => j === i && x.draft.trim() ? { ...q, name: x.draft.trim() } : q), renaming: null })),
+      key: e => { if (e.key === 'Enter') e.target.blur(); if (e.key === 'Escape') this.setState({ renaming: null }); },
+      menu: e => { e.stopPropagation(); this.setState({ manage: i }); },
+      blocks: (() => { const seen = new Set([o.baseHex]); return SLOTS.map(s => { let hex = o.baseHex; if (s.id !== o.baseSlot) { const alts = suggest(o.baseHex, s.id, o.baseSlot); let i = o.picks[s.id] ?? 0; if (seen.has(alts[i % alts.length].h)) { const f = alts.findIndex(c => !seen.has(c.h)); if (f >= 0) i = f; } hex = alts[i % alts.length].h; seen.add(hex); } return { h: hex, n: s.label + ': ' + nearestName(hex), border: lum(hex) > .45 ? '1px solid var(--line)' : 'none' }; }); })(),
+      open: () => { this.setState({ baseHex: o.baseHex, baseSlot: o.baseSlot, picks: this.initialPicks(o.baseHex, o.baseSlot, o.picks) }); this.go('suggest'); }
+    }));
+    const RATE_SLOTS = SLOTS.filter(s => s.id !== 'accessory');
+    const manualDone = RATE_SLOTS.filter(s => st.manual[s.id]).length;
+    const rated = manualDone >= 2 ? RATE_SLOTS.filter(s => st.manual[s.id]).map(s => ({ label: s.label, h: st.manual[s.id] })) : [{ label: 'Jacket', h: '#3d3d3f' }, { label: 'Top', h: '#e9dfc9' }, { label: 'Trousers', h: '#a4522d' }, { label: 'Shoes', h: '#6b2733' }];
+    const manualRows = RATE_SLOTS.map(s => { const hx = st.manual[s.id]; return { label: s.label, value: hx ? nearestName(hx) : 'Tap to set', bg: hx || 'var(--surface)', fg: hx ? fg(hx) : 'var(--ink)', border: hx ? (lum(hx) > .45 ? '1px solid var(--line)' : 'none') : '1px dashed var(--line)', open: () => this.setState({ manualSheet: s.id }) }; });
+    const manualSlot = SLOTS.find(s => s.id === st.manualSheet);
+    const manualPalette = PALETTE.map(c => ({ ...c, border: lum(c.h) > .45 ? '1px solid var(--line)' : 'none', pick: () => this.setState(x => ({ manual: { ...x.manual, [manualSlot.id]: c.h }, manualSheet: null })) }));
+    const [rh2, rs2, rl2] = rgb2hsl(hex2rgb(st.photoHex));
+    return {
+      title: titles[st.screen], titleSize: st.screen === 'entry' ? '40px' : '26px', titleLs: st.screen === 'entry' ? '-0.03em' : '-0.02em', canBack: st.screen !== 'entry' && st.screen !== 'onboard', back: this.back,
+      showSave: st.screen === 'suggest', savedFill: isSavedNow ? 'currentColor' : 'none',
+      toggleSaved: () => { if (isSavedNow) { this.setState(s => ({ savedList: s.savedList.filter(o => !(o.baseHex === st.baseHex && o.baseSlot === st.baseSlot)) })); this.toast('Removed from saved'); } else { this.setState(s => ({ savedList: [currentOutfit(), ...s.savedList] })); this.toast('Saved', 'View', () => { clearTimeout(this._toastT); this.setState({ toast: null }); this.go('saved'); }); } },
+      suggestHint: isSavedNow ? 'Saved under Saved outfits.' : (Object.values(st.locks).some(Boolean) ? 'Kept pieces stay when you shuffle.' : 'Swipe one, or hold a block to keep it.'),
+      shuffleLabel: Object.values(st.locks).some(Boolean) ? 'Shuffle the rest' : 'Shuffle',
+      shuffle: () => this.setState(x => {
+        const shown = new Set([x.baseHex]); const picks = { ...x.picks };
+        for (const s of SLOTS) if (s.id !== x.baseSlot && x.locks[s.id]) { const a = suggest(x.baseHex, s.id, x.baseSlot); shown.add(a[(picks[s.id] ?? 0) % a.length].h); }
+        for (const s of SLOTS) { if (s.id === x.baseSlot || x.locks[s.id]) continue; const a = suggest(x.baseHex, s.id, x.baseSlot); const n = a.length; let i = ((picks[s.id] ?? 0) + 1 + Math.floor(Math.random() * (n - 1))) % n; for (let k = 0; k < n && shown.has(a[i].h); k++) i = (i + 1) % n; picks[s.id] = i; shown.add(a[i].h); }
+        return { picks };
+      }),
+      manageOpen: st.manage !== null, closeManage: () => this.setState({ manage: null }), manageName: st.manage !== null && st.savedList[st.manage] ? st.savedList[st.manage].name : '',
+      manageActions: st.manage === null ? [] : [
+        { label: 'Rename', hint: '', color: 'var(--ink)', run: () => this.setState(x => ({ renaming: x.manage, draft: x.savedList[x.manage].name, manage: null })) },
+        { label: st.savedList[st.manage] && st.savedList[st.manage].note ? 'Edit note' : 'Add a note', hint: 'where it worked, where it is from', color: 'var(--ink)', run: () => this.setState(x => ({ editingNote: x.manage, noteDraft: x.savedList[x.manage].note || '', manage: null })) },
+        { label: 'Duplicate', hint: 'copy to tweak', color: 'var(--ink)', run: () => this.setState(x => { const o = x.savedList[x.manage]; const l = [...x.savedList]; l.splice(x.manage + 1, 0, { ...o, name: o.name + ' copy', when: 'Now', picks: { ...o.picks } }); return { savedList: l, manage: null }; }) },
+        { label: 'Share', hint: 'as image', color: 'var(--ink)', run: () => { this.setState({ manage: null }); this.toast('Image copied. Ready to paste.'); } },
+        { label: 'Delete', hint: '', color: '#a3231f', run: () => { const i = st.manage, removed = st.savedList[i]; this.setState(x => ({ savedList: x.savedList.filter((_, j) => j !== i), manage: null })); this.toast('"' + removed.name + '" deleted', 'Undo', () => { clearTimeout(this._toastT); this.setState(x => { const l = [...x.savedList]; l.splice(Math.min(i, l.length), 0, removed); return { savedList: l, toast: null }; }); }); } }
+      ],
+      toastOpen: !!st.toast, toastText: st.toast ? st.toast.text : '', toastHasAction: !!(st.toast && st.toast.action), toastActionLabel: st.toast ? st.toast.actionLabel : '', toastAction: () => st.toast && st.toast.action && st.toast.action(),
+      uploadPhoto: () => { this.setState({ readHex: '#6b6a3f', photoHex: '#6b6a3f', litShift: 0, adjusting: false }); this.go('confirm'); },
+      isSaved: st.screen === 'saved', goSaved: () => this.go('saved'), savedList, savedEmpty: st.savedList.length === 0, savedCount: st.savedList.length,
+      seasonNote: st.seasonSort ? (this.season() === 'summer' ? 'Summer colors first' : 'Winter colors first') : 'All colors, no order',
+      seasonAction: st.seasonSort ? 'Show all' : 'Sort for the season', toggleSeason: () => this.setState(s => ({ seasonSort: !s.seasonSort })),
+      isSlot: st.screen === 'slot',
+      logoStripes: (this.props.logo ?? 'saturated') === 'wardrobe' ? ['#7a1f3d','#f0e2c8','#1f3a5f','#c9843a'] : ['#e94e3c','#f5b83d','#2e6fdb','#1d9e75'],
+      slotRows: SLOTS.map(s => ({ label: s.label, examples: ({outerwear:'coat, jacket, blazer', top:'shirt, blouse, knit', bottom:'trousers, skirt, jeans', shoes:'', accessory:'bag, scarf, belt'})[s.id], pick: () => { this.setState({ baseSlot: s.id }); this.go(st.after); } })),
+      isOnboard: st.screen === 'onboard', finishOnboard: () => { try { localStorage.setItem('huemi.onboarded', '1'); } catch (e) {} this.setState({ screen: 'entry', history: [] }); },
+      camOk: !st.camDenied, camDenied: st.camDenied, camDark: st.camDark,
+      camHi: st.camDark ? '#2a2826' : '#5e5a54', camMid: st.camDark ? '#1a1918' : '#33302c', camLo: st.camDark ? '#0e0d0d' : '#211f1d',
+      camSimDark: () => this.setState(s => ({ camDark: !s.camDark, camDenied: false })), camSimDenied: () => this.setState(s => ({ camDenied: !s.camDenied, camDark: false })), camRetry: () => this.setState({ camDenied: false }),
+      camDarkLabel: st.camDark ? 'normal light' : 'low light', camDeniedLabel: st.camDenied ? 'camera allowed' : 'camera denied',
+      isEntry: st.screen === 'entry' || st.screen === 'onboard', isPick: st.screen === 'pick', isCamera: st.screen === 'camera', isConfirm: st.screen === 'confirm', isSuggest: st.screen === 'suggest', isRate: st.screen === 'rate',
+      goCamera: () => { this.setState({ after: 'camera' }); this.go('slot'); }, goPick: () => { this.setState({ after: 'pick' }); this.go('slot'); }, goRate: () => { this.setState({ manual: {} }); this.go('rateCapture'); },
+      isRateCapture: st.screen === 'rateCapture', isRateManual: st.screen === 'rateManual',
+      rateCapture: () => this.go('rate'), rateManual: () => this.go('rateManual'), rateFromManual: () => { if (manualDone >= 2) this.go('rate'); },
+      manualRows, manualReadyOp: manualDone >= 2 ? 1 : .45, manualSheet: !!st.manualSheet, closeManual: () => this.setState({ manualSheet: null }), manualSheetTitle: manualSlot ? manualSlot.label : '', manualPalette,
+      readPhotoBase: st.photoHex, readPhotoHi: hsl2hex(rh2, rs2, Math.min(95, rl2 + 14)), readPhotoLo: hsl2hex(rh2, rs2, Math.max(4, rl2 - 22)),
+      goPickDirect: () => this.go('pick'),
+      setModePalette: () => this.setState({ mode: 'palette' }), setModeFree: () => this.setState({ mode: 'free' }),
+      isPalette: st.mode === 'palette', isFree: st.mode === 'free',
+      palTabBg: st.mode === 'palette' ? 'var(--dark)' : 'transparent', palTabFg: st.mode === 'palette' ? 'var(--darkfg)' : 'var(--ink)',
+      freeTabBg: st.mode === 'free' ? 'var(--dark)' : 'transparent', freeTabFg: st.mode === 'free' ? 'var(--darkfg)' : 'var(--ink)',
+      slotChoices, palette,
+      hue: st.hue, sat: st.sat, lit: st.lit, freeHex, freeFg: fg(freeHex), freeSatEnd: hsl2hex(st.hue, 90, 45),
+      setHue: e => this.setState({ hue: +e.target.value }), setSat: e => this.setState({ sat: +e.target.value }), setLit: e => this.setState({ lit: +e.target.value }),
+      useFree: () => this.setBase(freeHex),
+      capture: () => { if (st.camDark) { this.toast('Too dark. Try near a window, or pick the color.', 'Pick', () => { clearTimeout(this._toastT); this.setState({ toast: null }); this.go('pick'); }); return; } this.setState({ readHex: '#4a6285', photoHex: '#4a6285', litShift: 0, adjusting: false }); this.go('confirm'); },
+      readHex, readFg: fg(readHex), readName: nearestName(readHex), readLabel: (st.litShift !== 0 || st.readHex !== st.photoHex) ? 'Your correction' : 'We read', adjusting: st.adjusting, adjustLabel: st.adjusting ? 'Done adjusting' : 'Not quite',
+      toggleAdjust: () => this.setState(s => ({ adjusting: !s.adjusting })), nearby, litShift: st.litShift, setLitShift: e => this.setState({ litShift: +e.target.value }),
+      confirmRead: () => this.setBase(readHex),
+      slots,
+      sheetOpen: !!st.sheet, closeSheet: () => this.setState({ sheet: null }), sheetTitle: sheetSlot ? sheetSlot.label : '', sheetAlts,
+      baseName: nearestName(st.baseHex).toLowerCase(), baseSlotLabel: (SLOTS.find(s => s.id === st.baseSlot) || {}).label?.toLowerCase(),
+      rated, score: p.sampleScore ?? 7, scoreHead: 'Works. One thing to try.', scoreBody: 'Charcoal, cream and burgundy sit well together. The rust trousers add a second warm saturated color next to the burgundy shoes, which fights for attention.', weakSlot: 'trousers',
+      rateToSuggest: () => { this.setState({ baseHex: '#6b2733', baseSlot: 'shoes', picks: this.initialPicks('#6b2733', 'shoes') }); this.go('suggest'); }
+    };
+  }
+}
+</script>
+</body>
+</html>

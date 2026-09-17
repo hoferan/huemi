@@ -2,10 +2,30 @@
 
 A color-blocking web application.
 
-## Status
+## Getting started
 
-The repository holds housekeeping files and nothing else. No stack has been
-picked yet, so there is nothing to install or run.
+Node 24.21.0, pinned in `.nvmrc`.
+
+```bash
+npm ci
+```
+
+|                         |                                 |
+| ----------------------- | ------------------------------- |
+| `npm run dev`           | Dev server                      |
+| `npm run build`         | Production build                |
+| `npm test`              | Unit tests                      |
+| `npm run test:coverage` | Unit tests with coverage        |
+| `npm run e2e`           | Playwright, needs a build first |
+| `npm run lint`          | ESLint                          |
+| `npm run typecheck`     | `tsc --noEmit`                  |
+
+Dependencies are pinned to exact versions, with `package-lock.json` committed
+and installs done through `npm ci`. Dependabot opens grouped weekly pull
+requests to move those pins forward.
+
+See `CLAUDE.md` for repository conventions, `docs/design/` for the design
+record, and `A11Y.md` for the accessibility invariants.
 
 ## Layout
 
@@ -14,7 +34,7 @@ picked yet, so there is nothing to install or run.
 | `CLAUDE.md`      | Conventions for Claude Code sessions |
 | `SECURITY.md`    | How to report a vulnerability        |
 | `.editorconfig`  | Whitespace and encoding rules        |
-| `.gitattributes` | Line endings and diff behaviour      |
+| `.gitattributes` | Line endings and diff behavior       |
 | `LICENSE`        | MIT                                  |
 
 ## Working on it

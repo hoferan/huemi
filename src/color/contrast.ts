@@ -2,13 +2,22 @@ import type { Hex } from '../model/hex';
 import { parseHex } from '../model/hex';
 import { hexToRgb, rgbToHex, type Rgb } from './convert';
 
-const FG_DARK = parseHex('#000000');
-const FG_LIGHT = parseHex('#ffffff');
+// Exported so the contract with `tokens.fgDark`/`tokens.fgLight` (see
+// ADR 0004) can be asserted directly in
+// src/styles/tokens.stylex.test.ts, instead of only indirectly through
+// readableForeground's output.
+export const FG_DARK = parseHex('#000000');
+export const FG_LIGHT = parseHex('#ffffff');
 
 /** The luminance above which a swatch needs a border to read against the app background. */
 const BORDER_THRESHOLD = 0.45;
 
-/** Opacity of the scrim pill. Verified by test to clear AAA on any background. */
+/**
+ * Opacity of the scrim pill. The test suite checks that this clears AAA for
+ * one background (`#8a8a8a`); unlike the direct branch, it is not swept
+ * across the picker range, so a value change elsewhere in this file is not
+ * guaranteed to be caught here.
+ */
 const SCRIM_ALPHA = 0.85;
 
 const channelLuminance = (v: number): number => {

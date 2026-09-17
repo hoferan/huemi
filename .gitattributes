@@ -21,10 +21,15 @@
 *.pdf binary
 *.zip binary
 
-# Lockfiles are generated: collapse them in diffs and reviews.
-*.lock linguist-generated=true -diff
-package-lock.json linguist-generated=true -diff
-pnpm-lock.yaml linguist-generated=true -diff
+# Lockfiles are generated: collapse them in GitHub's UI and exclude them from
+# language stats. Diffing stays on so Dependabot's grouped update PRs remain
+# reviewable instead of showing "Binary files differ".
+*.lock linguist-generated=true
+package-lock.json linguist-generated=true
+pnpm-lock.yaml linguist-generated=true
 
 # Vendored third-party skills: not huemi source, excluded from language stats.
 .claude/skills/** linguist-vendored
+
+# Design prototypes: exported, not authored, and excluded from language stats.
+docs/design/prototypes/** linguist-vendored

@@ -9,15 +9,15 @@ React 19 and TypeScript on Vite 8, built as a static single-page app. StyleX for
 styling, Radix UI for unstyled primitives, lucide-react for icons. Vitest with
 Testing Library for unit tests, Playwright for browser tests, Codecov for coverage.
 
-| | |
-| --- | --- |
-| `npm run dev` | Dev server |
-| `npm run build` | Production build |
-| `npm run preview` | Serve the build |
-| `npm test` | Unit tests |
-| `npm run test:coverage` | Unit tests with coverage |
-| `npm run typecheck` | `tsc` over the app and the build config |
-| `npm run lint` | ESLint |
+|                         |                                         |
+| ----------------------- | --------------------------------------- |
+| `npm run dev`           | Dev server                              |
+| `npm run build`         | Production build                        |
+| `npm run preview`       | Serve the build                         |
+| `npm test`              | Unit tests                              |
+| `npm run test:coverage` | Unit tests with coverage                |
+| `npm run typecheck`     | `tsc` over the app and the build config |
+| `npm run lint`          | ESLint                                  |
 
 **Every dependency is pinned exactly.** `.npmrc` sets `save-exact=true` and
 `engine-strict=true`. Do not introduce range specifiers; Dependabot raises updates as

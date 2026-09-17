@@ -44,7 +44,7 @@ describe('blockLabel', () => {
 describe('nearestName metric regression', () => {
   it('detects if the distance metric switches away from OKLab', () => {
     // A color sitting between two palette entries where the metrics differ.
-    // This is a near-tie on both metrics—either answer is defensible—but it pins
+    // This is a near-tie on both metrics — either answer is defensible — but it pins
     // the current OKLab-based implementation as the regression baseline.
     // RGB: Olive 42.2, Camel 43.8 (3.8% gap). OKLab: Camel 0.0772, Olive 0.0819 (6.1% gap).
     // If the metric accidentally reverts to RGB Euclidean, this test fails.
