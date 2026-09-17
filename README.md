@@ -9,13 +9,13 @@ picked yet, so there is nothing to install or run.
 
 ## Layout
 
-| Path | Purpose |
-| --- | --- |
-| `CLAUDE.md` | Conventions for Claude Code sessions |
-| `SECURITY.md` | How to report a vulnerability |
-| `.editorconfig` | Whitespace and encoding rules |
-| `.gitattributes` | Line endings and diff behaviour |
-| `LICENSE` | MIT |
+| Path             | Purpose                              |
+| ---------------- | ------------------------------------ |
+| `CLAUDE.md`      | Conventions for Claude Code sessions |
+| `SECURITY.md`    | How to report a vulnerability        |
+| `.editorconfig`  | Whitespace and encoding rules        |
+| `.gitattributes` | Line endings and diff behaviour      |
+| `LICENSE`        | MIT                                  |
 
 ## Working on it
 

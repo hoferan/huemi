@@ -5,11 +5,14 @@ import type { Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import stylex from '@stylexjs/unplugin';
 
-const stylexPlugin: Plugin = stylex.vite({
+// @stylexjs/unplugin ships its Vite factory typed as `(options) => any`. The
+// cast below asserts the actual return type; the value really is a Vite
+// plugin object, the upstream signature just doesn't say so.
+const stylexPlugin = stylex.vite({
   useCSSLayers: { before: ['reset', 'base'] },
   dev: process.env.NODE_ENV === 'development',
   runtimeInjection: false,
-});
+}) as Plugin;
 
 // @stylexjs/unplugin's configureServer hook starts a setInterval that polls
 // for CSS updates to push over the dev server's websocket, and only clears

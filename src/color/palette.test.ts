@@ -20,7 +20,11 @@ describe('nearestName', () => {
   it('is stable under a small perturbation', () => {
     // A camera read is never exact. A two-step nudge must not rename the color.
     for (const c of PALETTE) {
-      const [r, g, b] = [1, 3, 5].map((i) => Number.parseInt(c.hex.slice(i, i + 2), 16)) as [number, number, number];
+      const [r, g, b] = [1, 3, 5].map((i) => Number.parseInt(c.hex.slice(i, i + 2), 16)) as [
+        number,
+        number,
+        number,
+      ];
       const nudged = parseHex(
         `#${[r + 2, g - 2, b + 2]
           .map((v) => Math.max(0, Math.min(255, v)).toString(16).padStart(2, '0'))
