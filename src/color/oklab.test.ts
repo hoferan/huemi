@@ -26,7 +26,11 @@ describe('oklabDistance', () => {
     expect(oklabDistance(a, b)).toBeCloseTo(oklabDistance(b, a), 10);
   });
 
-  it('separates the warm neutrals that RGB distance confuses', () => {
+  it('produces smaller distances for perceptually closer colors', () => {
+    // Sanity check: OKLab distance decreases with perceptual similarity.
+    // Khaki and Tan are perceptually similar warm neutrals; Navy is perceptually distant.
+    // This assertion holds under both RGB and OKLab distance metrics.
+    // The metric-regression test in palette.test.ts is where they differ.
     const khaki = parseHex('#a89c78');
     const tan = parseHex('#c9ad86');
     const navy = parseHex('#1f2a44');
