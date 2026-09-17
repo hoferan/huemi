@@ -26,11 +26,12 @@ export default tseslint.config(
   ...tseslint.configs.recommendedTypeChecked,
   {
     // typescript-eslint's base config sets the TS parser with no `files`
-    // restriction, so type-checked rules reach this file even though no
-    // parserOptions project covers it. Scoped to this one file, not `**/*.js`
-    // generally: the project is TypeScript throughout, and a blanket JS
-    // exemption would silently cover any future `.js` file too.
-    files: ['eslint.config.js'],
+    // restriction, so type-checked rules reach these files even though no
+    // parserOptions project covers them. Scoped to these two root config
+    // files, not `**/*.js` generally: the project is TypeScript throughout,
+    // and a blanket JS exemption would silently cover any future `.js` file
+    // too.
+    files: ['eslint.config.js', 'commitlint.config.js'],
     extends: [tseslint.configs.disableTypeChecked],
   },
   {
@@ -101,6 +102,9 @@ export default tseslint.config(
     },
   },
   {
+    // This block must stay after the block defining `import-x/no-restricted-paths`:
+    // flat config applies later blocks over earlier ones, so reordering these two
+    // would silently turn the rule back on for app with no warning.
     // The zone above targets all of `./src`, including app's own files, so
     // it would otherwise flag app importing from itself. Turning the rule
     // off here instead of adding an `except` path exempts app without

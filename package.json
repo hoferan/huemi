@@ -23,7 +23,17 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "e2e": "playwright test"
+    "e2e": "playwright test",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,css,yml,yaml}": [
+      "prettier --write"
+    ]
   },
   "dependencies": {
     "@fontsource-variable/outfit": "5.3.0",
@@ -34,6 +44,8 @@
     "react-dom": "19.3.0"
   },
   "devDependencies": {
+    "@commitlint/cli": "21.2.2",
+    "@commitlint/config-conventional": "21.2.2",
     "@eslint/js": "10.0.1",
     "@stylexjs/eslint-plugin": "0.19.1",
     "@stylexjs/unplugin": "0.19.1",
@@ -53,7 +65,9 @@
     "eslint-plugin-jsx-a11y": "6.10.2",
     "eslint-plugin-react-hooks": "7.1.1",
     "eslint-plugin-react-refresh": "0.5.7",
+    "husky": "9.1.7",
     "jsdom": "30.0.1",
+    "lint-staged": "17.5.1",
     "prettier": "3.9.7",
     "typescript": "6.0.3",
     "typescript-eslint": "8.70.0",
