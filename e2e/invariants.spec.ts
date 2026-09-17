@@ -12,7 +12,7 @@ test('has no detectable accessibility violations', async ({ page }) => {
   expect(results.violations).toEqual([]);
 });
 
-test('does not scroll horizontally at 320px', async ({ page }) => {
+test('does not scroll horizontally', async ({ page }) => {
   await page.goto('/');
   const overflows = await page.evaluate(
     () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
