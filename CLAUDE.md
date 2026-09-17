@@ -113,7 +113,12 @@ The ruleset also requires a branch to be current with `main`, so a pull request
 whose base has moved needs updating and a rerun before it merges.
 
 CodeQL runs through GitHub's default setup, so its configuration lives in
-repository settings rather than in a committed workflow.
+repository settings rather than in a committed workflow. Default setup has no path
+filter, so the prototypes under `docs/design/` are scanned along with the
+application; a run reports 4 of the 5 HTML files in the repository. They raise
+nothing today. Excluding them would mean owning a committed CodeQL workflow and
+wiring it into `all-green`, worth doing only once they start reporting findings you
+would have to dismiss.
 
 Dependabot raises updates weekly. It ignores major bumps of `typescript` and
 `@types/node`; `.github/dependabot.yml` records the condition for lifting each.
