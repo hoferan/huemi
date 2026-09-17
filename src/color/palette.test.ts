@@ -39,12 +39,13 @@ describe('blockLabel', () => {
 
 describe('nearestName discrimination', () => {
   it('uses OKLab distance, not RGB Euclidean distance', () => {
-    // This color RGB(80,155,50) sits between warm neutrals.
-    // RGB distance: ~57 to Olive, ~42 to Khaki, ~40 to Camel, ~38 to Tan.
-    // OKLab: 0.149 to Khaki (clearly closest).
-    // RGB Euclidean would incorrectly name this Olive.
-    // This test fails under naive RGB implementations.
-    const testHex = parseHex('#509b32');
-    expect(nearestName(testHex)).toBe('Khaki');
+    // This color sits between Olive and Camel: RGB(145, 123, 70), HSL(42°, 35%, 42%).
+    // It is lighter and warmer than Olive (hue 59°, L 33%), so Camel is the
+    // perceptually correct match.
+    // RGB: Euclidean distance to Olive is 42.2, to Camel is 43.8 (tie, picks Olive).
+    // OKLab: distance to Olive is 0.0819, to Camel is 0.0772 (picks Camel).
+    // RGB incorrectly picks the darker, greener option.
+    const testHex = parseHex('#917b46');
+    expect(nearestName(testHex)).toBe('Camel');
   });
 });
