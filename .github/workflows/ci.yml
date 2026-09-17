@@ -72,10 +72,9 @@ jobs:
       - run: npx playwright install-deps chromium
         if: steps.pw-cache.outputs.cache-hit == 'true'
       - run: npm run build
-      # TODO(Task 11): generate Playwright specs from the .feature files via
-      # playwright-bdd before running the suite (e.g. its `bddgen` step).
-      # Read playwright-bdd's own docs for the exact invocation rather than
-      # guessing here.
+      # `npm run e2e` runs `bddgen` before `playwright test`, so generation
+      # from the .feature files happens here too rather than as a separate
+      # CI step — the same command used locally.
       - run: npm run e2e
       - uses: actions/upload-artifact@v7
         if: ${{ !cancelled() }}
