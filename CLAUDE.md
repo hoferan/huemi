@@ -97,15 +97,23 @@ a decision, point at the enforcement rather than restating the rule.
 
 See [ADR 0007](docs/adr/0007-transient-plans-durable-decisions.md).
 
-## Still outstanding
+## Automation
 
-These were waiting on the stack choice and are now unblocked, but not yet done.
+`.github/workflows/ci.yml` runs three jobs: `verify` (lint, format check,
+typecheck, unit tests with coverage, build), `e2e` (the Playwright suite) and
+`pr_title` (the Conventional Commit title check).
 
-A `.github/workflows/ci.yml` running lint, typecheck, tests with coverage, the build
-and the browser suite, with a `codecov.yml` gate. A `.github/dependabot.yml` for
-version updates, grouped and prefixed so its pull requests satisfy the Conventional
-Commit title check. CodeQL, through GitHub's default setup rather than a committed
-workflow, with `docs/design/**` excluded. A `required_status_checks` rule on the
-`main` ruleset, requiring one always-running gate job rather than the individual
-jobs, because a required check that is skipped never reports and blocks the pull
-request forever.
+**`all-green` is the only required check, and should stay that way.** It depends
+on the other three and tests each result for `success`, so a job that is skipped
+instead of run fails it. GitHub counts a skipped required check as satisfied, so
+naming `verify` and `e2e` in the ruleset directly would reopen that hole. Add a
+new job to `needs`, never to the ruleset.
+
+The ruleset also requires a branch to be current with `main`, so a pull request
+whose base has moved needs updating and a rerun before it merges.
+
+CodeQL runs through GitHub's default setup, so its configuration lives in
+repository settings rather than in a committed workflow.
+
+Dependabot raises updates weekly. It ignores major bumps of `typescript` and
+`@types/node`; `.github/dependabot.yml` records the condition for lifting each.
