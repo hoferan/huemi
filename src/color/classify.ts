@@ -10,7 +10,7 @@ import { hexToOklch } from './oklab';
  * put White at saturation 20 and Light grey at 7.4 despite identical chroma.
  * See ADR 0009.
  */
-const NEUTRAL_CHROMA = 0.02;
+export const NEUTRAL_CHROMA = 0.02;
 
 /** Warm hues run from WARM_FROM up through 0 to WARM_TO, in OKLab degrees. */
 const WARM_FROM = 320;

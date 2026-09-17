@@ -2,15 +2,16 @@ import { useState } from 'react';
 import * as stylex from '@stylexjs/stylex';
 import { tokens } from '../styles/tokens.stylex';
 import { parseHex, type Hex } from '../model/hex';
-import { SLOTS, SLOT_LABELS, type Slot } from '../model/types';
+import { SLOTS, SLOT_LABELS, type Slot, type Suggestion } from '../model/types';
 import { PALETTE } from '../color/palette';
 import { readableForeground } from '../color/contrast';
 import { chromaLoad, hueContrast, lightnessContrast } from '../color/score';
-import { candidates } from './candidates';
+import { rate, suggest } from '../color/engine';
 
-type SortKey = 'lightness' | 'hue' | 'load';
+type SortKey = 'rank' | 'lightness' | 'hue' | 'load';
 
 const SORTS: Readonly<Record<SortKey, string>> = {
+  rank: 'Engine rank',
   lightness: 'Lightness contrast',
   hue: 'Hue contrast',
   load: 'Chroma load',
@@ -97,18 +98,25 @@ const fmt = (n: number) => n.toFixed(3);
 export default function Harness() {
   const [base, setBase] = useState<Hex>(BASE);
   const [baseSlot, setBaseSlot] = useState<Slot>('bottom');
-  const [sort, setSort] = useState<SortKey>('lightness');
+  const [sort, setSort] = useState<SortKey>('rank');
 
   const measure = (hex: Hex, slot: Slot) => ({
     lightness: lightnessContrast(base, hex),
     hue: hueContrast(base, hex),
     load: chromaLoad({ [baseSlot]: base, [slot]: hex }),
+    score: rate(base, hex, slot, baseSlot),
   });
 
-  const rank = (hex: Hex, slot: Slot) => {
-    const m = measure(hex, slot);
-    if (sort === 'hue') return m.hue ?? -1;
-    return sort === 'load' ? m.load : m.lightness;
+  // 'rank' keeps the engine's own order. The others re-sort by one primitive,
+  // which is how you see what any single term is doing on its own.
+  const sorted = (ranked: Suggestion[], slot: Slot) => {
+    if (sort === 'rank') return ranked;
+    const by = (hex: Hex) => {
+      const m = measure(hex, slot);
+      if (sort === 'hue') return m.hue ?? -1;
+      return sort === 'load' ? m.load : m.lightness;
+    };
+    return [...ranked].sort((a, b) => by(b.hex) - by(a.hex));
   };
 
   const baseFg = readableForeground(base).color;
@@ -162,24 +170,22 @@ export default function Harness() {
         <section key={slot}>
           <h2 {...stylex.props(styles.slotHeading)}>{SLOT_LABELS[slot]}</h2>
           <div {...stylex.props(styles.grid)}>
-            {candidates(base, baseSlot, slot)
-              .slice()
-              .sort((a, b) => rank(b.hex, slot) - rank(a.hex, slot))
-              .map((candidate) => {
-                const m = measure(candidate.hex, slot);
-                const fg = readableForeground(candidate.hex).color;
-                return (
-                  <div key={candidate.hex} {...stylex.props(styles.pair)}>
-                    <div {...stylex.props(styles.block(base, baseFg))}>{SLOT_LABELS[baseSlot]}</div>
-                    <div {...stylex.props(styles.block(candidate.hex, fg))}>{candidate.name}</div>
-                    <div {...stylex.props(styles.numbers)}>
-                      <span>L {fmt(m.lightness)}</span>
-                      <span>H {m.hue === null ? 'n/a' : m.hue.toFixed(0)}</span>
-                      <span>C {fmt(m.load)}</span>
-                    </div>
+            {sorted(suggest(base, slot, baseSlot), slot).map((candidate) => {
+              const m = measure(candidate.hex, slot);
+              const fg = readableForeground(candidate.hex).color;
+              return (
+                <div key={candidate.hex} {...stylex.props(styles.pair)}>
+                  <div {...stylex.props(styles.block(base, baseFg))}>{SLOT_LABELS[baseSlot]}</div>
+                  <div {...stylex.props(styles.block(candidate.hex, fg))}>{candidate.name}</div>
+                  <div {...stylex.props(styles.numbers)}>
+                    <span>L {fmt(m.lightness)}</span>
+                    <span>H {m.hue === null ? 'n/a' : m.hue.toFixed(0)}</span>
+                    <span>C {fmt(m.load)}</span>
+                    <span>= {fmt(m.score)}</span>
                   </div>
-                );
-              })}
+                </div>
+              );
+            })}
           </div>
         </section>
       ))}
