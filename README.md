@@ -20,8 +20,12 @@ npm ci
 | `npm run lint`          | ESLint                          |
 | `npm run typecheck`     | `tsc --noEmit`                  |
 
-See `CLAUDE.md` for the full stack and its pinning policy, `docs/design/` for
-the design record, and `A11Y.md` for the accessibility invariants.
+Dependencies are pinned to exact versions, with `package-lock.json` committed
+and installs done through `npm ci`. Dependabot opens grouped weekly pull
+requests to move those pins forward.
+
+See `CLAUDE.md` for repository conventions, `docs/design/` for the design
+record, and `A11Y.md` for the accessibility invariants.
 
 ## Layout
 
