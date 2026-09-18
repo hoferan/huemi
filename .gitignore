@@ -64,3 +64,7 @@ docs/superpowers/
 
 # Worktrees created by the desktop app.
 .claude/worktrees/
+
+# Subagent-driven development workspace: ledgers, briefs and review packages
+# for one plan at a time. Scratch, like docs/superpowers/.
+.superpowers/
