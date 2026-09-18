@@ -63,4 +63,9 @@ describe('positionLabel', () => {
     expect(positionLabel(18, 18)).toBe('1 of 18');
     expect(positionLabel(-1, 18)).toBe('18 of 18');
   });
+
+  it('says nothing about a position in an empty list', () => {
+    expect(positionLabel(0, 0)).toBe('');
+    expect(positionLabel(3, 0)).toBe('');
+  });
 });

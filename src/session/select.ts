@@ -50,7 +50,15 @@ export function locate(base: Base, slot: Slot, hex: Hex): Position | null {
  * The text equivalent of the swipe position. The prototype conveys it through
  * dot opacity alone, which says nothing to a screen reader and nothing to
  * anyone who cannot separate the dots by brightness.
+ *
+ * An empty list has no position to describe, so the label is empty and the
+ * block renders nothing where the indicator would go. `suggest()` cannot
+ * return an empty list for real palette data, and `advance` throws if it ever
+ * does, so this only guards against a caller passing a count of its own. It
+ * is one line because the alternative reaches the user: `% 0` is NaN, and
+ * this string is read aloud.
  */
 export function positionLabel(cursor: number, count: number): string {
+  if (count < 1) return '';
   return `${wrap(cursor, count) + 1} of ${count}`;
 }
