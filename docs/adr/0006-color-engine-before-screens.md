@@ -1,6 +1,9 @@
 # 0006. Build the color engine before any screen
 
-Status: Accepted, 2026-09-16
+Status: Accepted, 2026-09-16. Superseded in part by
+[ADR 0010](0010-fitting-the-engine-to-outfit-data.md) on where the regression corpus
+comes from: the harness remains the instrument for judgement, but the engine's
+constants are fitted against outfit data rather than authored by one rater.
 
 ## Context
 

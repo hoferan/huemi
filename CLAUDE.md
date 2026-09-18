@@ -52,6 +52,12 @@ draft and the code supersedes them; where the two disagree, the code is right.
 `A11Y.md` lists the accessibility invariants, separating what the code enforces today
 from what later milestones still owe.
 
+`src/color/engine.benchmark.test.ts` measures the matching engine against the Polyvore
+outfit dataset and is how its constants were settled (ADR 0010). The dataset is not ours
+to redistribute, so it lives in the gitignored `tmp/polyvore/` and the tests skip without
+it; CI never runs them. The file's own comment says which files to fetch and from where.
+Run it before and after changing `TUNING`.
+
 `src/dev/` is the color engine's harness, served at `/harness.html` while the dev
 server runs. It renders candidate combinations as large blocks with their measured
 numbers, so the regression corpus is authored by looking at colors rather than at a

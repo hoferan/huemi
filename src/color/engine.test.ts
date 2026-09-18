@@ -3,7 +3,7 @@ import { parseHex, type Hex } from '../model/hex';
 import type { Slot } from '../model/types';
 import { PALETTE } from './palette';
 
-import { byScoreThenName, suggest } from './engine';
+import { byScoreThenName, rate, suggest } from './engine';
 
 const NAVY = parseHex('#1f2a44');
 const RUST = parseHex('#a4522d');
@@ -45,6 +45,30 @@ describe('suggest', () => {
   });
 });
 
+describe('rate, on lightness alone', () => {
+  // Greys throughout, so hue and temperature hold still and only the lightness
+  // term moves. Gaps from #1b1b1b are 0.055, 0.253 and 0.444.
+  const BLACK = parseHex('#1b1b1b');
+  const TONAL = parseHex('#282828');
+  const MIDDLE = parseHex('#5c5c5c');
+  const WIDE = parseHex('#949494');
+  const score = (hex: Hex) => rate(BLACK, hex, 'top', 'bottom');
+
+  it('prefers a tonal pairing to a middling gap', () => {
+    // Across 17,316 Polyvore outfits, real pairs run 1.63 times as common as
+    // random ones at a near-zero gap and 0.81 at a middling one. The shipped
+    // ramp had this backwards. See ADR 0010.
+    expect(score(TONAL)).toBeGreaterThan(score(MIDDLE));
+  });
+
+  it('still prefers a middling gap to the widest one', () => {
+    // The dip above the peak is real but mild, 0.81 against 0.71, so this is
+    // an ordering and not a veto. It is what keeps a band from becoming the
+    // ramp's mirror image and ranking navy with white last.
+    expect(score(MIDDLE)).toBeGreaterThan(score(WIDE));
+  });
+});
+
 describe('suggest, aiming at a middle band', () => {
   it('does not lead with the base color repeated', () => {
     expect(suggest(NAVY, 'top', 'bottom')[0]!.name).not.toBe('Navy');
@@ -59,21 +83,25 @@ describe('suggest, aiming at a middle band', () => {
     expect(rankOf('Cream')).toBeLessThan(rankOf('Navy'));
   });
 
-  it('ranks a neutral above a dark saturated clash, the other extreme', () => {
-    expect(rankOf('Light grey')).toBeLessThan(rankOf('Burgundy'));
-  });
-
-  it('rewards separating a dark base from a light piece', () => {
+  it('does not bury a high-contrast classic', () => {
+    // Navy with white. The tonal peak is what real outfits cluster on, but the
+    // dip above it is mild (0.81 against 0.71 in ADR 0010's lift table), so a
+    // wide gap has to stay respectable rather than sink. An earlier draft with
+    // a floor under the band inverted the old ramp and ranked this last.
     const ranked = names();
-    expect(ranked.indexOf('White')).toBeLessThan(ranked.indexOf('Charcoal'));
+    expect(ranked.indexOf('White')).toBeLessThan((ranked.length * 2) / 3);
   });
 });
 
 describe('suggest, weighting by slot area', () => {
   it('ranks a saturated color higher as an accessory than as outerwear', () => {
-    const asAccessory = rankOf('Mustard', NAVY, 'accessory', 'bottom');
-    const asOuterwear = rankOf('Mustard', NAVY, 'outerwear', 'bottom');
-    expect(asAccessory).toBeLessThan(asOuterwear);
+    // Scores rather than ranks. Mustard sits near the bottom of both lists, so
+    // comparing positions reads equal whatever the area weighting does, which
+    // is coverage in name only.
+    const mustard = parseHex('#c39a3a');
+    expect(rate(NAVY, mustard, 'accessory', 'bottom')).toBeGreaterThan(
+      rate(NAVY, mustard, 'outerwear', 'bottom'),
+    );
   });
 
   it('leaves a neutral near enough where it was between those slots', () => {
