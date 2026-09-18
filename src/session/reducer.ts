@@ -10,8 +10,13 @@ export type { Pick, SessionAction, SessionState } from './types';
  */
 export const initialSession: SessionState = {
   base: null,
-  picks: {},
-  locked: {},
+  // Frozen because these two objects are shared by reference into every state
+  // derived from the initial one, here and through `reset` and `baseChosen`.
+  // Every case below replaces them rather than writing into them, and a lapse
+  // would corrupt the state every later session starts from. Modules are
+  // strict, so an assignment to a frozen object throws where it happens.
+  picks: Object.freeze({}),
+  locked: Object.freeze({}),
   toast: null,
   toastSeq: 0,
 };

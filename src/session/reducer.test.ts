@@ -24,6 +24,12 @@ describe('sessionReducer', () => {
     expect(next.locked).toEqual({});
   });
 
+  it('shares the initial picks and locks frozen, so nothing can write into them', () => {
+    // Reset and baseChosen hand these same two objects to the next state.
+    expect(Object.isFrozen(initialSession.picks)).toBe(true);
+    expect(Object.isFrozen(initialSession.locked)).toBe(true);
+  });
+
   it('returns to the initial state on reset', () => {
     const withBase = sessionReducer(initialSession, {
       type: 'baseChosen',
