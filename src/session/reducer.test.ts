@@ -22,7 +22,6 @@ describe('sessionReducer', () => {
     const next = sessionReducer(withWork, { type: 'baseChosen', slot: 'top', hex: cream });
     expect(next.picks).toEqual({});
     expect(next.locked).toEqual({});
-    expect(next.cursor).toEqual({});
   });
 
   it('returns to the initial state on reset', () => {
@@ -38,8 +37,9 @@ describe('sessionReducer', () => {
 
   it('records a pick and the cursor it came from', () => {
     const next = sessionReducer(based, { type: 'pickChanged', slot: 'top', hex: cream, cursor: 3 });
-    expect(next.picks.top).toBe(cream);
-    expect(next.cursor.top).toBe(3);
+    // One record, so the cursor cannot end up describing a colour that is no
+    // longer showing. The block announces the position from this pair.
+    expect(next.picks.top).toEqual({ hex: cream, cursor: 3 });
   });
 
   it('ignores a pick for a locked slot', () => {
@@ -74,16 +74,31 @@ describe('sessionReducer', () => {
       sessionReducer(based, { type: 'pickChanged', slot: 'top', hex: cream, cursor: 2 }),
       { type: 'lockToggled', slot: 'top' },
     );
+    // Navy really is the sixteenth of the eighteen suggestions this base
+    // makes for the bottom slot, which is what `locate` returns and what the
+    // saved screen dispatches. The cursor rides with the hex, so it cannot
+    // name some other colour's position for the block to announce.
     const next = sessionReducer(working, {
       type: 'outfitLoaded',
       base: { slot: 'top', hex: cream },
-      picks: { bottom: navy },
-      cursor: { bottom: 5 },
+      picks: { bottom: { hex: navy, cursor: 15 } },
     });
     expect(next.base).toEqual({ slot: 'top', hex: cream });
-    expect(next.picks).toEqual({ bottom: navy });
-    expect(next.cursor).toEqual({ bottom: 5 });
+    expect(next.picks).toEqual({ bottom: { hex: navy, cursor: 15 } });
     expect(next.locked).toEqual({});
+  });
+
+  it('loads a pick whose position is unknown without inventing one', () => {
+    // `locate` returns null for a colour no suggestion list holds, and the
+    // caller omits the cursor instead of guessing. exactOptionalPropertyTypes
+    // is on, so this is an absent key rather than an explicit undefined.
+    const next = sessionReducer(based, {
+      type: 'outfitLoaded',
+      base: { slot: 'top', hex: cream },
+      picks: { bottom: { hex: navy } },
+    });
+    expect(next.picks.bottom).toEqual({ hex: navy });
+    expect(next.picks.bottom && 'cursor' in next.picks.bottom).toBe(false);
   });
 
   it('gives each toast a new id and keeps only the newest', () => {
@@ -131,7 +146,6 @@ describe('sessionReducer', () => {
       type: 'outfitLoaded',
       base: { slot: 'top', hex: cream },
       picks: {},
-      cursor: {},
     });
     expect(next.toast).toBeNull();
   });

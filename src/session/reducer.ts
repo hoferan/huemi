@@ -1,6 +1,6 @@
 import type { SessionAction, SessionState } from './types';
 
-export type { SessionAction, SessionState } from './types';
+export type { Pick, SessionAction, SessionState } from './types';
 
 /**
  * The outfit-building session. Pure, and deliberately free of the colour
@@ -11,7 +11,6 @@ export type { SessionAction, SessionState } from './types';
 export const initialSession: SessionState = {
   base: null,
   picks: {},
-  cursor: {},
   locked: {},
   toast: null,
   toastSeq: 0,
@@ -21,7 +20,7 @@ export function sessionReducer(state: SessionState, action: SessionAction): Sess
   switch (action.type) {
     case 'baseChosen':
       // A new base invalidates every suggestion made against the old one, so
-      // picks, cursors and locks all go. The toast sequence survives, because
+      // picks and locks all go. The toast sequence survives, because
       // reusing an id would let a stale dismissal close a live toast.
       return {
         ...initialSession,
@@ -36,8 +35,7 @@ export function sessionReducer(state: SessionState, action: SessionAction): Sess
       if (state.locked[action.slot]) return state;
       return {
         ...state,
-        picks: { ...state.picks, [action.slot]: action.hex },
-        cursor: { ...state.cursor, [action.slot]: action.cursor },
+        picks: { ...state.picks, [action.slot]: { hex: action.hex, cursor: action.cursor } },
       };
     }
 
@@ -60,7 +58,6 @@ export function sessionReducer(state: SessionState, action: SessionAction): Sess
         ...state,
         base: action.base,
         picks: action.picks,
-        cursor: action.cursor,
         locked: {},
         toast: null,
       };
