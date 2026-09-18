@@ -38,4 +38,25 @@ describe('Announcer', () => {
   it('throws when useAnnounce is called outside the provider', () => {
     expect(() => render(<Speaker />)).toThrow('useAnnounce needs an Announcer above it');
   });
+
+  it('changes the live region on every repeated announcement, not just the first', async () => {
+    const user = userEvent.setup();
+    render(
+      <Announcer>
+        <Speaker />
+      </Announcer>,
+    );
+    const button = screen.getByRole('button', { name: 'speak' });
+    const region = screen.getByRole('status');
+
+    await user.click(button);
+    const first = region.textContent;
+    await user.click(button);
+    const second = region.textContent;
+    await user.click(button);
+    const third = region.textContent;
+
+    expect(second).not.toBe(first);
+    expect(third).not.toBe(second);
+  });
 });

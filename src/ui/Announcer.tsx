@@ -20,8 +20,12 @@ export function Announcer({ children }: { children: ReactNode }) {
   const announce = useCallback((next: string) => {
     // Announcing the same words twice in a row has to change the DOM, or a
     // screen reader sees no mutation and stays silent. Alternating a trailing
-    // no-break space is the smallest change that is never read aloud.
-    setMessage((current) => (current.trimEnd() === next ? `${next} ` : next));
+    // no-break space is the smallest change that is never read aloud. The
+    // comparison has to be against the raw current value, not a trimmed one:
+    // trimming would make the no-break-space state compare equal to the
+    // plain one, so a third identical announcement would collapse back onto
+    // the state it already holds and produce no DOM mutation.
+    setMessage((current) => (current === next ? `${next}\u00a0` : next));
   }, []);
   return (
     <AnnounceContext value={announce}>
