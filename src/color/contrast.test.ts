@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { parseHex } from '../model/hex';
 import { hslToHex } from './convert';
 import {
+  compositeOver,
   contrastOver,
   contrastRatio,
   needsBorder,
@@ -79,11 +80,51 @@ describe('readableForeground', () => {
     }
   });
 
-  it('falls back to a scrim when asked for AAA, and the scrim delivers it', () => {
-    // 7:1 is unreachable directly in the mid-luminance band.
-    const result = readableForeground(parseHex('#8a8a8a'), { minRatio: 7 });
+  it('holds 7:1 across the whole picker range, scrim included', () => {
+    // The scrim is the only path an AAA caller can take, so it gets the same
+    // sweep the direct branch gets at 4.5. A single background cannot verify
+    // SCRIM_ALPHA: at #8a8a8a the composite clears 7:1 by so wide a margin
+    // that most values of the constant would pass.
+    let scrims = 0;
+    for (let h = 0; h < 360; h += 15) {
+      for (let s = 0; s <= 100; s += 20) {
+        for (let l = 8; l <= 92; l += 4) {
+          const bg = hslToHex(h, s, l);
+          const result = readableForeground(bg, { minRatio: 7 });
+          expect(result.ratio, bg).toBeGreaterThanOrEqual(7);
+          if (result.kind === 'scrim') scrims += 1;
+        }
+      }
+    }
+    // Guard against the sweep passing because it never reached the branch.
+    expect(scrims).toBeGreaterThan(0);
+  });
+
+  it('pins the scrim at its worst background, where the sweep cannot', () => {
+    // The sweep above proves the branch clears AAA; it says nothing about
+    // SCRIM_ALPHA, because the margin is wide enough that the constant could
+    // fall to roughly 0.35 before any background dropped under 7:1.
+    //
+    // #f50000 is the worst the scrim does anywhere in the picker range, so it
+    // is where the constant shows up most sharply: 14.69 at alpha 0.80, 16.14
+    // at 0.85, 17.68 at 0.90. Moving SCRIM_ALPHA fails this and asks whoever
+    // moved it to say what the new value should be.
+    const result = readableForeground(parseHex('#f50000'), { minRatio: 7 });
     expect(result.kind).toBe('scrim');
-    expect(result.ratio).toBeGreaterThanOrEqual(7);
+    expect(result.ratio).toBeCloseTo(16.14, 1);
+  });
+});
+
+describe('compositeOver', () => {
+  it('returns the foreground at alpha 1 and the background at alpha 0', () => {
+    const fg = parseHex('#ffffff');
+    const bg = parseHex('#1f2a44');
+    expect(compositeOver(fg, bg, 1)).toBe(fg);
+    expect(compositeOver(fg, bg, 0)).toBe(bg);
+  });
+
+  it('lands halfway between the two at alpha 0.5', () => {
+    expect(compositeOver(parseHex('#000000'), parseHex('#ffffff'), 0.5)).toBe('#808080');
   });
 });
 
