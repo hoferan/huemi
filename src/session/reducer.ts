@@ -53,10 +53,45 @@ export function sessionReducer(state: SessionState, action: SessionAction): Sess
       return { ...state, locked };
     }
 
+    case 'outfitLoaded':
+      // Locks belong to a session, not to a saved outfit: reopening one starts
+      // with everything free to change.
+      return {
+        ...state,
+        base: action.base,
+        picks: action.picks,
+        cursor: action.cursor,
+        locked: {},
+        toast: null,
+      };
+
+    case 'toastShown': {
+      // The id is assigned here rather than by the caller so that a dismissal
+      // can name exactly the toast it was scheduled for. Radix Toast queues;
+      // this field does not, which is the single-toast rule from the handoff
+      // notes.
+      const id = state.toastSeq + 1;
+      const toast =
+        action.action === undefined
+          ? { id, message: action.message }
+          : { id, message: action.message, action: action.action };
+      return { ...state, toast, toastSeq: id };
+    }
+
+    case 'toastDismissed':
+      // A timer from a toast that has already been replaced must not close its
+      // successor.
+      if (state.toast?.id !== action.id) return state;
+      return { ...state, toast: null };
+
     case 'reset':
       return { ...initialSession, toastSeq: state.toastSeq };
 
-    default:
-      return state;
+    default: {
+      // A new action type that nobody handled is a compile error rather than a
+      // silent no-op.
+      const exhaustive: never = action;
+      return exhaustive;
+    }
   }
 }

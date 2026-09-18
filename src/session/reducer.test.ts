@@ -68,4 +68,45 @@ describe('sessionReducer', () => {
   it('ignores a lock on a slot with nothing in it', () => {
     expect(sessionReducer(based, { type: 'lockToggled', slot: 'shoes' })).toBe(based);
   });
+
+  it('replaces the whole session when an outfit is loaded', () => {
+    const working = sessionReducer(
+      sessionReducer(based, { type: 'pickChanged', slot: 'top', hex: cream, cursor: 2 }),
+      { type: 'lockToggled', slot: 'top' },
+    );
+    const next = sessionReducer(working, {
+      type: 'outfitLoaded',
+      base: { slot: 'top', hex: cream },
+      picks: { bottom: navy },
+      cursor: { bottom: 5 },
+    });
+    expect(next.base).toEqual({ slot: 'top', hex: cream });
+    expect(next.picks).toEqual({ bottom: navy });
+    expect(next.cursor).toEqual({ bottom: 5 });
+    expect(next.locked).toEqual({});
+  });
+
+  it('gives each toast a new id and keeps only the newest', () => {
+    const first = sessionReducer(based, { type: 'toastShown', message: 'Saved' });
+    const second = sessionReducer(first, { type: 'toastShown', message: 'Removed' });
+    expect(first.toast?.id).toBe(1);
+    expect(second.toast).toEqual({ id: 2, message: 'Removed' });
+  });
+
+  it('carries a toast action through', () => {
+    const next = sessionReducer(based, {
+      type: 'toastShown',
+      message: 'Outfit removed',
+      action: { label: 'Undo', kind: 'undoDelete', outfitId: 'abc' },
+    });
+    expect(next.toast?.action).toEqual({ label: 'Undo', kind: 'undoDelete', outfitId: 'abc' });
+  });
+
+  it('dismisses only the toast it names', () => {
+    const first = sessionReducer(based, { type: 'toastShown', message: 'Saved' });
+    const second = sessionReducer(first, { type: 'toastShown', message: 'Removed' });
+    // The first toast's auto-dismiss timer fires after the second replaced it.
+    expect(sessionReducer(second, { type: 'toastDismissed', id: 1 })).toBe(second);
+    expect(sessionReducer(second, { type: 'toastDismissed', id: 2 }).toast).toBeNull();
+  });
 });
