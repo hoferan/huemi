@@ -1,7 +1,6 @@
-import { createContext, use, useCallback, useState } from 'react';
+import { useCallback, useState } from 'react';
 import type { ReactNode } from 'react';
-
-const AnnounceContext = createContext<((message: string) => void) | null>(null);
+import { AnnounceContext } from './AnnounceContext';
 
 /**
  * A polite live region and the function that writes to it.
@@ -35,12 +34,6 @@ export function Announcer({ children }: { children: ReactNode }) {
       </p>
     </AnnounceContext>
   );
-}
-
-export function useAnnounce(): (message: string) => void {
-  const announce = use(AnnounceContext);
-  if (!announce) throw new Error('useAnnounce needs an Announcer above it');
-  return announce;
 }
 
 // Inline rather than StyleX: a visually hidden region has to keep its
