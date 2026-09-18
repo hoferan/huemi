@@ -109,4 +109,30 @@ describe('sessionReducer', () => {
     expect(sessionReducer(second, { type: 'toastDismissed', id: 1 })).toBe(second);
     expect(sessionReducer(second, { type: 'toastDismissed', id: 2 }).toast).toBeNull();
   });
+
+  it('does not reuse a toast id across reset', () => {
+    const shown = sessionReducer(based, { type: 'toastShown', message: 'Saved' });
+    const afterReset = sessionReducer(shown, { type: 'reset' });
+    const rebased = sessionReducer(afterReset, { type: 'baseChosen', slot: 'bottom', hex: navy });
+    const shownAgain = sessionReducer(rebased, { type: 'toastShown', message: 'Saved again' });
+    expect(shownAgain.toast?.id).toBeGreaterThan(shown.toast?.id ?? -Infinity);
+  });
+
+  it('does not reuse a toast id across a new base', () => {
+    const shown = sessionReducer(based, { type: 'toastShown', message: 'Saved' });
+    const rebased = sessionReducer(shown, { type: 'baseChosen', slot: 'top', hex: cream });
+    const shownAgain = sessionReducer(rebased, { type: 'toastShown', message: 'Saved again' });
+    expect(shownAgain.toast?.id).toBeGreaterThan(shown.toast?.id ?? -Infinity);
+  });
+
+  it('clears the toast when an outfit is loaded', () => {
+    const shown = sessionReducer(based, { type: 'toastShown', message: 'Saved' });
+    const next = sessionReducer(shown, {
+      type: 'outfitLoaded',
+      base: { slot: 'top', hex: cream },
+      picks: {},
+      cursor: {},
+    });
+    expect(next.toast).toBeNull();
+  });
 });
