@@ -23,12 +23,12 @@ export type Toast = { id: number; message: string; action?: ToastAction };
  * by returning null, and the block then says nothing about the position
  * rather than saying something false.
  */
-export type Pick = { hex: Hex; cursor?: number };
+export type SlotPick = { hex: Hex; cursor?: number };
 
 export type SessionState = {
   base: Base | null;
   /** The colour showing in each slot, and where it came from. */
-  picks: Partial<Record<Slot, Pick>>;
+  picks: Partial<Record<Slot, SlotPick>>;
   /** Hold-to-keep. Present and true, or absent. */
   locked: Partial<Record<Slot, true>>;
   /** One at a time. A new toast replaces the current one. */
@@ -41,7 +41,7 @@ export type SessionAction =
   | { type: 'baseChosen'; slot: Slot; hex: Hex }
   | { type: 'pickChanged'; slot: Slot; hex: Hex; cursor: number }
   | { type: 'lockToggled'; slot: Slot }
-  | { type: 'outfitLoaded'; base: Base; picks: Partial<Record<Slot, Pick>> }
+  | { type: 'outfitLoaded'; base: Base; picks: Partial<Record<Slot, SlotPick>> }
   | { type: 'toastShown'; message: string; action?: ToastAction }
   | { type: 'toastDismissed'; id: number }
   | { type: 'reset' };

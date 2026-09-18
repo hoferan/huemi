@@ -1,6 +1,6 @@
 import type { SessionAction, SessionState } from './types';
 
-export type { Pick, SessionAction, SessionState } from './types';
+export type { SlotPick, SessionAction, SessionState } from './types';
 
 /**
  * The outfit-building session. Pure, and deliberately free of the colour
