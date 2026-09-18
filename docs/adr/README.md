@@ -33,3 +33,4 @@ supersedes it, in which case both say so.
 | [0008](0008-gherkin-feature-files-for-e2e.md)     | Write end-to-end tests as Gherkin feature files           |
 | [0009](0009-how-the-matching-engine-reasons.md)   | Reason about color in OKLab, with no harmony geometry     |
 | [0010](0010-fitting-the-engine-to-outfit-data.md) | Fit the lightness term against real outfit data           |
+| [0011](0011-routing-and-screen-transitions.md)    | Route with React Router, and move focus from the screen   |
