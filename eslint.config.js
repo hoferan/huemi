@@ -85,11 +85,13 @@ export default tseslint.config(
       '@stylexjs/enforce-extension': 'error',
       '@stylexjs/no-unused': 'error',
 
-      // Layering for the zones that exist today: model, color and storage
-      // may each only import themselves and model. Nothing outside app
-      // imports app (enforced together with the override block below).
-      // session, ui, and features arrive in a later milestone; add zones for
-      // them then rather than assuming this list already covers them.
+      // Layering. model, color and storage may each only import themselves
+      // and model. session may reach color, because select.ts is the join
+      // between the session and the engine. ui may not reach session, which
+      // is what keeps the components presentational. Nothing outside app
+      // imports app, enforced together with the override block below. A zone
+      // only enforces once its target directory exists, so session and
+      // features stay unverified until the tasks that create them.
       'import-x/no-restricted-paths': [
         'error',
         {
@@ -97,6 +99,21 @@ export default tseslint.config(
             { target: './src/model', from: './src', except: ['./model'] },
             { target: './src/color', from: './src', except: ['./model', './color'] },
             { target: './src/storage', from: './src', except: ['./model', './storage'] },
+            { target: './src/session', from: './src', except: ['./model', './color', './session'] },
+            { target: './src/ui', from: './src', except: ['./model', './color', './styles', './ui'] },
+            {
+              target: './src/features',
+              from: './src',
+              except: [
+                './model',
+                './color',
+                './storage',
+                './session',
+                './styles',
+                './ui',
+                './features',
+              ],
+            },
             { target: './src', from: './src/app' },
           ],
         },
