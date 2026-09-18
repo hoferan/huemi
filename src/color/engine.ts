@@ -1,23 +1,27 @@
 import type { Hex } from '../model/hex';
 import type { Slot, Suggestion } from '../model/types';
 import { PALETTE } from './palette';
+import { oklabDistance } from './oklab';
 import { NEUTRAL_CHROMA, chroma, temperature } from './classify';
 import { chromaLoad, hueContrast, lightnessContrast } from './score';
 
 /**
  * What the corpus tunes.
  *
- * ADR 0009 settled the shape of this model and left its scale open: the
- * evidence says suggestions should aim at a middle band of coordination and
- * says nothing about where that band sits for clothing. These are a first cut,
- * to be moved by looking at the harness against the corpus in #11. They are
- * gathered here rather than spread through `rate` so that tuning is one edit.
+ * ADR 0009 settled the shape of this model and left its scale open, to be
+ * closed by looking at the harness. ADR 0010 closed it against 17,316 Polyvore
+ * outfits instead, and found the lightness term was the wrong shape rather than
+ * merely the wrong scale: real outfits are more coordinated than random pairs,
+ * not less, and the ramp that used to sit here rewarded separation without
+ * limit. Measured as lift over random pairs, real outfits run 1.63 at a
+ * near-zero lightness gap and 0.90, 0.81, 0.83, 1.03, 0.68, 0.66, 0.71 across
+ * the rest of the range.
  *
- * The band is a property of the whole model rather than of any one term. An
- * over-coordinated outfit loses on lightness, which rewards separation; a
- * clashing one loses on hue, temperature and the chroma budget. An earlier
- * draft put the band on lightness alone and ranked navy with white fifteenth of
- * eighteen, which is how the mistake showed itself.
+ * Only `tonalLightness` and `spreadLightness` come from that measurement. The
+ * rest are still ADR 0009's first cut, deliberately: fitting all thirteen
+ * against the same data moved compatibility AUC by 0.002 and the blank-filling
+ * benchmark not at all, so the extra freedom bought nothing a reader would have
+ * to take on trust.
  */
 export const TUNING = {
   /** Relative pull of each term on the total. */
@@ -26,8 +30,9 @@ export const TUNING = {
   weightTemperature: 0.5,
   weightHue: 0.3,
 
-  /** The OKLab lightness gap by which separation has mostly paid off. */
-  scaleLightness: 0.35,
+  /** Where the tonal template peaks, and how fast it falls away. */
+  tonalLightness: 0.05,
+  spreadLightness: 0.14,
 
   /** Chroma an outfit carries comfortably, and how hard going over is felt. */
   chromaBudget: 0.12,
@@ -47,9 +52,6 @@ export const TUNING = {
 /** One at the target, falling away smoothly on both sides. Never a cliff. */
 const band = (value: number, target: number, spread: number): number =>
   Math.exp(-(((value - target) / spread) ** 2));
-
-/** Rises with separation and saturates, so more is better with less to gain. */
-const rise = (value: number, scale: number): number => 1 - Math.exp(-((value / scale) ** 2));
 
 /** One up to the budget, falling away only above it. */
 const within = (value: number, budget: number, spread: number): number =>
@@ -103,7 +105,8 @@ function hueScore(base: Hex, candidate: Hex): number {
 export function rate(base: Hex, candidate: Hex, slot: Slot, baseSlot: Slot): number {
   const load = chromaLoad({ [baseSlot]: base, [slot]: candidate });
   return (
-    TUNING.weightLightness * rise(lightnessContrast(base, candidate), TUNING.scaleLightness) +
+    TUNING.weightLightness *
+      band(lightnessContrast(base, candidate), TUNING.tonalLightness, TUNING.spreadLightness) +
     TUNING.weightChroma * within(load, TUNING.chromaBudget, TUNING.spreadChroma) +
     TUNING.weightTemperature * temperatureScore(base, candidate) +
     TUNING.weightHue * hueScore(base, candidate)
@@ -127,18 +130,35 @@ export function byScoreThenName(a: Ranked, b: Ranked): number {
 }
 
 /**
+ * Below this OKLab distance from the base, a suggestion is not one.
+ *
+ * ADR 0010 made a tonal pairing the highest-scoring shape, which is what the
+ * data says stylists do. Taken literally that ranks Light grey first against a
+ * White base, and a user who is shown a colour they cannot tell from the one
+ * they already have has been given nothing. The palette's own entries sit 0.031
+ * to 0.125 apart, so this sits at the bottom of that range: it catches White
+ * against Light grey at 0.051 and leaves every deliberate tonal pairing alone,
+ * because two colours a tonal gap apart in lightness are further than this once
+ * their hues differ at all.
+ */
+const NEAR_DUPLICATE = 0.06;
+
+/**
  * Colors for one slot against a locked base, best first.
  *
  * The whole palette comes back rather than a top few: the suggestions screen
  * offers alternatives for any slot, and where to cut the list is its decision,
- * not the engine's.
+ * not the engine's. Near-duplicates of the base go last whatever they scored,
+ * which is a statement about what a suggestion is for rather than about colour,
+ * and so is kept out of `rate` where the colour reasoning lives.
  */
 export function suggest(base: Hex, slot: Slot, baseSlot: Slot): Suggestion[] {
   return PALETTE.filter((color) => !(slot === baseSlot && color.hex === base))
     .map((color) => ({
       suggestion: { hex: color.hex, name: color.name, slot },
       score: rate(base, color.hex, slot, baseSlot),
+      duplicate: oklabDistance(base, color.hex) < NEAR_DUPLICATE,
     }))
-    .sort(byScoreThenName)
+    .sort((a, b) => Number(a.duplicate) - Number(b.duplicate) || byScoreThenName(a, b))
     .map((ranked) => ranked.suggestion);
 }
