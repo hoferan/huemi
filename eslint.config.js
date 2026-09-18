@@ -29,12 +29,20 @@ export default tseslint.config(
   ...tseslint.configs.recommendedTypeChecked,
   {
     // typescript-eslint's base config sets the TS parser with no `files`
-    // restriction, so type-checked rules reach these files even though no
-    // parserOptions project covers them. Scoped to these two root config
-    // files, not `**/*.js` generally: the project is TypeScript throughout,
-    // and a blanket JS exemption would silently cover any future `.js` file
-    // too.
-    files: ['eslint.config.js', 'commitlint.config.js'],
+    // restriction, so its type-checked rules reach JavaScript too and then
+    // crash on it: they call getParserServices, and no parserOptions project
+    // covers a `.js` file. The failure is an ESLint stack trace rather than a
+    // lint error, so it takes down `npm run lint` and the pre-commit hook
+    // together.
+    //
+    // This was scoped to the two root config files by name, to stop a future
+    // `.js` file silently losing typed linting. That reasoning assumed the
+    // alternative was silence; it is a crash. It also assumed typed linting
+    // was available to lose, and no tsconfig here sets `allowJs`, so no
+    // JavaScript file is in a project and none of it was ever type-checked.
+    // The exemption now says so. Narrow it back to a named list if `allowJs`
+    // is ever enabled, because then the silence would be real.
+    files: ['**/*.{js,cjs,mjs}'],
     extends: [tseslint.configs.disableTypeChecked],
   },
   {
