@@ -27,10 +27,10 @@ const SPIKE = [
 
 export default function App() {
   return (
-    <main {...stylex.props(styles.page)}>
+    <div {...stylex.props(styles.page)}>
       {SPIKE.map((c) => (
         <div key={c.hex} role="img" aria-label={c.name} {...stylex.props(styles.block(c.hex))} />
       ))}
-    </main>
+    </div>
   );
 }
