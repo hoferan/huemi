@@ -1,7 +1,8 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
-import { Announcer, useAnnounce } from './Announcer';
+import { Announcer } from './Announcer';
+import { useAnnounce } from './useAnnounce';
 
 function Speaker() {
   const announce = useAnnounce();

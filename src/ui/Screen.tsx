@@ -1,8 +1,9 @@
-import { useEffect, useRef } from 'react';
+import { use, useEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { useLocation } from 'react-router';
 import * as stylex from '@stylexjs/stylex';
 import { tokens } from '../styles/tokens.stylex';
+import { InitialLocationContext } from './InitialLocationContext';
 
 const styles = stylex.create({
   main: {
@@ -40,9 +41,11 @@ const styles = stylex.create({
  * wrapper that moves focus, but any plain `<Link>` bypasses it. Putting the
  * move here means a screen cannot be reached without it.
  *
- * Focus moves only after a client-side navigation. React Router gives the
- * first entry the location key `default`, and stealing focus on first load
- * would drag a keyboard user past the browser chrome they had not left yet.
+ * Focus moves only after a client-side navigation, because stealing it on
+ * first load would drag a keyboard user past the browser chrome they had not
+ * left yet. `InitialLocation` is what says which load is the first one; the
+ * location key cannot, since the first history entry reports the key
+ * `default` again when the user comes back to it.
  *
  * Focusing the heading is also the announcement: a screen reader reads a
  * focused element, so routing this through the live region as well would say
@@ -50,16 +53,17 @@ const styles = stylex.create({
  */
 export function Screen({ title, children }: { title: string; children: ReactNode }) {
   const heading = useRef<HTMLHeadingElement>(null);
-  const { key } = useLocation();
+  const location = useLocation();
+  const isInitialLocation = use(InitialLocationContext);
 
   useEffect(() => {
     document.title = `${title} — huemi`;
   }, [title]);
 
   useEffect(() => {
-    if (key === 'default') return;
+    if (isInitialLocation) return;
     heading.current?.focus();
-  }, [key]);
+  }, [location, isInitialLocation]);
 
   return (
     <main {...stylex.props(styles.main)}>

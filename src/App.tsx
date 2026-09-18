@@ -5,7 +5,11 @@ const styles = stylex.create({
   page: {
     backgroundColor: tokens.bg,
     fontFamily: tokens.fontBody,
-    minHeight: '100vh',
+    // Screen already gives the page its 100dvh and its padding. Asking for
+    // another viewport height here adds the padding on top of it and leaves
+    // the route with 74px of nothing to scroll through, so this fills what
+    // the wrapper hands it instead.
+    flex: '1',
     display: 'flex',
     flexDirection: 'column',
     gap: '8px',

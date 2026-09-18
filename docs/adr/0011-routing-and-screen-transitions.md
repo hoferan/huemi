@@ -33,8 +33,14 @@ Focus moves from the receiving end. `src/ui/Screen.tsx` takes focus to its own
 `<h1>` after a client-side navigation, and every screen renders one. Issue #12
 asked for a navigate helper that all navigation routes through. A sending-end
 helper is bypassed by any plain `<Link>`, which is the thing the router was
-chosen for, and a screen that does not render `Screen` has no heading and no
-`main` landmark either, so the accessibility checks catch it.
+chosen for.
+
+The receiving end is harder to bypass, not impossible. A screen writing its own
+`<main>` and `<h1>` instead of rendering `Screen` would pass the axe check and
+get no focus move. What is actually enforced is narrower: `src/app/routes.test.tsx`
+holds the route table to the list in `e2e/routes.ts`, so a screen cannot go
+unvisited by the accessibility checks. That it renders `Screen` is convention,
+and review is what keeps it.
 
 Focusing the heading is the announcement, because a screen reader reads the
 element it lands on. The shell's polite live region is therefore for changes
@@ -49,10 +55,15 @@ otherwise be a 404 from the host.
 Screens are unit-testable under `MemoryRouter` without a browser.
 
 The focus move does not fire on the first load, where focus belongs at the
-document start. React Router marks that entry with the location key `default`,
-which is what `Screen` tests against. A router upgrade that renames it would
-make the app steal focus on arrival, and `src/ui/Screen.test.tsx` covers that
-case.
+document start. Testing the location key against `default` looked like enough
+and was not. The first history entry carries no `history.state`, so React Router
+derives that same key again when the user goes back to it, and the move was
+suppressed on exactly the hardware back path this record cites as a reason to
+have a router at all. The guard compares location identity instead, captured
+once above the routes, because React Router builds a new location object for
+every history update. `src/ui/Screen.test.tsx` covers both directions, and its
+back test is what would catch a router upgrade that started memoising
+locations.
 
 A deep link to `/suggest` with no valid base parameter cannot rebuild the
 session, so it redirects to the entry screen. That arrives in #17 with the
