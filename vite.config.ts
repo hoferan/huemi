@@ -58,7 +58,7 @@ export default defineConfig({
         'src/**/*.test.{ts,tsx}',
         'src/**/*.stylex.ts',
         'src/**/*.d.ts',
-        'src/main.tsx',
+        'src/app/main.tsx',
         'src/test-setup.ts',
         'src/vite-env.d.ts',
         // The harness is a development instrument, served from harness.html
