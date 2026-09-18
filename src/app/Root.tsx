@@ -1,5 +1,6 @@
 import { BrowserRouter } from 'react-router';
 import { Announcer } from '../ui/Announcer';
+import { InitialLocation } from '../ui/InitialLocation';
 import { AppRoutes } from './routes';
 import { ErrorBoundary } from './ErrorBoundary';
 import { SessionProvider } from './SessionProvider';
@@ -11,17 +12,21 @@ import { SessionProvider } from './SessionProvider';
  * region unmounted and remounted with the message already in it is never
  * announced. The session provider sits inside the router, because a later
  * screen will want the location, and outside the announcer, because nothing
- * in the announcer reads the session.
+ * in the announcer reads the session. `InitialLocation` goes directly under
+ * the router and above the routes: it remembers the location the app arrived
+ * on, which it can only do from somewhere that survives a route change.
  */
 export function Root() {
   return (
     <ErrorBoundary>
       <BrowserRouter>
-        <SessionProvider>
-          <Announcer>
-            <AppRoutes />
-          </Announcer>
-        </SessionProvider>
+        <InitialLocation>
+          <SessionProvider>
+            <Announcer>
+              <AppRoutes />
+            </Announcer>
+          </SessionProvider>
+        </InitialLocation>
       </BrowserRouter>
     </ErrorBoundary>
   );
