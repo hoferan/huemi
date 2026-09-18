@@ -13,10 +13,17 @@ export const FG_LIGHT = parseHex('#ffffff');
 const BORDER_THRESHOLD = 0.45;
 
 /**
- * Opacity of the scrim pill. The test suite checks that this clears AAA for
- * one background (`#8a8a8a`); unlike the direct branch, it is not swept
- * across the picker range, so a value change elsewhere in this file is not
- * guaranteed to be caught here.
+ * Opacity of the scrim pill.
+ *
+ * Contrast does not decide this number. The scrim branch is swept across the
+ * picker range at 7:1, and its worst background clears that by 16.1:1, so the
+ * constant could fall to roughly 0.35 before any background failed. What it
+ * decides is how much of the garment shows through the pill, which is an
+ * appearance judgement with no assertion behind it.
+ *
+ * The sweep therefore has a companion that pins the ratio at `#f50000`, the
+ * worst background, so moving this constant fails a test and asks for a
+ * reason rather than passing silently.
  */
 const SCRIM_ALPHA = 0.85;
 
@@ -37,16 +44,20 @@ export function contrastRatio(a: Hex, b: Hex): number {
   return (hi + 0.05) / (lo + 0.05);
 }
 
-/** Composite `fg` over `bg` at `alpha`, then measure against `bg`. */
-export function contrastOver(fg: Hex, bg: Hex, alpha: number): number {
+/** Composite `fg` over `bg` at `alpha`. The one alpha blend in this module. */
+export function compositeOver(fg: Hex, bg: Hex, alpha: number): Hex {
   const f = hexToRgb(fg);
   const b = hexToRgb(bg);
-  const composited = rgbToHex([
+  return rgbToHex([
     f[0] * alpha + b[0] * (1 - alpha),
     f[1] * alpha + b[1] * (1 - alpha),
     f[2] * alpha + b[2] * (1 - alpha),
   ]);
-  return contrastRatio(composited, bg);
+}
+
+/** Composite `fg` over `bg` at `alpha`, then measure against `bg`. */
+export function contrastOver(fg: Hex, bg: Hex, alpha: number): number {
+  return contrastRatio(compositeOver(fg, bg, alpha), bg);
 }
 
 export type Foreground =
@@ -78,19 +89,12 @@ export function readableForeground(bg: Hex, opts?: { minRatio?: number }): Foreg
   // Back the text with a near-opaque pill of the opposite endpoint, so the
   // effective background no longer depends on the garment color.
   const backing = useDark ? FG_LIGHT : FG_DARK;
-  const b = hexToRgb(bg);
-  const s = hexToRgb(backing);
-  const composited = rgbToHex([
-    s[0] * SCRIM_ALPHA + b[0] * (1 - SCRIM_ALPHA),
-    s[1] * SCRIM_ALPHA + b[1] * (1 - SCRIM_ALPHA),
-    s[2] * SCRIM_ALPHA + b[2] * (1 - SCRIM_ALPHA),
-  ]);
   const [sr, sg, sb] = hexToRgb(backing);
   return {
     kind: 'scrim',
     color,
     scrim: `rgba(${sr}, ${sg}, ${sb}, ${SCRIM_ALPHA})`,
-    ratio: contrastRatio(color, composited),
+    ratio: contrastRatio(color, compositeOver(backing, bg, SCRIM_ALPHA)),
   };
 }
 
