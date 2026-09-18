@@ -33,4 +33,39 @@ describe('sessionReducer', () => {
     });
     expect(sessionReducer(withBase, { type: 'reset' })).toEqual(initialSession);
   });
+
+  const based = sessionReducer(initialSession, { type: 'baseChosen', slot: 'bottom', hex: navy });
+
+  it('records a pick and the cursor it came from', () => {
+    const next = sessionReducer(based, { type: 'pickChanged', slot: 'top', hex: cream, cursor: 3 });
+    expect(next.picks.top).toBe(cream);
+    expect(next.cursor.top).toBe(3);
+  });
+
+  it('ignores a pick for a locked slot', () => {
+    const locked = sessionReducer(
+      sessionReducer(based, { type: 'pickChanged', slot: 'top', hex: cream, cursor: 0 }),
+      { type: 'lockToggled', slot: 'top' },
+    );
+    const next = sessionReducer(locked, { type: 'pickChanged', slot: 'top', hex: navy, cursor: 1 });
+    expect(next).toBe(locked);
+  });
+
+  it('locks and unlocks a slot that has a pick', () => {
+    const picked = sessionReducer(based, {
+      type: 'pickChanged',
+      slot: 'shoes',
+      hex: cream,
+      cursor: 0,
+    });
+    const locked = sessionReducer(picked, { type: 'lockToggled', slot: 'shoes' });
+    expect(locked.locked.shoes).toBe(true);
+    expect(
+      sessionReducer(locked, { type: 'lockToggled', slot: 'shoes' }).locked.shoes,
+    ).toBeUndefined();
+  });
+
+  it('ignores a lock on a slot with nothing in it', () => {
+    expect(sessionReducer(based, { type: 'lockToggled', slot: 'shoes' })).toBe(based);
+  });
 });

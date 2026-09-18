@@ -29,6 +29,30 @@ export function sessionReducer(state: SessionState, action: SessionAction): Sess
         toastSeq: state.toastSeq,
       };
 
+    case 'pickChanged': {
+      // A locked slot is one the user has said to leave alone. Enforcing that
+      // here rather than only at the call site means shuffle cannot race a
+      // lock, and it states what the lock means in the one place that owns it.
+      if (state.locked[action.slot]) return state;
+      return {
+        ...state,
+        picks: { ...state.picks, [action.slot]: action.hex },
+        cursor: { ...state.cursor, [action.slot]: action.cursor },
+      };
+    }
+
+    case 'lockToggled': {
+      // Nothing to keep means nothing to lock.
+      if (!state.picks[action.slot]) return state;
+      const locked = { ...state.locked };
+      if (locked[action.slot]) {
+        delete locked[action.slot];
+      } else {
+        locked[action.slot] = true;
+      }
+      return { ...state, locked };
+    }
+
     case 'reset':
       return { ...initialSession, toastSeq: state.toastSeq };
 
