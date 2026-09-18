@@ -29,6 +29,20 @@ describe('rgbToHsl', () => {
     const [h] = rgbToHsl([255, 0, 0]);
     expect(h).toBeCloseTo(0, 5);
   });
+
+  it('collapses black to lightness 0 with no saturation or hue', () => {
+    const [h, s, l] = rgbToHsl(hexToRgb(parseHex('#000000')));
+    expect(l).toBeCloseTo(0, 5);
+    expect(s).toBeCloseTo(0, 5);
+    expect(h).toBeCloseTo(0, 5);
+  });
+
+  it('collapses white to lightness 100 with no saturation or hue', () => {
+    const [h, s, l] = rgbToHsl(hexToRgb(parseHex('#ffffff')));
+    expect(l).toBeCloseTo(100, 5);
+    expect(s).toBeCloseTo(0, 5);
+    expect(h).toBeCloseTo(0, 5);
+  });
 });
 
 describe('hslToHex', () => {
@@ -38,19 +52,5 @@ describe('hslToHex', () => {
       const [h, s, l] = rgbToHsl(hexToRgb(hex));
       expect(hslToHex(h, s, l)).toBe(hex);
     }
-  });
-
-  it('black has lightness 0, zero saturation, and zero hue', () => {
-    const [h, s, l] = rgbToHsl(hexToRgb(parseHex('#000000')));
-    expect(l).toBeCloseTo(0, 5);
-    expect(s).toBeCloseTo(0, 5);
-    expect(h).toBeCloseTo(0, 5);
-  });
-
-  it('white has lightness 100, zero saturation, and zero hue', () => {
-    const [h, s, l] = rgbToHsl(hexToRgb(parseHex('#ffffff')));
-    expect(l).toBeCloseTo(100, 5);
-    expect(s).toBeCloseTo(0, 5);
-    expect(h).toBeCloseTo(0, 5);
   });
 });

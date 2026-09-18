@@ -39,6 +39,14 @@ export function rgbToHsl([r, g, b]: Rgb): Hsl {
   return [h * 60, s * 100, l * 100];
 }
 
+/**
+ * CSS Color 4's HSL-to-RGB algorithm, section 9.1, in its published form.
+ *
+ * The three magic numbers are the red, green and blue offsets around a 12-step
+ * hue wheel, and `f` is the piecewise triangle wave that the specification
+ * writes out longhand. Kept in the spec's shape so it can be read against the
+ * source.
+ */
 export function hslToHex(h: number, s: number, l: number): Hex {
   const sn = s / 100;
   const ln = l / 100;
