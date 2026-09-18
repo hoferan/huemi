@@ -7,6 +7,9 @@ import { PALETTE } from '../color/palette';
 import { readableForeground } from '../color/contrast';
 import { chromaLoad, hueContrast, lightnessContrast } from '../color/score';
 import { rate, suggest } from '../color/engine';
+import Compare from './Compare';
+
+type Mode = 'browse' | 'compare';
 
 type SortKey = 'rank' | 'lightness' | 'hue' | 'load';
 
@@ -96,6 +99,7 @@ const BASE = parseHex('#1f2a44');
 const fmt = (n: number) => n.toFixed(3);
 
 export default function Harness() {
+  const [mode, setMode] = useState<Mode>('browse');
   const [base, setBase] = useState<Hex>(BASE);
   const [baseSlot, setBaseSlot] = useState<Slot>('bottom');
   const [sort, setSort] = useState<SortKey>('rank');
@@ -121,8 +125,34 @@ export default function Harness() {
 
   const baseFg = readableForeground(base).color;
 
+  const modeSwitch = (
+    <div {...stylex.props(styles.controls)}>
+      <span {...stylex.props(styles.label)}>Mode</span>
+      {(['browse', 'compare'] as Mode[]).map((key) => (
+        <button
+          key={key}
+          type="button"
+          onClick={() => setMode(key)}
+          {...stylex.props(styles.chip, key === mode ? styles.chipOn : styles.chipOff)}
+        >
+          {key === 'browse' ? 'Browse the ranking' : 'Judge pairs'}
+        </button>
+      ))}
+    </div>
+  );
+
+  if (mode === 'compare') {
+    return (
+      <main {...stylex.props(styles.page)}>
+        {modeSwitch}
+        <Compare />
+      </main>
+    );
+  }
+
   return (
     <main {...stylex.props(styles.page)}>
+      {modeSwitch}
       <div {...stylex.props(styles.controls)}>
         <span {...stylex.props(styles.label)}>Base</span>
         <div {...stylex.props(styles.swatchRow)}>
