@@ -100,7 +100,11 @@ export default tseslint.config(
             { target: './src/color', from: './src', except: ['./model', './color'] },
             { target: './src/storage', from: './src', except: ['./model', './storage'] },
             { target: './src/session', from: './src', except: ['./model', './color', './session'] },
-            { target: './src/ui', from: './src', except: ['./model', './color', './styles', './ui'] },
+            {
+              target: './src/ui',
+              from: './src',
+              except: ['./model', './color', './styles', './ui'],
+            },
             {
               target: './src/features',
               from: './src',
