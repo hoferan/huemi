@@ -13,7 +13,7 @@ function Where() {
   const { state } = useSession();
   return (
     <p>
-      {pathname} base={state.base?.hex ?? 'none'}
+      {pathname} base={state.base ? `${state.base.slot}:${state.base.hex}` : 'none'}
     </p>
   );
 }
@@ -80,11 +80,14 @@ describe('CustomColor', () => {
     expect(named.textContent).toBe(DIFFERENT_NAME);
   });
 
+  it('announces nothing on arrival, since Screen already moves focus to the heading', () => {
+    renderAt('/color/custom?slot=top');
+    expect(screen.getByRole('status')).toBeEmptyDOMElement();
+  });
+
   it('announces the new name once dragging settles on a different colour', () => {
     renderAt('/color/custom?slot=top');
-    // Mounting already announces the initial mix, so the live region starts
-    // on the default name rather than empty.
-    expect(screen.getByRole('status')).toHaveTextContent(DEFAULT_NAME);
+    expect(screen.getByRole('status')).toBeEmptyDOMElement();
 
     fireEvent.change(screen.getByRole('slider', { name: 'Lightness' }), {
       target: { value: '55' },
@@ -96,26 +99,37 @@ describe('CustomColor', () => {
   it('does not announce again while the name stays the same', () => {
     renderAt('/color/custom?slot=top');
     const status = screen.getByRole('status');
-    expect(status).toHaveTextContent(DEFAULT_NAME);
+
+    // Move away from the arrival state once, so there is a real
+    // announcement on record to test repetition against.
+    fireEvent.change(screen.getByRole('slider', { name: 'Lightness' }), {
+      target: { value: '55' },
+    });
+    expect(status).toHaveTextContent(DIFFERENT_NAME);
     // Announcer forces a DOM mutation on a repeated identical announcement by
     // appending a trailing no-break space; its exact text content is
     // therefore proof an announcement fired, not just a plausible read.
     const announcedOnce = status.textContent;
 
-    // Saturation +1 (40 -> 41) stays inside the "Denim" bucket.
+    // Saturation +1 (40 -> 41) stays inside the "Grey" bucket at this
+    // lightness, same as it stays inside "Denim" at the default lightness.
     fireEvent.change(screen.getByRole('slider', { name: 'Saturation' }), {
       target: { value: '41' },
     });
 
-    expect(screen.getByTestId('custom-name')).toHaveTextContent(DEFAULT_NAME);
+    expect(screen.getByTestId('custom-name')).toHaveTextContent(DIFFERENT_NAME);
     expect(status.textContent).toBe(announcedOnce);
   });
 
   it('commits with a button rather than on every drag', async () => {
     const user = userEvent.setup();
-    renderAt('/color/custom?slot=top');
+    // A slot other than the ones exercised elsewhere in this file: the
+    // mixed colour is always the same regardless of which slot it is for,
+    // so only the slot in the assertion below can catch a handler that
+    // records it against the wrong one.
+    renderAt('/color/custom?slot=shoes');
     await user.click(screen.getByRole('button', { name: 'Use this color' }));
-    expect(await screen.findByText(/\/suggest base=#/)).toBeInTheDocument();
+    expect(await screen.findByText(/\/suggest base=shoes:#/)).toBeInTheDocument();
   });
 
   it('sends a visitor with no slot back to choose one', async () => {

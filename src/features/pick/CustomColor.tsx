@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router';
 import * as stylex from '@stylexjs/stylex';
 import { hslToHex } from '../../color/convert';
@@ -60,14 +60,24 @@ function CustomColorForSlot({ slot }: { slot: Slot }) {
   const hex = hslToHex(hue, saturation, lightness);
   const name = colorName(hex);
 
-  // Fires on mount and again whenever `name` itself differs from the value
-  // this effect last ran with, which is exactly "the name changed": React
-  // skips an effect whose dependencies are unchanged, so no ref is needed to
-  // remember the last announcement. Depending on `hex` instead would
-  // announce on every pixel of drag, which is the failure mode this guards
-  // against — a slider between two named colours can cross dozens of hex
-  // values that all read the same word aloud.
+  // Fires again whenever `name` itself differs from the value this effect
+  // last ran with, which is exactly "the name changed": React skips an
+  // effect whose dependencies are unchanged, so no extra bookkeeping is
+  // needed to remember the last announcement. Depending on `hex` instead
+  // would announce on every pixel of drag, which is the failure mode this
+  // guards against — a slider between two named colours can cross dozens of
+  // hex values that all read the same word aloud.
+  //
+  // Skipped on mount: A11Y.md scopes this live region to changes with no
+  // focus move, and arriving at this screen has one, to the heading (see
+  // `Screen`). Announcing the default colour's name at the same moment would
+  // speak it twice through two different channels.
+  const mounted = useRef(false);
   useEffect(() => {
+    if (!mounted.current) {
+      mounted.current = true;
+      return;
+    }
     announce(name);
   }, [name, announce]);
 
