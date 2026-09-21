@@ -5,7 +5,9 @@ import { Root } from './Root';
 describe('Root', () => {
   it('renders the routed app with a live region above it', () => {
     render(<Root />);
-    expect(screen.getByRole('heading', { level: 1, name: 'huemi' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Start with a garment' }),
+    ).toBeInTheDocument();
     expect(screen.getByRole('status')).toBeInTheDocument();
   });
 

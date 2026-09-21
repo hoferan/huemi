@@ -21,9 +21,11 @@ function at(path: string) {
 }
 
 describe('AppRoutes', () => {
-  it('renders the spike screen at the root', () => {
+  it('renders the entry screen at the root', () => {
     at('/');
-    expect(screen.getByRole('heading', { level: 1, name: 'huemi' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Start with a garment' }),
+    ).toBeInTheDocument();
   });
 
   it('renders the not-found screen for an unknown path', () => {

@@ -18,12 +18,13 @@ function hexToRgb(hex: string): string {
   return `rgb(${r}, ${g}, ${b})`;
 }
 
-Then(
-  'I see a color block named {string} with background color {string}',
-  async ({ page }, name: string, hex: string) => {
-    const block = page.getByRole('img', { name });
-    await expect(block).toBeVisible();
+Then('I see the heading {string}', async ({ page }, name: string) => {
+  await expect(page.getByRole('heading', { level: 1, name })).toBeVisible();
+});
 
+Then(
+  'the button {string} has background {string}',
+  async ({ page }, label: string, hex: string) => {
     // This is the assertion Vitest cannot make: StyleX injects its
     // aggregated CSS from a Vite build hook that Vitest never calls, so
     // there is no StyleX CSS in jsdom at all. Only a real build proves the
@@ -31,6 +32,15 @@ Then(
     // generated. If this fails with a transparent or unset background, the
     // StyleX plugin order in vite.config.ts is wrong, or the CSS entrypoint
     // import is missing — fix that rather than weakening this assertion.
-    await expect(block).toHaveCSS('background-color', hexToRgb(hex));
+    //
+    // This is a weaker proof than the spike screen's was: it checks the
+    // "Pick a color" button's background against `tokens.primary`, a
+    // compile-time token, rather than against a literal runtime hex chosen
+    // independently of the source. #15 owes the runtime-hex assertion back
+    // once the palette swatches land.
+    await expect(page.getByRole('button', { name: label })).toHaveCSS(
+      'background-color',
+      hexToRgb(hex),
+    );
   },
 );

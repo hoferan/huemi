@@ -1,10 +1,9 @@
-Feature: Spike screen
+Feature: Entry screen
 
-  The spike screen is the first thing huemi renders: two color blocks, Navy
-  and Cream, proving the rendering pipeline works before any real screen
-  exists.
+  The entry screen is where huemi starts: it says what to do, and its one
+  control begins the color route.
 
-  Scenario: Viewing the spike screen's color blocks
+  Scenario: Arriving at huemi
     Given I open huemi
-    Then I see a color block named "Navy" with background color "#1f2a44"
-    And I see a color block named "Cream" with background color "#e9dfc9"
+    Then I see the heading "Start with a garment"
+    And the button "Pick a color" has background "#1c1b1a"
