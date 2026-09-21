@@ -145,6 +145,24 @@ describe('useBlockGestures — long press', () => {
     expect(onLongPress).not.toHaveBeenCalled();
   });
 
+  // Scrolling the page starts as a press on whatever was under the finger.
+  // The test above travels far enough sideways to cancel on the horizontal
+  // half of that check alone, so without this one nothing exercises the
+  // vertical half, and a finger going straight down the screen would keep
+  // the block underneath it and lock a colour the user never chose.
+  it('does not fire when the finger went straight down, which is a scroll', () => {
+    const { onLongPress, onSwipe, block } = setup();
+    down(block, 200, 100);
+    // Horizontal travel of exactly zero, so only the vertical half of the
+    // check can cancel the press.
+    move(200, 100 + SWIPE_THRESHOLD_PX + 1);
+    act(() => {
+      vi.advanceTimersByTime(LONG_PRESS_MS);
+    });
+    expect(onLongPress).not.toHaveBeenCalled();
+    expect(onSwipe).not.toHaveBeenCalled();
+  });
+
   it('does not fire a swipe as well, once the press has counted', () => {
     const { onSwipe, onLongPress, block } = setup();
     down(block, 200, 100);
