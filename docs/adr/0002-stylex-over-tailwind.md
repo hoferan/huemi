@@ -36,12 +36,11 @@ properties set at call time. This was proven in milestone one with a deliberate
 spike rather than assumed, because six screens depend on it.
 
 That spike was retired in milestone three when the entry screen replaced it, and
-with it went the only exercise of a dynamic style anywhere in the app. Nothing
-renders a runtime color today: the end-to-end suite still asserts a computed
-background, but against a token, which proves StyleX emits CSS and not that a
-value passed in at call time reaches the browser. The proof returns with the
-picker's swatches in #15, and until it does, this paragraph records a property
-the code no longer demonstrates.
+for two pull requests nothing in the app rendered a runtime color at all. The
+picker's swatches restored it: `e2e/features/pick.feature` asserts that two
+palette entries reach the browser with their own hex values, through a dynamic
+style rather than a token. The property is demonstrated again, this time by the
+screen that depends on it rather than by a spike built to prove it.
 
 Motion durations live in the token file specifically so a single
 `prefers-reduced-motion` rule can zero them, rather than chasing inline transition

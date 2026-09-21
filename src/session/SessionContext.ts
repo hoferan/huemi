@@ -1,6 +1,6 @@
 import { createContext } from 'react';
 import type { Dispatch } from 'react';
-import type { SessionAction, SessionState } from '../session/reducer';
+import type { SessionAction, SessionState } from './reducer';
 
 export type SessionValue = { state: SessionState; dispatch: Dispatch<SessionAction> };
 

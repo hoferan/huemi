@@ -58,4 +58,40 @@ for (const route of ROUTES) {
     );
     expect(clipped).toEqual([]);
   });
+
+  // A11Y.md's hit-target rule is stated in terms of the `touchTarget` token,
+  // which `grep -rn "touchTarget" src/` confirms is used somewhere but not
+  // which controls use it. Measuring every rendered link and button's actual
+  // box is the only check that would have caught "Mix your own" and "Start
+  // again": both used the token-sized `Button` and `Swatch` components
+  // elsewhere, so a repo-wide grep for the token was already satisfied while
+  // these two links, styled by hand, were not.
+  test(`keeps every link and button at least a 44x44 hit target at ${route}`, async ({ page }) => {
+    await page.goto(route);
+    const controls = await page.getByRole('link').or(page.getByRole('button')).all();
+    expect(controls.length).toBeGreaterThan(0);
+    for (const control of controls) {
+      const box = await control.boundingBox();
+      expect(box).not.toBeNull();
+      expect(box!.width).toBeGreaterThanOrEqual(44);
+      expect(box!.height).toBeGreaterThanOrEqual(44);
+    }
+  });
+
+  // Screen-reader-only text (Announcer's live region, a Swatch's hidden
+  // name) hides itself with `clip-path`, not `overflow`, precisely so it
+  // stays reachable and un-clipped by the 200% text size check above. A unit
+  // test can assert the SR_ONLY object still carries that property; it
+  // cannot assert the browser actually honours it, since jsdom computes no
+  // style for `clip-path`. This is that other half: if a later edit dropped
+  // `clipPath` from `src/ui/srOnly.ts`, the live region would sit in normal
+  // flow instead of being clipped away, and this would be the only check to
+  // notice.
+  test(`keeps its screen-reader-only live region visually clipped at ${route}`, async ({
+    page,
+  }) => {
+    await page.goto(route);
+    const clipPath = await page.getByRole('status').evaluate((el) => getComputedStyle(el).clipPath);
+    expect(clipPath).not.toBe('none');
+  });
 }
