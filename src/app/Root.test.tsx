@@ -45,4 +45,18 @@ describe('Root', () => {
       await screen.findByRole('heading', { level: 1, name: 'Pick a color' }),
     ).toBeInTheDocument();
   });
+
+  // Same hole, one level over: routes.test.tsx's helper supplies its own
+  // Announcer around AppRoutes directly, so an Announcer deleted from Root
+  // itself would still pass the rest of the unit suite while every screen
+  // that calls useAnnounce threw as soon as a real user reached it. The
+  // picker doesn't read the announce context; the custom colour screen does,
+  // so visiting it here is what actually exercises this wiring.
+  it('wires the announcer through to a screen that reads it', async () => {
+    window.history.pushState({}, '', '/color/custom?slot=top');
+    render(<Root />);
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Mix your own' }),
+    ).toBeInTheDocument();
+  });
 });
