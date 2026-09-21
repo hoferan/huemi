@@ -34,7 +34,10 @@ export function Onboarding() {
 
   async function start() {
     await localPreferences.setOnboarded(true);
-    void navigate('/');
+    // Shown once, so the entry screen replaces this history entry rather
+    // than sitting behind it: back has to leave the app, not replay
+    // onboarding from /welcome.
+    void navigate('/', { replace: true });
   }
 
   return (

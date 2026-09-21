@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Route, Routes } from 'react-router';
+import { MemoryRouter, Route, Routes, useNavigate } from 'react-router';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { InitialLocationContext } from '../../ui/InitialLocationContext';
 import { ONBOARDED_KEY } from '../../storage/localPreferences';
@@ -13,6 +13,38 @@ function renderAt() {
         <Routes>
           <Route path="/welcome" element={<Onboarding />} />
           <Route path="/" element={<p>entry screen</p>} />
+        </Routes>
+      </InitialLocationContext>
+    </MemoryRouter>,
+  );
+}
+
+// Drives a real back navigation, the way src/ui/Screen.test.tsx does: a probe
+// component that calls navigate(-1) is enough to walk MemoryRouter's history.
+function Back() {
+  const navigate = useNavigate();
+  return (
+    <button type="button" onClick={() => void navigate(-1)}>
+      back
+    </button>
+  );
+}
+
+function renderWithEntry() {
+  return render(
+    <MemoryRouter initialEntries={['/welcome']}>
+      <InitialLocationContext value={true}>
+        <Routes>
+          <Route path="/welcome" element={<Onboarding />} />
+          <Route
+            path="/"
+            element={
+              <>
+                <p>entry screen</p>
+                <Back />
+              </>
+            }
+          />
         </Routes>
       </InitialLocationContext>
     </MemoryRouter>,
@@ -51,5 +83,18 @@ describe('Onboarding', () => {
     await user.click(screen.getByRole('button', { name: 'Start' }));
     expect(await screen.findByText('entry screen')).toBeInTheDocument();
     expect(localStorage.getItem(ONBOARDED_KEY)).toBe('true');
+  });
+
+  // A screen the spec shows once must not return on back. Start has to
+  // replace the onboarding entry rather than push a new one, or the entry
+  // screen's back button lands right back on /welcome, which renders
+  // onboarding unconditionally.
+  it('replaces onboarding in history, so back does not return to it', async () => {
+    const user = userEvent.setup();
+    renderWithEntry();
+    await user.click(screen.getByRole('button', { name: 'Start' }));
+    await screen.findByText('entry screen');
+    await user.click(screen.getByRole('button', { name: 'back' }));
+    expect(screen.getByText('entry screen')).toBeInTheDocument();
   });
 });
