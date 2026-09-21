@@ -11,7 +11,19 @@ import { useSlotParam } from './useSlotParam';
 
 const styles = stylex.create({
   grid: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' },
-  link: { color: tokens.ink, fontSize: tokens.textBody, textAlign: 'center' },
+  // A link is a hit target the same as a button (A11Y.md), so it carries the
+  // same token. `inline-flex` rather than the anchor's default `inline` lets
+  // `minHeight` take effect at all, and centres the text inside that height
+  // instead of leaving it sitting in a band of dead space below the words.
+  link: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: tokens.touchTarget,
+    color: tokens.ink,
+    fontSize: tokens.textBody,
+    textAlign: 'center',
+  },
 });
 
 /**

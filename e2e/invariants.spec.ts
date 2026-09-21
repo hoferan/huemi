@@ -58,4 +58,23 @@ for (const route of ROUTES) {
     );
     expect(clipped).toEqual([]);
   });
+
+  // A11Y.md's hit-target rule is stated in terms of the `touchTarget` token,
+  // which `grep -rn "touchTarget" src/` confirms is used somewhere but not
+  // which controls use it. Measuring every rendered link and button's actual
+  // box is the only check that would have caught "Mix your own" and "Start
+  // again": both used the token-sized `Button` and `Swatch` components
+  // elsewhere, so a repo-wide grep for the token was already satisfied while
+  // these two links, styled by hand, were not.
+  test(`keeps every link and button at least a 44x44 hit target at ${route}`, async ({ page }) => {
+    await page.goto(route);
+    const controls = await page.getByRole('link').or(page.getByRole('button')).all();
+    expect(controls.length).toBeGreaterThan(0);
+    for (const control of controls) {
+      const box = await control.boundingBox();
+      expect(box).not.toBeNull();
+      expect(box!.width).toBeGreaterThanOrEqual(44);
+      expect(box!.height).toBeGreaterThanOrEqual(44);
+    }
+  });
 }
