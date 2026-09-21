@@ -1,0 +1,6 @@
+{
+  "gitService": "github",
+  "oidc": {
+    "useGitHubOIDC": true
+  }
+}

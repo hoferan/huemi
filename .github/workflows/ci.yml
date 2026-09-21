@@ -53,9 +53,43 @@ jobs:
           use_oidc: true
           files: ./coverage/lcov.info
           fail_ci_if_error: true
+      # Test analytics: run times and flake detection. The same action as the
+      # coverage upload, with report_type, because codecov/test-results-action
+      # is archived and Codecov routes test results through this one now.
+      - name: Upload unit test results
+        # codecov/codecov-action v7.1.0
+        uses: codecov/codecov-action@0b35c9ecc4f0529d0eb674914510c22f85b196b4
+        if: ${{ !cancelled() && github.event.pull_request.head.repo.fork != true }}
+        with:
+          use_oidc: true
+          report_type: test_results
+          files: ./test-report.junit.xml
+          fail_ci_if_error: true
+      # Bundle size, from the standalone analyzer rather than the Vite plugin:
+      # @codecov/vite-plugin declares a peer range topping out at Vite 6 and
+      # this project is on 8, so the plugin could only be installed by forcing
+      # the peer resolution. The analyzer reads ./dist instead and has no peer
+      # dependencies at all. It is an optionalDependency because it publishes
+      # for darwin and linux only, and engine-strict would otherwise fail
+      # `npm install` outright on a Windows machine.
+      #
+      # This step must stay after a codecov/codecov-action step. That action
+      # writes the OIDC token it minted into GITHUB_ENV as CC_TOKEN, and the
+      # analyzer reads it from there — `useGitHubOIDC` in codecov.bundle.json
+      # is the fallback, not what authenticates the upload in practice.
+      # Reordering or removing the uploads above takes this step's credential
+      # away with them.
+      - name: Upload bundle analysis
+        if: ${{ !cancelled() && github.event.pull_request.head.repo.fork != true }}
+        run: npx bundle-analyzer ./dist --bundle-name=huemi --config-file=codecov.bundle.json
 
   e2e:
     runs-on: ubuntu-latest
+    # id-token so the Playwright results upload can authenticate the way the
+    # coverage upload does, with OIDC rather than a token in a secret.
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - uses: actions/checkout@v7
         with:
@@ -90,6 +124,17 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 7
+      # `!cancelled()` rather than `success()`: a failing run is the one whose
+      # test results are worth having, and flake detection needs the failures.
+      - name: Upload browser test results
+        # codecov/codecov-action v7.1.0
+        uses: codecov/codecov-action@0b35c9ecc4f0529d0eb674914510c22f85b196b4
+        if: ${{ !cancelled() && github.event.pull_request.head.repo.fork != true }}
+        with:
+          use_oidc: true
+          report_type: test_results
+          files: ./e2e-report.junit.xml
+          fail_ci_if_error: true
 
   # Job id uses an underscore, not a hyphen: `needs.pr-title.result` parses as
   # a subtraction in a GitHub expression and silently evaluates to nothing.

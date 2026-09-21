@@ -45,10 +45,24 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: ['./src/test-setup.ts'],
+    // JUnit only under CI, where Codecov's test analytics consumes it. Locally
+    // it would write a file nobody reads on every run, so the default reporter
+    // stands alone there. `default` is listed explicitly because naming any
+    // reporter replaces the default rather than adding to it.
+    reporters: process.env.CI ? ['default', 'junit'] : ['default'],
+    outputFile: { junit: './test-report.junit.xml' },
     // Vitest's default include glob otherwise also matches e2e/invariants.spec.ts
     // and the generated e2e/*.feature.spec.js: both are Playwright tests, run
     // through `npm run e2e`, not Vitest.
-    exclude: [...defaultExclude, 'e2e/**'],
+    //
+    // `.claude/**` covers the worktrees the desktop app creates under
+    // `.claude/worktrees/`. Each one is a second checkout of this repository, so
+    // without this the suite runs every test twice — once here and once in the
+    // worktree — and fails on the worktree's copy of e2e/invariants.spec.ts,
+    // which the `e2e/**` glob above does not reach because it is not at the root.
+    // CI checks out fresh and has no worktrees, so this only ever bites locally,
+    // which is why it went unnoticed.
+    exclude: [...defaultExclude, 'e2e/**', '.claude/**'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'lcov'],

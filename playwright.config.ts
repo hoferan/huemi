@@ -18,7 +18,15 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  reporter: [['html', { open: 'never' }]],
+  // JUnit only under CI, for the same reason the Vitest config gives: locally
+  // it writes a file nobody reads. The html report stays in both, since that
+  // is what a failing run is read through.
+  reporter: process.env.CI
+    ? [
+        ['html', { open: 'never' }],
+        ['junit', { outputFile: 'e2e-report.junit.xml' }],
+      ]
+    : [['html', { open: 'never' }]],
   use: {
     baseURL: 'http://localhost:4173',
     trace: 'on-first-retry',

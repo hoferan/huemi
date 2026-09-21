@@ -29,3 +29,34 @@ describe('fgDark/fgLight vs contrast.ts', () => {
     expect(fgLight && parseHex(fgLight)).toBe(FG_LIGHT);
   });
 });
+
+describe('motion tokens under prefers-reduced-motion', () => {
+  // Animation durations go to zero. Read from the source text rather than the
+  // compiled module for the same reason the test above does: StyleX rewrites
+  // defineVars values into var() references even under Vitest.
+  const CONDITIONAL = ['colorFade', 'shuffle', 'sheet', 'toastSlide'];
+
+  // These must NOT gate. `hold` is the long-press threshold: zeroing it fires
+  // the press instantly. The dwell times are how long a message stays
+  // readable: zeroing them makes toasts vanish before they can be read, which
+  // is an accessibility regression wearing an accessibility feature's clothes.
+  const UNCONDITIONAL = ['hold', 'toastDwell', 'toastDwellAction'];
+
+  it.each(CONDITIONAL)('zeroes %s under reduced motion', (name) => {
+    const block = new RegExp(`${name}:\\s*\\{([^}]*)\\}`).exec(tokensSource)?.[1];
+    expect(block, `${name} should be a conditional value`).toBeDefined();
+    expect(block).toContain('prefers-reduced-motion: reduce');
+    expect(block).toMatch(/'0ms'/);
+  });
+
+  it.each(UNCONDITIONAL)('leaves %s alone under reduced motion', (name) => {
+    // The whole line, and the value asserted for the shape it must have. An
+    // earlier version captured up to the first comma and asked only that the
+    // capture not mention the media query, which the regression it guards
+    // walks straight through: `toastDwell: { default: '2500ms', '@media ...' }`
+    // captures `{ default: '2500ms'` and passes both ways.
+    const value = new RegExp(`^\\s*${name}:\\s*(.*)$`, 'm').exec(tokensSource)?.[1];
+    expect(value, `${name} should be present in the token source`).toBeDefined();
+    expect(value?.trim()).toMatch(/^'\d+ms',?$/);
+  });
+});

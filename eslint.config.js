@@ -19,6 +19,7 @@ export default tseslint.config(
       'e2e/**/*.feature.spec.js',
       'docs/design',
       '.claude/skills',
+      '.claude/worktrees',
       // Gitignored scratch space for design-tool handoffs (see .gitignore);
       // contains a vendored, minified bundle that is not this project's
       // source and was never meant to be linted.

@@ -44,6 +44,11 @@ coverage/
 playwright-report/
 test-results/
 
+# JUnit XML for Codecov's test analytics. Written only when CI is set, so
+# these exist on a runner and not in a working tree, but a developer who
+# exports CI to reproduce a run would otherwise see them as untracked.
+*.junit.xml
+
 # playwright-bdd generates these from e2e/features/*.feature directly into
 # e2e/ (its output dir must match Playwright's testDir exactly, so it cannot
 # live in its own gitignored subfolder — see the comment in
