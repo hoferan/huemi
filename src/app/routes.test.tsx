@@ -5,6 +5,7 @@ import { AppRoutes } from './routes';
 import { APP_ROUTES } from './routeTable';
 import { ONBOARDED_KEY } from '../storage/localPreferences';
 import { SessionProvider } from '../session/SessionProvider';
+import { Announcer } from '../ui/Announcer';
 import { ROUTES } from '../../e2e/routes';
 
 // The unknown path in e2e/routes.ts exercises the catch-all on purpose, so it
@@ -24,16 +25,19 @@ function pathnameOnly(route: string): string {
   return route.split('?')[0]!;
 }
 
-// The picker reads the session, and Root normally supplies it above the
-// router. This is not Root: it renders AppRoutes bare, on purpose, so a route
+// The picker reads the session, and the custom colour screen also announces
+// through the live region; Root normally supplies both above the router.
+// This is not Root: it renders AppRoutes bare, on purpose, so a route
 // missing from the table fails here rather than in a heavier harness. The
-// session provider still has to be here, for the one route table entry that
-// now needs it.
+// session provider and the announcer still have to be here, for the route
+// table entries that now need them.
 function at(path: string) {
   return render(
     <MemoryRouter initialEntries={[path]}>
       <SessionProvider>
-        <AppRoutes />
+        <Announcer>
+          <AppRoutes />
+        </Announcer>
       </SessionProvider>
     </MemoryRouter>,
   );
