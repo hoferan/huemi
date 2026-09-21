@@ -1,4 +1,9 @@
-import type { ReactElement, ReactNode } from 'react';
+import type {
+  MouseEvent as ReactMouseEvent,
+  PointerEvent as ReactPointerEvent,
+  ReactElement,
+  ReactNode,
+} from 'react';
 import * as stylex from '@stylexjs/stylex';
 import { needsBorder, readableForeground } from '../color/contrast';
 import { blockLabel } from '../color/palette';
@@ -58,16 +63,20 @@ export function ColorBlock({
   slot,
   hex,
   children,
+  ...handlers
 }: {
   slot: Slot;
   hex: Hex;
   children: ReactNode;
+  onPointerDown?: (event: ReactPointerEvent<HTMLElement>) => void;
+  onContextMenu?: (event: ReactMouseEvent<HTMLElement>) => void;
 }): ReactElement {
   const foreground = readableForeground(hex);
   return (
     <div
       role="group"
       aria-label={blockLabel(slot, hex)}
+      {...handlers}
       {...stylex.props(
         styles.block,
         styles.fill(hex, foreground.color),

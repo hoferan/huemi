@@ -1,8 +1,10 @@
+import { act } from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { parseHex } from '../model/hex';
 import { SuggestionBlock } from './SuggestionBlock';
+import { LONG_PRESS_MS, SWIPE_THRESHOLD_PX } from './useBlockGestures';
 
 function setup(overrides: Partial<Parameters<typeof SuggestionBlock>[0]> = {}) {
   const props = {
@@ -13,6 +15,7 @@ function setup(overrides: Partial<Parameters<typeof SuggestionBlock>[0]> = {}) {
     onNext: vi.fn(),
     onKeepToggle: vi.fn(),
     onOpenAlternatives: vi.fn(),
+    onPrevious: vi.fn(),
     ...overrides,
   };
   render(<SuggestionBlock {...props} />);
@@ -61,5 +64,77 @@ describe('SuggestionBlock', () => {
     const props = setup();
     await user.click(screen.getByRole('button', { name }));
     expect(props[handler]).toHaveBeenCalledOnce();
+  });
+});
+
+describe('SuggestionBlock — gestures over the controls', () => {
+  // Restored unconditionally: a test below uses fake timers, and if it threw
+  // before reaching its own cleanup, every test after it would silently
+  // inherit fake timers and fail for reasons unrelated to them.
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  function swipe(from: number, to: number) {
+    const block = screen.getByRole('group');
+    act(() => {
+      block.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          clientX: from,
+          clientY: 100,
+          pointerId: 1,
+          bubbles: true,
+        }),
+      );
+    });
+    act(() => {
+      window.dispatchEvent(
+        new PointerEvent('pointermove', { clientX: to, clientY: 100, pointerId: 1, bubbles: true }),
+      );
+    });
+    act(() => {
+      window.dispatchEvent(
+        new PointerEvent('pointerup', { clientX: to, clientY: 100, pointerId: 1, bubbles: true }),
+      );
+    });
+  }
+
+  it('advances on a leftward swipe', () => {
+    const props = setup({ onPrevious: vi.fn() });
+    swipe(200, 200 - SWIPE_THRESHOLD_PX - 1);
+    expect(props.onNext).toHaveBeenCalledOnce();
+  });
+
+  it('goes back on a rightward swipe', () => {
+    const onPrevious = vi.fn();
+    setup({ onPrevious });
+    swipe(100, 100 + SWIPE_THRESHOLD_PX + 1);
+    expect(onPrevious).toHaveBeenCalledOnce();
+  });
+
+  it('keeps the colour on a long press, which is the gesture Keep also does', () => {
+    vi.useFakeTimers();
+    const props = setup({ onPrevious: vi.fn() });
+    const block = screen.getByRole('group');
+    act(() => {
+      block.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          clientX: 100,
+          clientY: 100,
+          pointerId: 1,
+          bubbles: true,
+        }),
+      );
+    });
+    act(() => {
+      vi.advanceTimersByTime(LONG_PRESS_MS);
+    });
+    expect(props.onKeepToggle).toHaveBeenCalledOnce();
+  });
+
+  it('ignores a swipe once the colour is kept', () => {
+    const props = setup({ kept: true, onPrevious: vi.fn() });
+    swipe(200, 200 - SWIPE_THRESHOLD_PX - 1);
+    expect(props.onNext).not.toHaveBeenCalled();
   });
 });

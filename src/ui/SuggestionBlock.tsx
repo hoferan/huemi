@@ -7,6 +7,7 @@ import { SLOT_LABELS, type Slot } from '../model/types';
 import { tokens } from '../styles/tokens.stylex';
 import { blockText, fieldLayout } from './blockText';
 import { ColorBlock } from './ColorBlock';
+import { useBlockGestures } from './useBlockGestures';
 
 const PRESSED_TINT = 'color-mix(in srgb, currentColor 24%, transparent)';
 
@@ -66,6 +67,7 @@ export function SuggestionBlock({
   onNext,
   onKeepToggle,
   onOpenAlternatives,
+  onPrevious,
 }: {
   slot: Slot;
   hex: Hex;
@@ -74,12 +76,29 @@ export function SuggestionBlock({
   onNext: () => void;
   onKeepToggle: () => void;
   onOpenAlternatives: () => void;
+  onPrevious: () => void;
 }): ReactElement {
   const label = SLOT_LABELS[slot];
   const KeepIcon = kept ? Lock : LockOpen;
 
+  // Additional affordances over controls that already work by keyboard. A
+  // swipe is Next or its opposite; a long press is Keep. Nothing here is the
+  // only way to do anything, which is what shrinks the disambiguation problem
+  // to keeping a gesture off a button press.
+  //
+  // Disabled while kept, matching the Next button: a kept block has nothing
+  // to advance to.
+  const gestures = useBlockGestures({
+    onSwipe: (delta) => {
+      if (delta === 1) onNext();
+      else onPrevious();
+    },
+    onLongPress: onKeepToggle,
+    enabled: !kept,
+  });
+
   return (
-    <ColorBlock slot={slot} hex={hex}>
+    <ColorBlock slot={slot} hex={hex} {...gestures}>
       <button
         type="button"
         onClick={onOpenAlternatives}
