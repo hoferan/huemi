@@ -12,6 +12,20 @@ import { useBlockGestures } from './useBlockGestures';
 const PRESSED_TINT = 'color-mix(in srgb, currentColor 24%, transparent)';
 
 const styles = stylex.create({
+  // Composed onto every control rather than written into each: the ring is
+  // drawn inside the element, not around it, because the block clips
+  // (`overflow: hidden`, for the corner radius) and the controls sit flush
+  // with its edges, so an outset ring would be cut off on two or three sides
+  // of every one of them. `currentColor` is the foreground
+  // `readableForeground` chose, so the ring clears 3:1 on any block colour
+  // instead of inheriting the browser's default, which is picked without
+  // knowing what is underneath it.
+  focusRing: {
+    outlineColor: 'currentColor',
+    outlineStyle: { default: 'none', ':focus-visible': 'solid' },
+    outlineWidth: '3px',
+    outlineOffset: '-3px',
+  },
   field: {
     minHeight: tokens.touchTarget,
     textAlign: 'start',
@@ -37,8 +51,13 @@ const styles = stylex.create({
     borderStyle: 'none',
     cursor: 'pointer',
     // Nothing at rest, because the colour is the content on this screen. A
-    // tint under the thumb and on focus, so a tap still visibly lands.
-    backgroundColor: { default: 'transparent', ':active': PRESSED_TINT },
+    // tint under the thumb and on focus, so a tap still visibly lands and a
+    // keyboard user can see which of the two the ring is sitting on.
+    backgroundColor: {
+      default: 'transparent',
+      ':active': PRESSED_TINT,
+      ':focus-visible': PRESSED_TINT,
+    },
   },
   kept: { backgroundColor: PRESSED_TINT },
   disabled: { cursor: 'default', opacity: 0.45 },
@@ -79,7 +98,20 @@ export function SuggestionBlock({
   onPrevious: () => void;
 }): ReactElement {
   const label = SLOT_LABELS[slot];
+  const name = colorName(hex);
   const KeepIcon = kept ? Lock : LockOpen;
+
+  // The name carries what is written on the field, in the order it is written,
+  // so that a Voice Control user saying "click Charcoal" reaches it (2.5.3)
+  // and so that the position is announced at all. Leaving the position to the
+  // text does not work: an aria-label replaces a button's contents for naming,
+  // so a screen reader reading this button reads the name and never the span
+  // holding "2 of 5". The slot stays in the name because five blocks share one
+  // screen and a list of buttons has to stay distinguishable. An unknown
+  // position drops out of the name rather than leaving an empty segment.
+  const fieldName = [label, name, position, 'other options']
+    .filter((part) => part !== null)
+    .join(', ');
 
   // Additional affordances over controls that already work by keyboard. A
   // swipe is Next or its opposite; a long press is Keep. Nothing here is the
@@ -102,11 +134,11 @@ export function SuggestionBlock({
       <button
         type="button"
         onClick={onOpenAlternatives}
-        aria-label={`Other options for ${label}`}
-        {...stylex.props(fieldLayout.field, styles.field)}
+        aria-label={fieldName}
+        {...stylex.props(fieldLayout.field, styles.field, styles.focusRing)}
       >
         <span {...stylex.props(blockText.slot)}>{label}</span>
-        <span {...stylex.props(blockText.name)}>{colorName(hex)}</span>
+        <span {...stylex.props(blockText.name)}>{name}</span>
         {position !== null && <span {...stylex.props(blockText.position)}>{position}</span>}
       </button>
       <div {...stylex.props(styles.rail)}>
@@ -115,7 +147,7 @@ export function SuggestionBlock({
           onClick={onKeepToggle}
           aria-pressed={kept}
           aria-label={`Keep ${label}`}
-          {...stylex.props(styles.control, kept && styles.kept)}
+          {...stylex.props(styles.control, styles.focusRing, kept && styles.kept)}
         >
           <KeepIcon size={19} aria-hidden="true" />
         </button>
@@ -124,7 +156,7 @@ export function SuggestionBlock({
           onClick={onNext}
           disabled={kept}
           aria-label={`Next suggestion for ${label}`}
-          {...stylex.props(styles.control, kept && styles.disabled)}
+          {...stylex.props(styles.control, styles.focusRing, kept && styles.disabled)}
         >
           <ChevronRight size={20} aria-hidden="true" />
         </button>

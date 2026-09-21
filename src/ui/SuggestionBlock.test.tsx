@@ -6,6 +6,11 @@ import { parseHex } from '../model/hex';
 import { SuggestionBlock } from './SuggestionBlock';
 import { LONG_PRESS_MS, SWIPE_THRESHOLD_PX } from './useBlockGestures';
 
+// The field's name is assembled from what is written on it, so it has to be
+// spelled out here rather than derived, or the test would reproduce the bug it
+// is holding. `#3d3d3f` is the palette's Charcoal.
+const FIELD = 'Bottom, Charcoal, 2 of 5, other options';
+
 function setup(overrides: Partial<Parameters<typeof SuggestionBlock>[0]> = {}) {
   const props = {
     slot: 'bottom' as const,
@@ -25,21 +30,40 @@ function setup(overrides: Partial<Parameters<typeof SuggestionBlock>[0]> = {}) {
 describe('SuggestionBlock', () => {
   it('offers all three controls by keyboard, so nothing depends on a gesture', () => {
     setup();
-    expect(screen.getByRole('button', { name: 'Other options for Bottom' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: FIELD })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Keep Bottom' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Next suggestion for Bottom' })).toBeInTheDocument();
   });
 
-  it('reports the position in words', () => {
+  it('reports the position in the name, which is the only part a screen reader reads', () => {
+    // An aria-label replaces a button's contents for naming, so the "2 of 5"
+    // span inside the field is announced by nobody unless the name carries it.
+    // Asserted on the accessible name and not with getByText for that reason:
+    // the text query passes whether or not anything can reach it.
     setup();
-    expect(screen.getByText('2 of 5')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: FIELD })).toHaveAccessibleName(FIELD);
+  });
+
+  it('names the field with its own visible text, so a voice command can reach it', () => {
+    // WCAG 2.5.3: the visible words have to be in the name, in order, or
+    // "click Charcoal" activates nothing.
+    setup();
+    const field = screen.getByRole('button', { name: FIELD });
+    for (const visible of ['Bottom', 'Charcoal', '2 of 5']) {
+      expect(field.textContent).toContain(visible);
+      expect(field).toHaveAccessibleName(new RegExp(visible));
+    }
   });
 
   it('says nothing about the position when it is unknown', () => {
     setup({ position: null });
     // locate() returns null for a colour suggest() did not produce, and the
     // block omits the indicator rather than claiming a wrong place in a list.
+    // The name loses the segment outright rather than keeping an empty one.
     expect(screen.queryByText(/\bof\b/)).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Bottom, Charcoal, other options' }),
+    ).toBeInTheDocument();
   });
 
   it('carries the keep state on the toggle rather than in colour alone', () => {
@@ -56,7 +80,7 @@ describe('SuggestionBlock', () => {
   });
 
   it.each([
-    ['Other options for Bottom', 'onOpenAlternatives'],
+    [FIELD, 'onOpenAlternatives'],
     ['Keep Bottom', 'onKeepToggle'],
     ['Next suggestion for Bottom', 'onNext'],
   ] as const)('calls %s handler when tapped', async (name, handler) => {
