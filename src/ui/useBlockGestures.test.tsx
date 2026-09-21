@@ -163,6 +163,22 @@ describe('useBlockGestures — long press', () => {
     expect(onSwipe).not.toHaveBeenCalled();
   });
 
+  // The other side of the same decision. Nobody holds a finger perfectly
+  // still for 450ms, so the movement check carries a few pixels of tolerance,
+  // and without this nothing proves it: a press cancelled by an ordinary
+  // tremble would still pass every other test in this file. The literal 3 is
+  // inside that tolerance rather than derived from it, so tightening the
+  // tolerance below it fails here, which is the point.
+  it('still fires when the finger only trembled, because hands do', () => {
+    const { onLongPress, block } = setup();
+    down(block, 200, 100);
+    move(203, 103);
+    act(() => {
+      vi.advanceTimersByTime(LONG_PRESS_MS);
+    });
+    expect(onLongPress).toHaveBeenCalledOnce();
+  });
+
   it('does not fire a swipe as well, once the press has counted', () => {
     const { onSwipe, onLongPress, block } = setup();
     down(block, 200, 100);
