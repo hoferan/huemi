@@ -77,4 +77,21 @@ for (const route of ROUTES) {
       expect(box!.height).toBeGreaterThanOrEqual(44);
     }
   });
+
+  // Screen-reader-only text (Announcer's live region, a Swatch's hidden
+  // name) hides itself with `clip-path`, not `overflow`, precisely so it
+  // stays reachable and un-clipped by the 200% text size check above. A unit
+  // test can assert the SR_ONLY object still carries that property; it
+  // cannot assert the browser actually honours it, since jsdom computes no
+  // style for `clip-path`. This is that other half: if a later edit dropped
+  // `clipPath` from `src/ui/srOnly.ts`, the live region would sit in normal
+  // flow instead of being clipped away, and this would be the only check to
+  // notice.
+  test(`keeps its screen-reader-only live region visually clipped at ${route}`, async ({
+    page,
+  }) => {
+    await page.goto(route);
+    const clipPath = await page.getByRole('status').evaluate((el) => getComputedStyle(el).clipPath);
+    expect(clipPath).not.toBe('none');
+  });
 }
