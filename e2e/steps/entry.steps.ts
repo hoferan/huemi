@@ -18,7 +18,7 @@ Given('I have seen the welcome screen', async ({ page }) => {
 // Converts a hex color such as "#1f2a44" to the rgb(...) string a browser
 // reports for a computed style, since toHaveCSS compares against whatever
 // getComputedStyle actually returns.
-function hexToRgb(hex: string): string {
+export function hexToRgb(hex: string): string {
   const value = hex.replace('#', '');
   const r = parseInt(value.slice(0, 2), 16);
   const g = parseInt(value.slice(2, 4), 16);
