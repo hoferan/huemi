@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { ONBOARDED_KEY } from '../storage/localPreferences';
 import { Root } from './Root';
 
@@ -8,6 +8,15 @@ describe('Root', () => {
   // entry screen to a visitor the store already knows has onboarded.
   beforeEach(() => {
     localStorage.setItem(ONBOARDED_KEY, 'true');
+  });
+
+  // Two tests below push a location onto jsdom's shared history to land
+  // Root on a route other than the default. Without restoring it, whichever
+  // of them runs last leaves that location behind for every test in every
+  // other file that runs after it in the same process — passing only
+  // because of the order the suite happens to run in.
+  afterEach(() => {
+    window.history.pushState({}, '', '/');
   });
 
   it('renders the routed app with a live region above it', async () => {
