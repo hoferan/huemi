@@ -63,6 +63,7 @@ describe('AppRoutes', () => {
   const REAL_HEADINGS: Record<string, string> = {
     '/': 'Start with a garment',
     '/welcome': 'One piece you own. The rest that goes with it.',
+    '/slot': 'Choose a garment',
   };
 
   it.each(covered)('serves a real screen at %s', async (route) => {
