@@ -13,13 +13,13 @@ function Probe(props: Parameters<typeof useBlockGestures>[0]) {
   );
 }
 
-function pointer(type: string, x: number, y: number) {
-  return new PointerEvent(type, { clientX: x, clientY: y, pointerId: 1, bubbles: true });
+function pointer(type: string, x: number, y: number, pointerId = 1) {
+  return new PointerEvent(type, { clientX: x, clientY: y, pointerId, bubbles: true });
 }
 
-function down(target: Element, x: number, y: number) {
+function down(target: Element, x: number, y: number, pointerId = 1) {
   act(() => {
-    target.dispatchEvent(pointer('pointerdown', x, y));
+    target.dispatchEvent(pointer('pointerdown', x, y, pointerId));
   });
 }
 
@@ -40,8 +40,10 @@ function up(x: number, y: number) {
 function setup(enabled = true) {
   const onSwipe = vi.fn();
   const onLongPress = vi.fn();
-  render(<Probe onSwipe={onSwipe} onLongPress={onLongPress} enabled={enabled} />);
-  return { onSwipe, onLongPress, block: screen.getByTestId('block') };
+  const { unmount } = render(
+    <Probe onSwipe={onSwipe} onLongPress={onLongPress} enabled={enabled} />,
+  );
+  return { onSwipe, onLongPress, block: screen.getByTestId('block'), unmount };
 }
 
 beforeEach(() => {
@@ -176,5 +178,39 @@ describe('useBlockGestures — keeping clear of the buttons', () => {
     expect(onSwipe).not.toHaveBeenCalled();
     expect(onLongPress).not.toHaveBeenCalled();
     expect(block).toBeInTheDocument();
+  });
+});
+
+describe('useBlockGestures — unmounting mid-press', () => {
+  it('does not fire the long press after the component has unmounted', () => {
+    const { onLongPress, block, unmount } = setup();
+    down(block, 100, 100);
+    unmount();
+    act(() => {
+      vi.advanceTimersByTime(LONG_PRESS_MS);
+    });
+    expect(onLongPress).not.toHaveBeenCalled();
+  });
+});
+
+describe('useBlockGestures — a second pointer', () => {
+  it("does not let a second pointer inherit the first pointer's timer", () => {
+    // Finger A goes down and starts its LONG_PRESS_MS timer. Finger B lands
+    // 50ms later, before A lifts. Without ending A's gesture first, A's
+    // timer would fire at its original deadline holding B's (unmoved,
+    // freshly started) gesture object, crediting a press B had not yet held
+    // for LONG_PRESS_MS.
+    const { onLongPress, block } = setup();
+    down(block, 200, 100, 1);
+    act(() => {
+      vi.advanceTimersByTime(50);
+    });
+    down(block, 100, 100, 2);
+    act(() => {
+      // Past A's original deadline (50 + 401 = 451), but B has only been
+      // down for 401ms of the 450ms it needs.
+      vi.advanceTimersByTime(LONG_PRESS_MS - 50 + 1);
+    });
+    expect(onLongPress).not.toHaveBeenCalled();
   });
 });

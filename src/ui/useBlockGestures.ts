@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
 import type { MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent } from 'react';
 import { vibrate } from './motion';
 
@@ -9,6 +9,8 @@ export const SWIPE_THRESHOLD_PX = 30;
 export const LONG_PRESS_MS = 450;
 
 type Gesture = {
+  /** Which pointer this gesture belongs to, so a second finger cannot steal it. */
+  pointerId: number;
   startX: number;
   startY: number;
   /** Set once the press has counted, so the release cannot also swipe. */
@@ -53,13 +55,18 @@ export function useBlockGestures({
 
   // Held in a ref so the window listeners, registered once, always call the
   // current handlers rather than the ones captured on first render. Synced
-  // from an effect, not assigned during render: eslint-plugin-react-hooks 7's
-  // `react-hooks/refs` rule forbids writing a ref while rendering, even for
-  // this store-the-latest-props pattern, so the write happens after commit
-  // instead. Every render still refreshes it, before the next event can read
-  // it.
+  // from a layout effect, not assigned during render: eslint-plugin-react-hooks
+  // 7's `react-hooks/refs` rule forbids writing a ref while rendering, even
+  // for this store-the-latest-props pattern, so the write happens after
+  // commit instead. It has to be `useLayoutEffect` rather than `useEffect`:
+  // a passive effect is scheduled after the browser has painted, so a real
+  // pointer event firing in that window would still read the previous
+  // render's `enabled`/handlers — a block disabled the instant before a fast
+  // second tap would still act on it. A layout effect runs synchronously in
+  // the commit phase, before the browser can paint or dispatch anything, so
+  // the ref is never stale for an event that arrives after commit.
   const latest = useRef({ onSwipe, onLongPress, enabled });
-  useEffect(() => {
+  useLayoutEffect(() => {
     latest.current = { onSwipe, onLongPress, enabled };
   });
 
@@ -73,7 +80,9 @@ export function useBlockGestures({
   useEffect(() => {
     function handleMove(event: PointerEvent) {
       const active = gesture.current;
-      if (!active) return;
+      // A second pointer moving while the first is still down must not be
+      // read as the first pointer's travel.
+      if (!active || event.pointerId !== active.pointerId) return;
 
       const dx = event.clientX - active.startX;
       const dy = event.clientY - active.startY;
@@ -98,7 +107,10 @@ export function useBlockGestures({
       end();
     }
 
-    function handleUp() {
+    function handleUp(event: PointerEvent) {
+      const active = gesture.current;
+      // A second pointer releasing must not end the first pointer's gesture.
+      if (!active || event.pointerId !== active.pointerId) return;
       end();
     }
 
@@ -116,34 +128,45 @@ export function useBlockGestures({
   // would call a handler belonging to a block that is no longer on screen.
   useEffect(() => end, [end]);
 
-  const onPointerDown = useCallback((event: ReactPointerEvent<HTMLElement>) => {
-    if (!latest.current.enabled) return;
+  const onPointerDown = useCallback(
+    (event: ReactPointerEvent<HTMLElement>) => {
+      if (!latest.current.enabled) return;
 
-    // A press that begins on one of the block's own buttons belongs to that
-    // button. Without this, tapping Next advances twice and holding it both
-    // presses and keeps.
-    if (event.target instanceof Element && event.target.closest('button')) return;
+      // A press that begins on one of the block's own buttons belongs to that
+      // button. Without this, tapping Next advances twice and holding it both
+      // presses and keeps.
+      if (event.target instanceof Element && event.target.closest('button')) return;
 
-    const startX = event.clientX;
-    const startY = event.clientY;
-    const active: Gesture = {
-      startX,
-      startY,
-      pressed: false,
-      moved: false,
-      timer: setTimeout(() => {
-        const current = gesture.current;
-        if (!current || current.moved) return;
-        current.pressed = true;
-        // Haptics read the reduced-motion query themselves. Absent on iOS
-        // Safari, where this degrades to nothing: the vibration carries no
-        // information the padlock does not.
-        vibrate(10);
-        latest.current.onLongPress();
-      }, LONG_PRESS_MS),
-    };
-    gesture.current = active;
-  }, []);
+      // A second pointer landing while the first is still down must not
+      // inherit the first gesture's timer: without ending it here, finger A's
+      // timer would fire at 450ms holding finger B's (unmoved, freshly
+      // started) gesture object, counting as a long press for a touch held far
+      // less than that.
+      end();
+
+      const startX = event.clientX;
+      const startY = event.clientY;
+      const active: Gesture = {
+        pointerId: event.pointerId,
+        startX,
+        startY,
+        pressed: false,
+        moved: false,
+        timer: setTimeout(() => {
+          const current = gesture.current;
+          if (!current || current.moved) return;
+          current.pressed = true;
+          // Haptics read the reduced-motion query themselves. Absent on iOS
+          // Safari, where this degrades to nothing: the vibration carries no
+          // information the padlock does not.
+          vibrate(10);
+          latest.current.onLongPress();
+        }, LONG_PRESS_MS),
+      };
+      gesture.current = active;
+    },
+    [end],
+  );
 
   const onContextMenu = useCallback((event: ReactMouseEvent<HTMLElement>) => {
     // A long press raises the context menu on touch, which would land on top
