@@ -45,6 +45,12 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: ['./src/test-setup.ts'],
+    // JUnit only under CI, where Codecov's test analytics consumes it. Locally
+    // it would write a file nobody reads on every run, so the default reporter
+    // stands alone there. `default` is listed explicitly because naming any
+    // reporter replaces the default rather than adding to it.
+    reporters: process.env.CI ? ['default', 'junit'] : ['default'],
+    outputFile: { junit: './test-report.junit.xml' },
     // Vitest's default include glob otherwise also matches e2e/invariants.spec.ts
     // and the generated e2e/*.feature.spec.js: both are Playwright tests, run
     // through `npm run e2e`, not Vitest.
