@@ -45,13 +45,19 @@ export const tokens = stylex.defineVars({
   textHeading: '1.5rem',
   textBody: '1rem',
 
-  // Motion. Tokens so one prefers-reduced-motion block can zero them all,
-  // instead of chasing inline transition literals across five milestones.
-  colorFade: '150ms',
+  // Motion. Conditional values rather than one media block elsewhere: the
+  // condition travels with the token, so a transition that reaches for
+  // `colorFade` cannot forget to opt out of it.
+  //
+  // Only animation durations gate. `hold` is an input timing — the long-press
+  // threshold — and zeroing it would fire the press on touch. The dwell times
+  // are how long a message stays on screen; zeroing those would take the
+  // message away before it could be read.
+  colorFade: { default: '150ms', '@media (prefers-reduced-motion: reduce)': '0ms' },
   hold: '450ms',
-  shuffle: '200ms',
-  sheet: '320ms',
-  toastSlide: '200ms',
+  shuffle: { default: '200ms', '@media (prefers-reduced-motion: reduce)': '0ms' },
+  sheet: { default: '320ms', '@media (prefers-reduced-motion: reduce)': '0ms' },
+  toastSlide: { default: '200ms', '@media (prefers-reduced-motion: reduce)': '0ms' },
   toastDwell: '2500ms',
   toastDwellAction: '5000ms',
 });
