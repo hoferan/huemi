@@ -1,6 +1,7 @@
 import type { ReactElement } from 'react';
 import { Entry } from '../features/entry/Entry';
 import { Onboarding } from '../features/onboarding/Onboarding';
+import { OnboardingGate } from '../features/onboarding/OnboardingGate';
 
 export type AppRoute = { path: string; element: ReactElement };
 
@@ -15,6 +16,13 @@ export type AppRoute = { path: string; element: ReactElement };
  * warns when a module exports both a component and something else.
  */
 export const APP_ROUTES: readonly AppRoute[] = [
-  { path: '/', element: <Entry /> },
+  {
+    path: '/',
+    element: (
+      <OnboardingGate>
+        <Entry />
+      </OnboardingGate>
+    ),
+  },
   { path: '/welcome', element: <Onboarding /> },
 ];

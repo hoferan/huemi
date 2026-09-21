@@ -1,12 +1,19 @@
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { ONBOARDED_KEY } from '../storage/localPreferences';
 import { Root } from './Root';
 
 describe('Root', () => {
-  it('renders the routed app with a live region above it', () => {
+  // The root route now sits behind OnboardingGate, which only shows the
+  // entry screen to a visitor the store already knows has onboarded.
+  beforeEach(() => {
+    localStorage.setItem(ONBOARDED_KEY, 'true');
+  });
+
+  it('renders the routed app with a live region above it', async () => {
     render(<Root />);
     expect(
-      screen.getByRole('heading', { level: 1, name: 'Start with a garment' }),
+      await screen.findByRole('heading', { level: 1, name: 'Start with a garment' }),
     ).toBeInTheDocument();
     expect(screen.getByRole('status')).toBeInTheDocument();
   });
