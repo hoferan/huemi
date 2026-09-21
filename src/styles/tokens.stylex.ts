@@ -39,6 +39,12 @@ export const tokens = stylex.defineVars({
   fontHeading: '"Outfit Variable", system-ui, sans-serif',
   fontBody: '"Outfit Variable", system-ui, sans-serif',
 
+  // Type scale. rem, never px: a px scale does not respond to the browser's
+  // text size setting, which would make the 200% reachability check in
+  // e2e/invariants.spec.ts pass over a screen no one could actually read.
+  textHeading: '1.5rem',
+  textBody: '1rem',
+
   // Motion. Tokens so one prefers-reduced-motion block can zero them all,
   // instead of chasing inline transition literals across five milestones.
   colorFade: '150ms',

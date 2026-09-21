@@ -35,6 +35,14 @@ Runtime colors work through StyleX's dynamic styles, which compile to CSS custom
 properties set at call time. This was proven in milestone one with a deliberate
 spike rather than assumed, because six screens depend on it.
 
+That spike was retired in milestone three when the entry screen replaced it, and
+with it went the only exercise of a dynamic style anywhere in the app. Nothing
+renders a runtime color today: the end-to-end suite still asserts a computed
+background, but against a token, which proves StyleX emits CSS and not that a
+value passed in at call time reaches the browser. The proof returns with the
+picker's swatches in #15, and until it does, this paragraph records a property
+the code no longer demonstrates.
+
 Motion durations live in the token file specifically so a single
 `prefers-reduced-motion` rule can zero them, rather than chasing inline transition
 values across five milestones.

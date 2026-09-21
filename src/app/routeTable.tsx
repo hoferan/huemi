@@ -1,6 +1,7 @@
 import type { ReactElement } from 'react';
-import App from '../App';
-import { Screen } from '../ui/Screen';
+import { Entry } from '../features/entry/Entry';
+import { Onboarding } from '../features/onboarding/Onboarding';
+import { OnboardingGate } from '../features/onboarding/OnboardingGate';
 
 export type AppRoute = { path: string; element: ReactElement };
 
@@ -13,17 +14,15 @@ export type AppRoute = { path: string; element: ReactElement };
  * Its own file rather than a second export from `routes.tsx`, for the reason
  * `SessionContext.ts` is its own file: react-refresh/only-export-components
  * warns when a module exports both a component and something else.
- *
- * The root still renders M1's spike screen. #14 replaces it with the entry
- * screen and deletes `src/App.tsx`.
  */
 export const APP_ROUTES: readonly AppRoute[] = [
   {
     path: '/',
     element: (
-      <Screen title="huemi">
-        <App />
-      </Screen>
+      <OnboardingGate>
+        <Entry />
+      </OnboardingGate>
     ),
   },
+  { path: '/welcome', element: <Onboarding /> },
 ];

@@ -23,7 +23,7 @@ const styles = stylex.create({
     fontFamily: tokens.fontHeading,
     // rem, so the browser's text size setting reaches it. A px type scale
     // would make the 200% check vacuous.
-    fontSize: '1.5rem',
+    fontSize: tokens.textHeading,
     lineHeight: 1.1,
     margin: 0,
     // The heading takes focus programmatically. Removing the ring would hide
@@ -50,15 +50,30 @@ const styles = stylex.create({
  * Focusing the heading is also the announcement: a screen reader reads a
  * focused element, so routing this through the live region as well would say
  * the screen name twice.
+ *
+ * `header` is a slot rather than chrome in the shell, because onboarding
+ * shows no app chrome at all and later screens need different chrome. It
+ * renders inside the landmark and above the heading, so the heading stays
+ * the first thing focus lands on.
  */
-export function Screen({ title, children }: { title: string; children: ReactNode }) {
+export function Screen({
+  title,
+  documentTitle,
+  header,
+  children,
+}: {
+  title: string;
+  documentTitle?: string;
+  header?: ReactNode;
+  children: ReactNode;
+}) {
   const heading = useRef<HTMLHeadingElement>(null);
   const location = useLocation();
   const isInitialLocation = use(InitialLocationContext);
 
   useEffect(() => {
-    document.title = `${title} — huemi`;
-  }, [title]);
+    document.title = `${documentTitle ?? title} — huemi`;
+  }, [title, documentTitle]);
 
   useEffect(() => {
     if (isInitialLocation) return;
@@ -67,6 +82,9 @@ export function Screen({ title, children }: { title: string; children: ReactNode
 
   return (
     <main {...stylex.props(styles.main)}>
+      {header}
+      {/* Headings carry no terminal punctuation; a heading that is itself a
+          sentence pair, like onboarding's, keeps the stops between them. */}
       <h1 tabIndex={-1} ref={heading} {...stylex.props(styles.heading)}>
         {title}
       </h1>

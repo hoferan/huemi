@@ -82,4 +82,38 @@ describe('Screen', () => {
     await user.click(screen.getByRole('button', { name: 'back' }));
     expect(screen.getByRole('heading', { level: 1, name: 'Entry' })).toHaveFocus();
   });
+
+  it('uses documentTitle for the tab when the heading is unwieldy', () => {
+    render(
+      <MemoryRouter>
+        <Screen title="One piece you own. The rest that goes with it." documentTitle="Welcome">
+          body
+        </Screen>
+      </MemoryRouter>,
+    );
+    expect(document.title).toBe('Welcome — huemi');
+    expect(
+      screen.getByRole('heading', {
+        level: 1,
+        name: 'One piece you own. The rest that goes with it.',
+      }),
+    ).toBeInTheDocument();
+  });
+
+  it('renders a header above the heading, inside the main landmark', () => {
+    render(
+      <MemoryRouter>
+        <Screen title="Entry" header={<p>huemi</p>}>
+          body
+        </Screen>
+      </MemoryRouter>,
+    );
+    const main = screen.getByRole('main');
+    const wordmark = screen.getByText('huemi');
+    expect(main).toContainElement(wordmark);
+    expect(
+      wordmark.compareDocumentPosition(screen.getByRole('heading', { level: 1 })) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
 });
