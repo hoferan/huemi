@@ -31,4 +31,18 @@ describe('Root', () => {
     await screen.findByRole('heading', { level: 1, name: 'Start with a garment' });
     expect(document.activeElement).toBe(document.body);
   });
+
+  // Root.test.tsx is the one place nothing else stands in for `<Root>`'s own
+  // wiring: routes.test.tsx supplies its own `SessionProvider` around
+  // `AppRoutes` directly, so a `SessionProvider` deleted from `Root` itself
+  // would still pass the rest of the unit suite while every session-reading
+  // screen threw as soon as a real user reached it. The picker is one such
+  // screen, so visiting it here is what actually exercises the wiring.
+  it('wires the session through to a screen that reads it', async () => {
+    window.history.pushState({}, '', '/color?slot=top');
+    render(<Root />);
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Pick a color' }),
+    ).toBeInTheDocument();
+  });
 });
