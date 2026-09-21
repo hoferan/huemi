@@ -83,6 +83,8 @@ export function Screen({
   return (
     <main {...stylex.props(styles.main)}>
       {header}
+      {/* Headings carry no terminal punctuation; a heading that is itself a
+          sentence pair, like onboarding's, keeps the stops between them. */}
       <h1 tabIndex={-1} ref={heading} {...stylex.props(styles.heading)}>
         {title}
       </h1>
