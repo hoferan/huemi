@@ -84,6 +84,7 @@ describe('AppRoutes', () => {
     '/welcome': 'One piece you own. The rest that goes with it.',
     '/slot': 'Choose a garment',
     '/color?slot=top': 'Pick a color',
+    '/color/custom?slot=top': 'Mix your own',
   };
 
   it.each(covered)('serves a real screen at %s', async (route) => {

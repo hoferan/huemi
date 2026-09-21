@@ -12,5 +12,6 @@ export const ROUTES: readonly string[] = [
   '/welcome',
   '/slot',
   '/color?slot=top',
+  '/color/custom?slot=top',
   '/this-route-does-not-exist',
 ];
