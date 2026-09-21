@@ -72,6 +72,13 @@ jobs:
       # dependencies at all. It is an optionalDependency because it publishes
       # for darwin and linux only, and engine-strict would otherwise fail
       # `npm install` outright on a Windows machine.
+      #
+      # This step must stay after a codecov/codecov-action step. That action
+      # writes the OIDC token it minted into GITHUB_ENV as CC_TOKEN, and the
+      # analyzer reads it from there — `useGitHubOIDC` in codecov.bundle.json
+      # is the fallback, not what authenticates the upload in practice.
+      # Reordering or removing the uploads above takes this step's credential
+      # away with them.
       - name: Upload bundle analysis
         if: ${{ !cancelled() && github.event.pull_request.head.repo.fork != true }}
         run: npx bundle-analyzer ./dist --bundle-name=huemi --config-file=codecov.bundle.json
