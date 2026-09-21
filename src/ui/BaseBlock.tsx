@@ -5,19 +5,9 @@ import { colorName } from '../color/palette';
 import type { Hex } from '../model/hex';
 import { SLOT_LABELS, type Slot } from '../model/types';
 import { ColorBlock } from './ColorBlock';
-import { blockText } from './blockText';
+import { blockText, fieldLayout } from './blockText';
 
 const styles = stylex.create({
-  field: {
-    display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'center',
-    flexGrow: 1,
-    minWidth: 0,
-    paddingBlock: '8px',
-    paddingInlineStart: '14px',
-    paddingInlineEnd: '4px',
-  },
   mark: {
     alignSelf: 'center',
     display: 'flex',
@@ -43,7 +33,7 @@ const styles = stylex.create({
 export function BaseBlock({ slot, hex }: { slot: Slot; hex: Hex }): ReactElement {
   return (
     <ColorBlock slot={slot} hex={hex}>
-      <div {...stylex.props(styles.field)}>
+      <div {...stylex.props(fieldLayout.field)}>
         <span {...stylex.props(blockText.slot)}>{SLOT_LABELS[slot]}</span>
         <span {...stylex.props(blockText.name)}>{colorName(hex)}</span>
       </div>

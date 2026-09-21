@@ -24,3 +24,21 @@ export const blockText = stylex.create({
     opacity: 0.72,
   },
 });
+
+/**
+ * The field layout shared between base and suggestion blocks. The base block
+ * uses it as-is on a `<div>`. The suggestion block composes it on a `<button>`
+ * and adds button-specific properties.
+ */
+export const fieldLayout = stylex.create({
+  field: {
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'center',
+    flexGrow: 1,
+    minWidth: 0,
+    paddingBlock: '8px',
+    paddingInlineStart: '14px',
+    paddingInlineEnd: '4px',
+  },
+});
