@@ -4,6 +4,17 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 import { ROUTES } from './routes';
+import { seedOnboarded } from './seedOnboarded';
+
+// Every route here is visited with onboarding already marked seen, so `/`
+// renders the entry screen it is listed for rather than redirecting to
+// `/welcome`. Without this, the gate sends `/` to onboarding for every one
+// of these checks, and `/welcome` is the only screen among them that ever
+// gets scanned — twice, while Entry gets scanned never. `/welcome` itself is
+// unaffected: it renders onboarding regardless of the flag.
+test.beforeEach(async ({ page }) => {
+  await seedOnboarded(page);
+});
 
 for (const route of ROUTES) {
   test(`has no detectable accessibility violations at ${route}`, async ({ page }) => {

@@ -1,5 +1,6 @@
 import { expect } from '@playwright/test';
 import { createBdd } from 'playwright-bdd';
+import { seedOnboarded } from '../seedOnboarded';
 
 const { Given, Then } = createBdd();
 
@@ -8,16 +9,10 @@ Given('I open huemi', async ({ page }) => {
 });
 
 Given('I have seen the welcome screen', async ({ page }) => {
-  // addInitScript runs before any page script, so the gate's first read
-  // already sees the flag. Setting it after goto would race the redirect.
-  //
-  // The key is written as a literal here rather than imported from `src/`,
-  // because addInitScript serialises this function to run in the browser and
-  // cannot close over a module import. Changing `ONBOARDED_KEY` in
-  // src/storage/localPreferences.ts means changing this literal too.
-  await page.addInitScript(() => {
-    window.localStorage.setItem('huemi.onboarded', 'true');
-  });
+  // seedOnboarded runs before any page script, via addInitScript, so the
+  // gate's first read already sees the flag. Setting it after goto would
+  // race the redirect.
+  await seedOnboarded(page);
 });
 
 // Converts a hex color such as "#1f2a44" to the rgb(...) string a browser

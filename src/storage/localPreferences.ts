@@ -1,6 +1,12 @@
 import type { PreferenceStore } from './port';
 
-/** Exported so a test can seed storage without restating the string. */
+/**
+ * Exported so a test can seed storage without restating the string.
+ *
+ * `e2e/seedOnboarded.ts` repeats this value as a literal — `addInitScript`
+ * serialises its callback to run in the browser, so that callback cannot
+ * close over this export. Renaming this key means updating that file too.
+ */
 export const ONBOARDED_KEY = 'huemi.onboarded';
 
 /**
