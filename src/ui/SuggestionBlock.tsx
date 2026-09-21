@@ -1,4 +1,4 @@
-import type { ReactElement } from 'react';
+import { useRef, type ReactElement } from 'react';
 import * as stylex from '@stylexjs/stylex';
 import { ChevronRight, Lock, LockOpen } from 'lucide-react';
 import { colorName } from '../color/palette';
@@ -7,7 +7,7 @@ import { SLOT_LABELS, type Slot } from '../model/types';
 import { tokens } from '../styles/tokens.stylex';
 import { blockText, fieldLayout } from './blockText';
 import { ColorBlock } from './ColorBlock';
-import { useBlockGestures } from './useBlockGestures';
+import { blockControl, useBlockGestures } from './useBlockGestures';
 
 const PRESSED_TINT = 'color-mix(in srgb, currentColor 24%, transparent)';
 
@@ -113,6 +113,15 @@ export function SuggestionBlock({
     .filter((part) => part !== null)
     .join(', ');
 
+  // Set when a gesture has counted, read by the field's click handler. The
+  // field is a button covering everything the gestures can be started on, so
+  // without this a swipe or a long press releases into a click and opens the
+  // alternatives sheet on top of whatever the gesture just did. Cleared at the
+  // start of each press on the field, so it can never reach across two
+  // sequences, and cleared again when it suppresses, so it can never swallow
+  // two clicks.
+  const gestured = useRef(false);
+
   // Additional affordances over controls that already work by keyboard. A
   // swipe is Next or its opposite; a long press is Keep. Nothing here is the
   // only way to do anything, which is what shrinks the disambiguation problem
@@ -122,10 +131,14 @@ export function SuggestionBlock({
   // to advance to.
   const gestures = useBlockGestures({
     onSwipe: (delta) => {
+      gestured.current = true;
       if (delta === 1) onNext();
       else onPrevious();
     },
-    onLongPress: onKeepToggle,
+    onLongPress: () => {
+      gestured.current = true;
+      onKeepToggle();
+    },
     enabled: !kept,
   });
 
@@ -133,7 +146,16 @@ export function SuggestionBlock({
     <ColorBlock slot={slot} hex={hex} {...gestures}>
       <button
         type="button"
-        onClick={onOpenAlternatives}
+        onPointerDown={() => {
+          gestured.current = false;
+        }}
+        onClick={() => {
+          if (gestured.current) {
+            gestured.current = false;
+            return;
+          }
+          onOpenAlternatives();
+        }}
         aria-label={fieldName}
         {...stylex.props(fieldLayout.field, styles.field, styles.focusRing)}
       >
@@ -144,6 +166,7 @@ export function SuggestionBlock({
       <div {...stylex.props(styles.rail)}>
         <button
           type="button"
+          {...blockControl}
           onClick={onKeepToggle}
           aria-pressed={kept}
           aria-label={`Keep ${label}`}
@@ -153,6 +176,7 @@ export function SuggestionBlock({
         </button>
         <button
           type="button"
+          {...blockControl}
           onClick={onNext}
           disabled={kept}
           aria-label={`Next suggestion for ${label}`}

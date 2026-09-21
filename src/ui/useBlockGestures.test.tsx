@@ -2,13 +2,23 @@ import { render, screen } from '@testing-library/react';
 import { act } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import tokensSource from '../styles/tokens.stylex.ts?raw';
-import { LONG_PRESS_MS, SWIPE_THRESHOLD_PX, useBlockGestures } from './useBlockGestures';
+import {
+  blockControl,
+  LONG_PRESS_MS,
+  SWIPE_THRESHOLD_PX,
+  useBlockGestures,
+} from './useBlockGestures';
 
 function Probe(props: Parameters<typeof useBlockGestures>[0]) {
   const gestures = useBlockGestures(props);
   return (
     <div data-testid="block" {...gestures}>
-      <button type="button">Next suggestion for Bottom</button>
+      <button type="button" {...blockControl}>
+        Next suggestion for Bottom
+      </button>
+      {/* Unmarked on purpose: the caller's free area is a button too, and the
+          guard has to let a press on it through. */}
+      <button type="button">Other options for Bottom</button>
     </div>
   );
 }
@@ -162,7 +172,41 @@ describe('LONG_PRESS_MS', () => {
   });
 });
 
-describe('useBlockGestures — keeping clear of the buttons', () => {
+describe('useBlockGestures — the context menu', () => {
+  function contextMenu(target: Element) {
+    const event = new MouseEvent('contextmenu', { bubbles: true, cancelable: true });
+    act(() => {
+      target.dispatchEvent(event);
+    });
+    return event;
+  }
+
+  it('suppresses the menu a long press raises, which would land on top of Keep', () => {
+    const { block } = setup();
+    down(block, 100, 100);
+    expect(contextMenu(block).defaultPrevented).toBe(true);
+  });
+
+  it('leaves a right-click alone when no press is running', () => {
+    const { block } = setup();
+    expect(contextMenu(block).defaultPrevented).toBe(false);
+  });
+
+  it('stops suppressing once the window loses focus mid-press', () => {
+    // A terminal pointer event is not guaranteed: press, drag out of the
+    // window, release there, and neither pointerup nor pointercancel arrives.
+    // Without the blur listener the gesture stays open and swallows every
+    // right-click on the block from then on.
+    const { block } = setup();
+    down(block, 100, 100);
+    act(() => {
+      window.dispatchEvent(new Event('blur'));
+    });
+    expect(contextMenu(block).defaultPrevented).toBe(false);
+  });
+});
+
+describe('useBlockGestures — keeping clear of the marked controls', () => {
   it('ignores a gesture that starts on a control', () => {
     // The controls are inside the block, so a press on one bubbles up here.
     // Without this the spec's "keep a gesture from firing on top of a button
@@ -178,6 +222,18 @@ describe('useBlockGestures — keeping clear of the buttons', () => {
     expect(onSwipe).not.toHaveBeenCalled();
     expect(onLongPress).not.toHaveBeenCalled();
     expect(block).toBeInTheDocument();
+  });
+
+  it('reads a gesture that starts on an unmarked button', () => {
+    // The guard cannot be phrased as "any button": the caller fills its block
+    // with one, so a press on the colour field has to start a gesture or the
+    // swipe and the long press are unreachable in a browser.
+    const { onLongPress } = setup();
+    down(screen.getByRole('button', { name: 'Other options for Bottom' }), 100, 100);
+    act(() => {
+      vi.advanceTimersByTime(LONG_PRESS_MS);
+    });
+    expect(onLongPress).toHaveBeenCalledOnce();
   });
 });
 

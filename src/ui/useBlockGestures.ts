@@ -8,6 +8,20 @@ export const SWIPE_THRESHOLD_PX = 30;
 /** How long a press has to be held to count. Matches the `hold` token. */
 export const LONG_PRESS_MS = 450;
 
+/**
+ * Marks a control a press must be handed to rather than read as a gesture.
+ *
+ * Spread onto every button inside the block that owns its own presses, and
+ * onto nothing else. It is load-bearing: the block's own surface is a button
+ * too, so a guard phrased as "any button" would reject every press the block
+ * can receive and the gestures would never run at all. Opting controls in one
+ * by one is the only phrasing that survives a layout where the free area is
+ * itself clickable.
+ */
+export const blockControl = { 'data-block-control': '' } as const;
+
+const BLOCK_CONTROL_SELECTOR = '[data-block-control]';
+
 type Gesture = {
   /** Which pointer this gesture belongs to, so a second finger cannot steal it. */
   pointerId: number;
@@ -38,6 +52,12 @@ type Gesture = {
  *
  * Gestures are pointer events, not touch events, so a mouse and a stylus get
  * the same behaviour without a second code path.
+ *
+ * The caller has to mark its own controls with `blockControl`, because a press
+ * that starts on one of them belongs to that control. Everything else in the
+ * element is free area the gestures read, including a button that fills it —
+ * which means the caller also owns suppressing the click that follows a
+ * gesture on such a button.
  */
 export function useBlockGestures({
   onSwipe,
@@ -100,6 +120,15 @@ export function useBlockGestures({
       if (Math.abs(dy) > Math.abs(dx)) return;
       if (Math.abs(dx) <= SWIPE_THRESHOLD_PX) return;
 
+      // Read again rather than trusting the check at pointerdown. A control
+      // tapped by a second finger can disable the block while this finger is
+      // still down, and the gesture that started when it was allowed would
+      // otherwise land on a block that has since said no.
+      if (!latest.current.enabled) {
+        end();
+        return;
+      }
+
       // A leftward drag reveals the next suggestion, the way a stack of cards
       // moves. Rightward goes back; `advance` takes a signed delta and the
       // cursor is deliberately unbounded, so backwards needs nothing extra.
@@ -117,10 +146,16 @@ export function useBlockGestures({
     window.addEventListener('pointermove', handleMove);
     window.addEventListener('pointerup', handleUp);
     window.addEventListener('pointercancel', handleUp);
+    // No terminal event is guaranteed: press the mouse on the block, drag out
+    // of the window and release there, and neither pointerup nor pointercancel
+    // ever arrives. The gesture would stay open and every later right-click on
+    // the block would be suppressed by a press that ended minutes ago.
+    window.addEventListener('blur', end);
     return () => {
       window.removeEventListener('pointermove', handleMove);
       window.removeEventListener('pointerup', handleUp);
       window.removeEventListener('pointercancel', handleUp);
+      window.removeEventListener('blur', end);
     };
   }, [end]);
 
@@ -130,19 +165,22 @@ export function useBlockGestures({
 
   const onPointerDown = useCallback(
     (event: ReactPointerEvent<HTMLElement>) => {
-      if (!latest.current.enabled) return;
-
-      // A press that begins on one of the block's own buttons belongs to that
-      // button. Without this, tapping Next advances twice and holding it both
-      // presses and keeps.
-      if (event.target instanceof Element && event.target.closest('button')) return;
-
-      // A second pointer landing while the first is still down must not
-      // inherit the first gesture's timer: without ending it here, finger A's
-      // timer would fire at 450ms holding finger B's (unmoved, freshly
-      // started) gesture object, counting as a long press for a touch held far
-      // less than that.
+      // Any new press on the block supersedes whatever was in flight. A second
+      // pointer landing while the first is still down must not inherit the
+      // first gesture's timer: without ending it here, finger A's timer would
+      // fire at 450ms holding finger B's (unmoved, freshly started) gesture
+      // object, counting as a long press for a touch held far less than that.
+      // It runs before the guards below so that reaching for a control also
+      // calls off a gesture the other hand had started.
       end();
+
+      // A press that begins on one of the block's own controls belongs to that
+      // control. Without this, tapping Next advances twice and holding it both
+      // presses and keeps. Marked controls only, never any button: the block's
+      // free area is a button too.
+      if (event.target instanceof Element && event.target.closest(BLOCK_CONTROL_SELECTOR)) return;
+
+      if (!latest.current.enabled) return;
 
       const startX = event.clientX;
       const startY = event.clientY;
@@ -155,6 +193,13 @@ export function useBlockGestures({
         timer: setTimeout(() => {
           const current = gesture.current;
           if (!current || current.moved) return;
+          // Re-read for the same reason the swipe does: the block may have
+          // been disabled by a control tapped with the other hand while this
+          // finger was still resting on it.
+          if (!latest.current.enabled) {
+            end();
+            return;
+          }
           current.pressed = true;
           // Haptics read the reduced-motion query themselves. Absent on iOS
           // Safari, where this degrades to nothing: the vibration carries no
