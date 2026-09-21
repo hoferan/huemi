@@ -54,10 +54,21 @@ describe('AppRoutes', () => {
     expect(covered.filter((path) => !served.includes(path))).toEqual([]);
   });
 
-  it.each(covered)('serves a real screen at %s', (route) => {
+  // Absence of the not-found heading is a weak proof once the root sits
+  // behind an async gate: right after render, nothing has painted yet, so
+  // "not a 404" is true whether the route is wired correctly, wired to the
+  // wrong screen, or wired to nothing forever. Naming each route's real
+  // heading and awaiting it means a route wired wrong fails with a mismatch
+  // instead of passing by never being checked.
+  const REAL_HEADINGS: Record<string, string> = {
+    '/': 'Start with a garment',
+    '/welcome': 'One piece you own. The rest that goes with it.',
+  };
+
+  it.each(covered)('serves a real screen at %s', async (route) => {
+    const heading = REAL_HEADINGS[route];
+    if (!heading) throw new Error(`No expected heading recorded for ${route}`);
     at(route);
-    expect(
-      screen.queryByRole('heading', { level: 1, name: 'Page not found' }),
-    ).not.toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 1, name: heading })).toBeInTheDocument();
   });
 });
