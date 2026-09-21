@@ -50,8 +50,13 @@ describe('motion tokens under prefers-reduced-motion', () => {
   });
 
   it.each(UNCONDITIONAL)('leaves %s alone under reduced motion', (name) => {
-    const value = new RegExp(`${name}:\\s*([^,\\n]*)`).exec(tokensSource)?.[1];
-    expect(value).toBeDefined();
-    expect(value).not.toContain('prefers-reduced-motion');
+    // The whole line, and the value asserted for the shape it must have. An
+    // earlier version captured up to the first comma and asked only that the
+    // capture not mention the media query, which the regression it guards
+    // walks straight through: `toastDwell: { default: '2500ms', '@media ...' }`
+    // captures `{ default: '2500ms'` and passes both ways.
+    const value = new RegExp(`^\\s*${name}:\\s*(.*)$`, 'm').exec(tokensSource)?.[1];
+    expect(value, `${name} should be present in the token source`).toBeDefined();
+    expect(value?.trim()).toMatch(/^'\d+ms',?$/);
   });
 });
