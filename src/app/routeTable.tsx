@@ -1,5 +1,6 @@
 import type { ReactElement } from 'react';
 import App from '../App';
+import { Onboarding } from '../features/onboarding/Onboarding';
 import { Screen } from '../ui/Screen';
 
 export type AppRoute = { path: string; element: ReactElement };
@@ -26,4 +27,5 @@ export const APP_ROUTES: readonly AppRoute[] = [
       </Screen>
     ),
   },
+  { path: '/welcome', element: <Onboarding /> },
 ];
