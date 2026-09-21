@@ -7,4 +7,10 @@
 // The unknown path is deliberate: the catch-all renders a real screen, and a
 // screen nobody designed is exactly the kind that fails a contrast or heading
 // check unnoticed.
-export const ROUTES: readonly string[] = ['/', '/welcome', '/slot', '/this-route-does-not-exist'];
+export const ROUTES: readonly string[] = [
+  '/',
+  '/welcome',
+  '/slot',
+  '/color?slot=top',
+  '/this-route-does-not-exist',
+];
