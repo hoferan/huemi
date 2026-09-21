@@ -149,5 +149,18 @@ export default tseslint.config(
       'import-x/no-restricted-paths': 'off',
     },
   },
+  {
+    // The session's value is that its transitions are a plain data transform:
+    // exhaustively testable, and readable without a renderer in your head.
+    // Its React bindings sit beside it so features can reach them, so the
+    // boundary that used to be a directory is this rule instead.
+    files: ['src/session/reducer.ts', 'src/session/select.ts', 'src/session/types.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        { paths: [{ name: 'react', message: 'The session reducer stays free of React.' }] },
+      ],
+    },
+  },
   prettier,
 );

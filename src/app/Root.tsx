@@ -3,7 +3,7 @@ import { Announcer } from '../ui/Announcer';
 import { InitialLocation } from '../ui/InitialLocation';
 import { AppRoutes } from './routes';
 import { ErrorBoundary } from './ErrorBoundary';
-import { SessionProvider } from './SessionProvider';
+import { SessionProvider } from '../session/SessionProvider';
 
 /**
  * Order matters. The error boundary is outermost so a render failure anywhere
