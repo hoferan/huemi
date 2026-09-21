@@ -3,9 +3,15 @@ import { needsBorder } from '../color/contrast';
 import { colorName } from '../color/palette';
 import type { Hex } from '../model/hex';
 import { tokens } from '../styles/tokens.stylex';
+import { SR_ONLY } from './srOnly';
 
 const styles = stylex.create({
   swatch: {
+    // The button is the positioning context for the hidden name below: an
+    // absolutely positioned descendant with no positioned ancestor lays out
+    // against whatever ancestor happens to be one, or the initial containing
+    // block if none is.
+    position: 'relative',
     borderStyle: 'none',
     borderRadius: tokens.radius,
     minHeight: tokens.touchTarget,
@@ -38,18 +44,7 @@ export function Swatch({ hex, onSelect }: { hex: Hex; onSelect: (hex: Hex) => vo
       onClick={() => onSelect(hex)}
       {...stylex.props(styles.swatch, styles.fill(hex), needsBorder(hex) && styles.hairline)}
     >
-      <span
-        style={{
-          position: 'absolute',
-          width: '1px',
-          height: '1px',
-          overflow: 'hidden',
-          clip: 'rect(0 0 0 0)',
-          whiteSpace: 'nowrap',
-        }}
-      >
-        {colorName(hex)}
-      </span>
+      <span style={SR_ONLY}>{colorName(hex)}</span>
     </button>
   );
 }
