@@ -277,4 +277,36 @@ describe('SuggestionBlock — gestures over the controls', () => {
     });
     expect(props.onNext).not.toHaveBeenCalled();
   });
+
+  // A drag that starts on the field and is released over the rail has no
+  // element in common with the field but the block, so the browser dispatches
+  // the click there and the field's own handler never runs. The suppression it
+  // set therefore survives the gesture. The field keeps focus from the press,
+  // so the next Enter is the very next thing that can happen, and it must not
+  // be the press that gets eaten.
+  it('still opens alternatives from the keyboard after a swipe released off the field', async () => {
+    const user = userEvent.setup();
+    const props = setup();
+    const target = field();
+
+    down(target, 200);
+    for (const type of ['pointermove', 'pointerup']) {
+      act(() => {
+        window.dispatchEvent(
+          new PointerEvent(type, {
+            clientX: 200 - SWIPE_THRESHOLD_PX - 1,
+            clientY: 100,
+            pointerId: 1,
+            bubbles: true,
+          }),
+        );
+      });
+    }
+    // No click on the field: this release happened somewhere else.
+    expect(props.onNext).toHaveBeenCalledOnce();
+
+    target.focus();
+    await user.keyboard('{Enter}');
+    expect(props.onOpenAlternatives).toHaveBeenCalledOnce();
+  });
 });

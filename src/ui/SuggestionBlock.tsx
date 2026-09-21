@@ -149,6 +149,13 @@ export function SuggestionBlock({
         onPointerDown={() => {
           gestured.current = false;
         }}
+        // A drag released off the field puts its click on the block instead,
+        // so the handler below never runs and the suppression outlives the
+        // gesture that set it. A keyboard activation cannot be the thing that
+        // gesture meant to suppress, so it clears the flag on the way past.
+        onKeyDown={() => {
+          gestured.current = false;
+        }}
         onClick={() => {
           if (gestured.current) {
             gestured.current = false;
