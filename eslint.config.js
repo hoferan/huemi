@@ -153,6 +153,27 @@ export default tseslint.config(
     },
   },
   {
+    // @stylexjs/eslint-plugin 0.19.1's isNumber check calls context.getScope()
+    // whenever a numeric style value is a bare identifier — reachable here
+    // because blockText.ts writes `opacity: BLOCK_TEXT_ALPHA` so the constant
+    // that documents the alpha block text draws at is the one that governs
+    // it, rather than sitting next to styles that don't reference it (see the
+    // constant's own doc comment). That method was removed from ESLint's
+    // flat-config `context` in ESLint 9 in favor of
+    // `context.sourceCode.getScope(node)`, so under this project's ESLint
+    // 10.10.0 the rule throws instead of reporting, taking down the whole
+    // lint run rather than failing just this file. Confirmed by reverting
+    // the identifier reference and re-running `npm run lint`, which passes:
+    // the crash is this incompatibility, not a style mistake. Scoped to the
+    // one file that needs it, so every other file keeps the rule.
+    // @stylexjs/eslint-plugin has no newer release that fixes this as of this
+    // writing; revisit when Dependabot offers one.
+    files: ['src/ui/blockText.ts'],
+    rules: {
+      '@stylexjs/valid-styles': 'off',
+    },
+  },
+  {
     // The session's value is that its transitions are a plain data transform:
     // exhaustively testable, and readable without a renderer in your head.
     // Its React bindings sit beside it so features can reach them, so the

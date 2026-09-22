@@ -26,6 +26,7 @@ export const blockText = stylex.create({
     fontWeight: 500,
     letterSpacing: '0.09em',
     textTransform: 'uppercase',
+    opacity: BLOCK_TEXT_ALPHA,
   },
   name: {
     fontFamily: tokens.fontHeading,
@@ -34,6 +35,23 @@ export const blockText = stylex.create({
   },
   position: {
     fontSize: '0.72rem',
+    opacity: BLOCK_TEXT_ALPHA,
+  },
+  // The padlock-and-"Base" mark BaseBlock draws below the field. It lives
+  // here rather than in BaseBlock.tsx because StyleX resolves a style value
+  // at build time: a plain constant it can inline within the file that
+  // defines it, the way `slot` and `position` above use BLOCK_TEXT_ALPHA,
+  // but not one imported into a `stylex.create` call in a different module.
+  mark: {
+    alignSelf: 'center',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+    marginInlineEnd: '14px',
+    fontSize: '0.7rem',
+    letterSpacing: '0.08em',
+    textTransform: 'uppercase',
+    opacity: BLOCK_TEXT_ALPHA,
   },
 });
 

@@ -8,8 +8,7 @@ import { advance, composeOutfit, positionLabel } from '../../session/select';
 import type { SlotPick } from '../../session/types';
 import { useSession } from '../../session/useSession';
 import { tokens } from '../../styles/tokens.stylex';
-import { blockText, fieldLayout } from '../../ui/blockText';
-import { ColorBlock } from '../../ui/ColorBlock';
+import { BaseBlock } from '../../ui/BaseBlock';
 import { Screen } from '../../ui/Screen';
 import { Sheet } from '../../ui/Sheet';
 import { SuggestionBlock } from '../../ui/SuggestionBlock';
@@ -141,18 +140,13 @@ export function Suggestions() {
           const pick = picks[slot];
           if (slot === base.slot) {
             return (
-              <ColorBlock
+              <BaseBlock
                 key={slot}
                 slot={slot}
                 hex={base.hex}
                 style={styles.base}
                 fade={shuffling ? tokens.shuffle : tokens.colorFade}
-              >
-                <div {...stylex.props(fieldLayout.field)}>
-                  <span {...stylex.props(blockText.slot)}>{SLOT_LABELS[slot]}</span>
-                  <span {...stylex.props(blockText.name)}>{colorName(base.hex)}</span>
-                </div>
-              </ColorBlock>
+              />
             );
           }
           if (!pick) return null;
