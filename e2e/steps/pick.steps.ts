@@ -2,10 +2,17 @@ import { expect } from '@playwright/test';
 import { createBdd } from 'playwright-bdd';
 import { hexToRgb } from './entry.steps';
 
-const { Given, Then } = createBdd();
+const { Given, Then, When } = createBdd();
 
 Given('I open the picker for the top', async ({ page }) => {
   await page.goto('/color?slot=top');
+});
+
+// A tap commits and navigates. This is the only route into the suggestions
+// screen a user takes, and the step exists so a scenario can take it rather
+// than arriving by `page.goto` on a session that has never held anything.
+When('I choose the swatch {string}', async ({ page }, name: string) => {
+  await page.getByRole('button', { name }).click();
 });
 
 Then('the swatch {string} has background {string}', async ({ page }, name: string, hex: string) => {

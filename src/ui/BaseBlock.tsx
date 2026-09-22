@@ -4,22 +4,9 @@ import { Lock } from 'lucide-react';
 import { colorName } from '../color/palette';
 import type { Hex } from '../model/hex';
 import { SLOT_LABELS, type Slot } from '../model/types';
+import { tokens } from '../styles/tokens.stylex';
 import { ColorBlock } from './ColorBlock';
 import { blockText, fieldLayout } from './blockText';
-
-const styles = stylex.create({
-  mark: {
-    alignSelf: 'center',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '6px',
-    marginInlineEnd: '14px',
-    fontSize: '0.7rem',
-    letterSpacing: '0.08em',
-    textTransform: 'uppercase',
-    opacity: 0.8,
-  },
-});
 
 /**
  * The garment the user started from.
@@ -30,14 +17,24 @@ const styles = stylex.create({
  * there in words, because an icon alone says nothing to a screen reader and
  * little to anyone meeting it for the first time.
  */
-export function BaseBlock({ slot, hex }: { slot: Slot; hex: Hex }): ReactElement {
+export function BaseBlock({
+  slot,
+  hex,
+  style,
+  fade = tokens.colorFade,
+}: {
+  slot: Slot;
+  hex: Hex;
+  style?: stylex.StyleXStyles;
+  fade?: string;
+}): ReactElement {
   return (
-    <ColorBlock slot={slot} hex={hex}>
+    <ColorBlock slot={slot} hex={hex} style={style} fade={fade}>
       <div {...stylex.props(fieldLayout.field)}>
         <span {...stylex.props(blockText.slot)}>{SLOT_LABELS[slot]}</span>
         <span {...stylex.props(blockText.name)}>{colorName(hex)}</span>
       </div>
-      <span {...stylex.props(styles.mark)}>
+      <span {...stylex.props(blockText.mark)}>
         <Lock size={16} aria-hidden="true" />
         Base
       </span>

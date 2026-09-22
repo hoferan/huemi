@@ -155,4 +155,46 @@ describe('sessionReducer', () => {
     });
     expect(next.toast).toBeNull();
   });
+
+  describe('picksReplaced', () => {
+    const base = { slot: 'top', hex: parseHex('#c39a3a') } as const;
+
+    function seeded() {
+      return sessionReducer(initialSession, { type: 'baseChosen', ...base });
+    }
+
+    it('sets every slot it is given', () => {
+      const picks = {
+        shoes: { hex: parseHex('#1f2a44'), cursor: 3 },
+        bottom: { hex: parseHex('#8a8a8a'), cursor: 0 },
+      };
+      const state = sessionReducer(seeded(), { type: 'picksReplaced', picks });
+      expect(state.picks.shoes).toEqual(picks.shoes);
+      expect(state.picks.bottom).toEqual(picks.bottom);
+    });
+
+    it('leaves a locked slot alone', () => {
+      const kept = { hex: parseHex('#2f4a3a'), cursor: 1 };
+      let state = sessionReducer(seeded(), {
+        type: 'picksReplaced',
+        picks: { shoes: kept },
+      });
+      state = sessionReducer(state, { type: 'lockToggled', slot: 'shoes' });
+      state = sessionReducer(state, {
+        type: 'picksReplaced',
+        picks: { shoes: { hex: parseHex('#a4522d'), cursor: 9 } },
+      });
+      expect(state.picks.shoes).toEqual(kept);
+    });
+
+    it('leaves a slot it was not given alone', () => {
+      const kept = { hex: parseHex('#2f4a3a'), cursor: 1 };
+      let state = sessionReducer(seeded(), { type: 'picksReplaced', picks: { shoes: kept } });
+      state = sessionReducer(state, {
+        type: 'picksReplaced',
+        picks: { bottom: { hex: parseHex('#8a8a8a'), cursor: 0 } },
+      });
+      expect(state.picks.shoes).toEqual(kept);
+    });
+  });
 });

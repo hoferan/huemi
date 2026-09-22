@@ -29,7 +29,6 @@ const styles = stylex.create({
     // Without this the browser claims the gesture before the handler sees it.
     touchAction: 'pan-y',
     transitionProperty: 'background-color',
-    transitionDuration: tokens.colorFade,
   },
   // Dynamic: the colour is a runtime value, which is why this project chose
   // StyleX. See ADR 0002. The foreground travels with it so that everything
@@ -38,6 +37,11 @@ const styles = stylex.create({
     backgroundColor: background,
     color: foreground,
   }),
+  // Dynamic because two durations share one property: a single block changing
+  // colour uses `colorFade`, and a shuffle changing four at once uses
+  // `shuffle`. Both gate on prefers-reduced-motion inside the token, so
+  // neither call site has a media query.
+  fade: (duration: string) => ({ transitionDuration: duration }),
   // A contrast affordance, not decoration: without it White, Cream and Light
   // grey have no edge against the #d8d5cf background. Inset, so the hairline
   // costs the colour area no width.
@@ -63,11 +67,15 @@ export function ColorBlock({
   slot,
   hex,
   children,
+  style,
+  fade = tokens.colorFade,
   ...handlers
 }: {
   slot: Slot;
   hex: Hex;
   children: ReactNode;
+  style?: stylex.StyleXStyles;
+  fade?: string;
   onPointerDown?: (event: ReactPointerEvent<HTMLElement>) => void;
   onContextMenu?: (event: ReactMouseEvent<HTMLElement>) => void;
 }): ReactElement {
@@ -81,6 +89,8 @@ export function ColorBlock({
         styles.block,
         styles.fill(hex, foreground.color),
         needsBorder(hex) && styles.hairline,
+        styles.fade(fade),
+        style,
       )}
     >
       {children}

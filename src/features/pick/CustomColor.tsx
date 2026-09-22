@@ -83,7 +83,9 @@ function CustomColorForSlot({ slot }: { slot: Slot }) {
 
   function commit() {
     dispatch({ type: 'baseChosen', slot, hex });
-    void navigate('/suggest');
+    // The base travels in the URL, not only in the session, so a refresh of
+    // the suggestions screen rebuilds the same outfit (ADR 0011).
+    void navigate(`/suggest?slot=${slot}&hex=${encodeURIComponent(hex)}`);
   }
 
   return (

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { FG_DARK, FG_LIGHT } from '../color/contrast';
 import { parseHex } from '../model/hex';
+import { durations } from './tokens.stylex';
 // Raw text, not the compiled module: StyleX's Vite plugin turns
 // `defineVars` values into CSS custom-property references
 // (`var(--x11iydtm)`), even under Vitest, so importing `tokens` normally
@@ -27,6 +28,19 @@ describe('fgDark/fgLight vs contrast.ts', () => {
     const fgLight = /fgLight:\s*'(#[0-9a-fA-F]{6})'/.exec(tokensSource)?.[1];
     expect(fgDark && parseHex(fgDark)).toBe(FG_DARK);
     expect(fgLight && parseHex(fgLight)).toBe(FG_LIGHT);
+  });
+});
+
+describe('durations', () => {
+  // Unlike defineVars, defineConsts inlines its literal, so this reads the
+  // real value rather than a var() reference. Suggestions.tsx parses it into
+  // the shuffle timer's milliseconds, which only works while it is written in
+  // whole milliseconds: '0.2s' would parse to 0 and end the crossfade flag on
+  // the next tick.
+  it('writes every duration in whole milliseconds', () => {
+    for (const value of Object.values(durations)) {
+      expect(value).toMatch(/^\d+ms$/);
+    }
   });
 });
 

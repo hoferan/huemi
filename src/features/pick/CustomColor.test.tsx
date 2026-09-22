@@ -9,11 +9,11 @@ import { InitialLocationContext } from '../../ui/InitialLocationContext';
 import { CustomColor } from './CustomColor';
 
 function Where() {
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   const { state } = useSession();
   return (
     <p>
-      {pathname} base={state.base ? `${state.base.slot}:${state.base.hex}` : 'none'}
+      {pathname + search} base={state.base ? `${state.base.slot}:${state.base.hex}` : 'none'}
     </p>
   );
 }
@@ -129,7 +129,16 @@ describe('CustomColor', () => {
     // records it against the wrong one.
     renderAt('/color/custom?slot=shoes');
     await user.click(screen.getByRole('button', { name: 'Use this color' }));
-    expect(await screen.findByText(/\/suggest base=shoes:#/)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/\/suggest\?slot=shoes&hex=%23\w{6} base=shoes:#/),
+    ).toBeInTheDocument();
+  });
+
+  it('carries the base in the URL, not only in the session', async () => {
+    const user = userEvent.setup();
+    renderAt('/color/custom?slot=shoes');
+    await user.click(screen.getByRole('button', { name: 'Use this color' }));
+    expect(await screen.findByText(/\/suggest\?slot=shoes&hex=%23\w{6}/)).toBeInTheDocument();
   });
 
   it('sends a visitor with no slot back to choose one', async () => {

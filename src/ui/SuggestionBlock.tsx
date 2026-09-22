@@ -83,6 +83,7 @@ export function SuggestionBlock({
   hex,
   position,
   kept,
+  fade = tokens.colorFade,
   onNext,
   onKeepToggle,
   onOpenAlternatives,
@@ -92,6 +93,7 @@ export function SuggestionBlock({
   hex: Hex;
   position: string | null;
   kept: boolean;
+  fade?: string;
   onNext: () => void;
   onKeepToggle: () => void;
   onOpenAlternatives: () => void;
@@ -143,7 +145,7 @@ export function SuggestionBlock({
   });
 
   return (
-    <ColorBlock slot={slot} hex={hex} {...gestures}>
+    <ColorBlock slot={slot} hex={hex} fade={fade} {...gestures}>
       <button
         type="button"
         onPointerDown={() => {
