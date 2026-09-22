@@ -1,4 +1,5 @@
 import type { SessionAction, SessionState } from './types';
+import { SLOTS } from '../model/types';
 
 export type { SlotPick, SessionAction, SessionState } from './types';
 
@@ -88,6 +89,23 @@ export function sessionReducer(state: SessionState, action: SessionAction): Sess
 
     case 'reset':
       return { ...initialSession, toastSeq: state.toastSeq };
+
+    case 'picksReplaced': {
+      // Seeding and shuffle both change several slots at once. Four
+      // `pickChanged` dispatches would do it in four renders, which tears a
+      // crossfade that is meant to be simultaneous.
+      //
+      // The lock is enforced here rather than at the call site for the reason
+      // `pickChanged` enforces it here: this is the file that owns what a lock
+      // means, and the rule stated twice is the rule that drifts.
+      const picks = { ...state.picks };
+      for (const slot of SLOTS) {
+        const next = action.picks[slot];
+        if (!next || state.locked[slot]) continue;
+        picks[slot] = next;
+      }
+      return { ...state, picks };
+    }
 
     default: {
       // A new action type that nobody handled is a compile error rather than a

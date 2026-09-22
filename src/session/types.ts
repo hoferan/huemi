@@ -42,6 +42,7 @@ export type SessionAction =
   | { type: 'pickChanged'; slot: Slot; hex: Hex; cursor: number }
   | { type: 'lockToggled'; slot: Slot }
   | { type: 'outfitLoaded'; base: Base; picks: Partial<Record<Slot, SlotPick>> }
+  | { type: 'picksReplaced'; picks: Partial<Record<Slot, SlotPick>> }
   | { type: 'toastShown'; message: string; action?: ToastAction }
   | { type: 'toastDismissed'; id: number }
   | { type: 'reset' };
