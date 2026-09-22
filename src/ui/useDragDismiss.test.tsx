@@ -12,7 +12,7 @@ function Probe({ onDismiss }: { onDismiss: () => void }) {
   const { offset, onPointerDown, dragged } = useDragDismiss({ onDismiss, height: () => 400 });
   return (
     <div data-testid="handle" onPointerDown={onPointerDown}>
-      {offset}
+      <span data-testid="offset">{offset}</span>
       <button
         type="button"
         onClick={() => {
@@ -186,5 +186,51 @@ describe('useDragDismiss: telling a drag from a tap', () => {
     release();
     read();
     expect(reported).toEqual([false]);
+  });
+});
+
+describe('useDragDismiss: a drag the browser takes away', () => {
+  // pointercancel arrives when the browser claims the gesture mid-drag, and a
+  // window blur covers the mouse dragged out of the window and released there,
+  // where no pointerup or pointercancel is guaranteed. Either way the sheet has
+  // to come back to rest rather than sit part-way open, and neither is a
+  // release, so neither can dismiss.
+  it('springs back without dismissing when the pointer is cancelled', () => {
+    const onDismiss = vi.fn();
+    render(<Probe onDismiss={onDismiss} />);
+    press(0, 0);
+    moveTo(0, 200);
+    expect(screen.getByTestId('offset').textContent).toBe('200');
+    act(() => {
+      window.dispatchEvent(new PointerEvent('pointercancel', { pointerId: 1 }));
+    });
+    expect(onDismiss).not.toHaveBeenCalled();
+    expect(screen.getByTestId('offset').textContent).toBe('0');
+  });
+
+  it('springs back without dismissing when the window loses focus', () => {
+    const onDismiss = vi.fn();
+    render(<Probe onDismiss={onDismiss} />);
+    press(0, 0);
+    moveTo(0, 200);
+    act(() => {
+      window.dispatchEvent(new Event('blur'));
+    });
+    expect(onDismiss).not.toHaveBeenCalled();
+    expect(screen.getByTestId('offset').textContent).toBe('0');
+  });
+
+  // The cancelled gesture is over, so the release that follows belongs to
+  // nothing and must not dismiss either.
+  it('ignores the release that follows a cancelled drag', () => {
+    const onDismiss = vi.fn();
+    render(<Probe onDismiss={onDismiss} />);
+    press(0, 0);
+    moveTo(0, 200);
+    act(() => {
+      window.dispatchEvent(new PointerEvent('pointercancel', { pointerId: 1 }));
+    });
+    release();
+    expect(onDismiss).not.toHaveBeenCalled();
   });
 });
