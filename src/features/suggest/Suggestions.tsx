@@ -11,8 +11,10 @@ import { tokens } from '../../styles/tokens.stylex';
 import { blockText, fieldLayout } from '../../ui/blockText';
 import { ColorBlock } from '../../ui/ColorBlock';
 import { Screen } from '../../ui/Screen';
+import { Sheet } from '../../ui/Sheet';
 import { SuggestionBlock } from '../../ui/SuggestionBlock';
 import { useAnnounce } from '../../ui/useAnnounce';
+import { Alternatives } from './Alternatives';
 import { useBaseParam } from './useBaseParam';
 
 const styles = stylex.create({
@@ -87,6 +89,7 @@ export function Suggestions() {
   // Set for one shuffle's worth of time so the blocks crossfade together at
   // the shuffle duration rather than the single-block one.
   const [shuffling, setShuffling] = useState(false);
+  const [openFor, setOpenFor] = useState<Slot | null>(null);
 
   // A base that cannot be rebuilt from the URL cannot be told apart from never
   // having picked one, so there is no error state to render (ADR 0011).
@@ -165,7 +168,7 @@ export function Suggestions() {
               onNext={() => move(slot, 1)}
               onPrevious={() => move(slot, -1)}
               onKeepToggle={() => dispatch({ type: 'lockToggled', slot })}
-              onOpenAlternatives={() => undefined}
+              onOpenAlternatives={() => setOpenFor(slot)}
             />
           );
         })}
@@ -181,6 +184,28 @@ export function Suggestions() {
           {anyKept ? 'Shuffle the rest' : 'Shuffle'}
         </button>
       </div>
+      {openFor !== null && picks[openFor] && (
+        <Sheet
+          open
+          onOpenChange={(next) => !next && setOpenFor(null)}
+          title={`Other options for ${SLOT_LABELS[openFor]}`}
+        >
+          <Alternatives
+            base={base}
+            slot={openFor}
+            current={picks[openFor].hex}
+            onChoose={(hex, cursor) => {
+              // The reducer drops a pickChanged for a locked slot, so a
+              // deliberate choice on a kept block would silently do nothing.
+              // Releasing first makes the choice land and makes the release
+              // visible on the block.
+              if (state.locked[openFor]) dispatch({ type: 'lockToggled', slot: openFor });
+              dispatch({ type: 'pickChanged', slot: openFor, hex, cursor });
+              setOpenFor(null);
+            }}
+          />
+        </Sheet>
+      )}
     </Screen>
   );
 }

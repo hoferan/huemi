@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router';
 import { describe, expect, it } from 'vitest';
@@ -151,5 +151,45 @@ describe('Suggestions: shuffle', () => {
     expect(screen.getByText(/hold one to keep it/i)).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Keep Shoes' }));
     expect(screen.getByText(/Kept pieces stay when you shuffle/i)).toBeInTheDocument();
+  });
+});
+
+describe('Suggestions: alternatives', () => {
+  it('opens a sheet for the slot whose colour was tapped', async () => {
+    const user = userEvent.setup();
+    at(TOP);
+    await user.click(screen.getByRole('button', { name: /^Shoes, / }));
+    expect(screen.getByRole('dialog', { name: /Shoes/ })).toBeInTheDocument();
+  });
+
+  it('applies the colour chosen there', async () => {
+    const user = userEvent.setup();
+    at(TOP);
+    await user.click(screen.getByRole('button', { name: /^Shoes, / }));
+    const dialog = screen.getByRole('dialog');
+    const options = within(dialog).getAllByRole('button');
+    const chosen = options[5]!.getAttribute('aria-label')!;
+    await user.click(options[5]!);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.getByRole('group', { name: /^Shoes:/ }).getAttribute('aria-label')).toContain(
+      chosen.split(',')[0],
+    );
+  });
+
+  // The reducer drops a pickChanged for a locked slot, so without releasing
+  // the lock a deliberate choice would silently do nothing. Keep means "leave
+  // this alone while I shuffle the rest"; naming a colour is a stronger
+  // instruction than that.
+  it('releases the lock when a kept slot is given a colour', async () => {
+    const user = userEvent.setup();
+    at(TOP);
+    await user.click(screen.getByRole('button', { name: 'Keep Shoes' }));
+    await user.click(screen.getByRole('button', { name: /^Shoes, / }));
+    const options = within(screen.getByRole('dialog')).getAllByRole('button');
+    await user.click(options[5]!);
+    expect(screen.getByRole('button', { name: 'Keep Shoes' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
   });
 });
