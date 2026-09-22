@@ -1,5 +1,20 @@
 import * as stylex from '@stylexjs/stylex';
 
+/**
+ * Durations a timer has to agree with, not only a transition.
+ *
+ * `defineConsts` inlines its values at compile time, so the same literal
+ * reaches `tokens.shuffle` below and the `setTimeout` in
+ * `src/features/suggest/Suggestions.tsx`. Neither can be edited without the
+ * other now, which is the point: the flag that triggers the crossfade and the
+ * crossfade itself have to last the same time. A plain `export const` cannot
+ * live in a `.stylex` file, and a value imported from elsewhere is not
+ * statically evaluable inside `defineVars`, so this is the one way to share it.
+ */
+export const durations = stylex.defineConsts({
+  shuffle: '200ms',
+});
+
 export const tokens = stylex.defineVars({
   // Surface
   bg: '#d8d5cf',
@@ -55,7 +70,7 @@ export const tokens = stylex.defineVars({
   // message away before it could be read.
   colorFade: { default: '150ms', '@media (prefers-reduced-motion: reduce)': '0ms' },
   hold: '450ms',
-  shuffle: { default: '200ms', '@media (prefers-reduced-motion: reduce)': '0ms' },
+  shuffle: { default: durations.shuffle, '@media (prefers-reduced-motion: reduce)': '0ms' },
   sheet: { default: '320ms', '@media (prefers-reduced-motion: reduce)': '0ms' },
   toastSlide: { default: '200ms', '@media (prefers-reduced-motion: reduce)': '0ms' },
   toastDwell: '2500ms',

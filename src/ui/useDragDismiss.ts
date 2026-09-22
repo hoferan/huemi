@@ -11,6 +11,14 @@ export const DISMISS_FRACTION = 0.25;
  */
 export const FLICK_PX_PER_MS = 0.5;
 
+/**
+ * How far a pointer has to travel before the press stops counting as a tap.
+ * Small: this is not the dismissal threshold, only the line between a finger
+ * that held still and one that dragged, and a thumb wobbles a pixel or two on
+ * every tap.
+ */
+export const DRAG_SLOP_PX = 4;
+
 type Drag = {
   pointerId: number;
   startX: number;
@@ -49,9 +57,17 @@ export function useDragDismiss({
 }): {
   offset: number;
   onPointerDown: (event: ReactPointerEvent<HTMLElement>) => void;
+  dragged: () => boolean;
 } {
   const [offset, setOffset] = useState(0);
   const drag = useRef<Drag | null>(null);
+  // Whether the pointer travelled far enough for the press to have been a drag
+  // rather than a tap. The handle is both the drag target and the tap-to-close
+  // control, and a press and release inside it still produces a click, so
+  // without this the sheet closes on a drag the hook decided to spring back.
+  // Cleared at the start of every press, so it can never reach across two
+  // sequences.
+  const moved = useRef(false);
 
   // Registered once, so the listeners have to read the current callbacks
   // rather than the ones captured on the first render. Written from a layout
@@ -71,6 +87,9 @@ export function useDragDismiss({
       active.lastY = event.clientY;
       const dy = event.clientY - active.startY;
       const dx = event.clientX - active.startX;
+      // Before the checks below, not after: a sideways or upward drag is still
+      // a drag, and the press that made it is still not a tap.
+      if (Math.abs(dx) > DRAG_SLOP_PX || Math.abs(dy) > DRAG_SLOP_PX) moved.current = true;
       // A horizontal swipe is not a dismissal, and an upward drag has nowhere
       // to go: the sheet is already against the bottom.
       if (Math.abs(dx) > Math.abs(dy) || dy < 0) {
@@ -124,6 +143,7 @@ export function useDragDismiss({
   }, []);
 
   const onPointerDown = useCallback((event: ReactPointerEvent<HTMLElement>) => {
+    moved.current = false;
     drag.current = {
       pointerId: event.pointerId,
       startX: event.clientX,
@@ -134,5 +154,17 @@ export function useDragDismiss({
     };
   }, []);
 
-  return { offset, onPointerDown };
+  /**
+   * Whether the press that just ended was a drag. Reading it clears it, so one
+   * drag can suppress at most one click: a drag released off the handle puts
+   * its click somewhere else entirely, and the flag must not still be standing
+   * when the handle is next activated.
+   */
+  const dragged = useCallback(() => {
+    const was = moved.current;
+    moved.current = false;
+    return was;
+  }, []);
+
+  return { offset, onPointerDown, dragged };
 }

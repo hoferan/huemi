@@ -7,7 +7,7 @@ import { SLOTS, SLOT_LABELS, type Slot } from '../../model/types';
 import { advance, composeOutfit, positionLabel } from '../../session/select';
 import type { SlotPick } from '../../session/types';
 import { useSession } from '../../session/useSession';
-import { tokens } from '../../styles/tokens.stylex';
+import { durations, tokens } from '../../styles/tokens.stylex';
 import { BaseBlock } from '../../ui/BaseBlock';
 import { Screen } from '../../ui/Screen';
 import { Sheet } from '../../ui/Sheet';
@@ -15,6 +15,13 @@ import { SuggestionBlock } from '../../ui/SuggestionBlock';
 import { useAnnounce } from '../../ui/useAnnounce';
 import { Alternatives } from './Alternatives';
 import { useBaseParam } from './useBaseParam';
+
+// The crossfade is CSS and the flag that triggers it is a timer, so one of the
+// two has to be a number. It is derived rather than restated: `durations` is a
+// `defineConsts` literal, so this is the same value `tokens.shuffle` carries
+// and a change to it cannot leave the timer behind. The format is held by
+// `tokens.stylex.test.ts`, which is what keeps the parse honest.
+const SHUFFLE_MS = Number.parseInt(durations.shuffle, 10);
 
 const styles = stylex.create({
   blocks: { display: 'flex', flexDirection: 'column', gap: '8px', flexGrow: 1 },
@@ -75,14 +82,25 @@ export function Suggestions() {
   // the dispatch below is about to put in the session, not a placeholder.
   const seed = useMemo(() => (base ? composeOutfit(base, {}, () => 0) : {}), [base]);
 
-  const settled = base !== null && state.base?.slot === base.slot && state.base.hex === base.hex;
-  const picks = settled ? state.picks : seed;
+  // Two separate questions, and conflating them is what left this screen
+  // empty. The picker dispatches `baseChosen` and then navigates, and
+  // `baseChosen` resets the picks, so the session arrives here already
+  // agreeing with the URL and holding nothing. Asking only whether the base
+  // agrees read that as settled, skipped the seed, and rendered one block.
+  //
+  // `hasPicks` is also what stops the seed running on every mount: a user who
+  // advanced a slot and came back from a later screen must find their choices,
+  // not a fresh outfit over the top of them.
+  const baseMatches =
+    base !== null && state.base?.slot === base.slot && state.base.hex === base.hex;
+  const hasPicks = base !== null && SLOTS.some((slot) => slot !== base.slot && state.picks[slot]);
+  const picks = baseMatches && hasPicks ? state.picks : seed;
 
   useEffect(() => {
-    if (!base || settled) return;
-    dispatch({ type: 'baseChosen', slot: base.slot, hex: base.hex });
-    dispatch({ type: 'picksReplaced', picks: seed });
-  }, [base, settled, seed, dispatch]);
+    if (!base) return;
+    if (!baseMatches) dispatch({ type: 'baseChosen', slot: base.slot, hex: base.hex });
+    if (!baseMatches || !hasPicks) dispatch({ type: 'picksReplaced', picks: seed });
+  }, [base, baseMatches, hasPicks, seed, dispatch]);
 
   const announce = useAnnounce();
   // Set for one shuffle's worth of time so the blocks crossfade together at
@@ -122,7 +140,7 @@ export function Suggestions() {
     // Cleared on a timer rather than a transitionend, which does not fire when
     // a colour happens to come back the same. Under reduced motion the CSS
     // duration is already zero, so a late clear changes nothing.
-    setTimeout(() => setShuffling(false), 200);
+    setTimeout(() => setShuffling(false), SHUFFLE_MS);
 
     // Four blocks change and focus moves nowhere, so the live region is the
     // only thing that tells a screen reader anything. It names the colours

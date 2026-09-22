@@ -1,13 +1,26 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { act } from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useDragDismiss } from './useDragDismiss';
 
+// What `dragged()` reported, in order. It is a ref inside the hook, so there
+// is nothing to assert from outside except what a click actually reads, which
+// is the only moment its value matters.
+const reported: boolean[] = [];
+
 function Probe({ onDismiss }: { onDismiss: () => void }) {
-  const { offset, onPointerDown } = useDragDismiss({ onDismiss, height: () => 400 });
+  const { offset, onPointerDown, dragged } = useDragDismiss({ onDismiss, height: () => 400 });
   return (
     <div data-testid="handle" onPointerDown={onPointerDown}>
       {offset}
+      <button
+        type="button"
+        onClick={() => {
+          reported.push(dragged());
+        }}
+      >
+        read
+      </button>
     </div>
   );
 }
@@ -93,5 +106,85 @@ describe('useDragDismiss', () => {
     release();
     expect(onDismiss).not.toHaveBeenCalled();
     expect(screen.getByTestId('handle')).toHaveTextContent('0');
+  });
+});
+
+// The handle the drag hangs off is also the tap-to-close control, so whatever
+// the drag decided, the press still ends in a click. The hook is what knows
+// which of the two happened.
+describe('useDragDismiss: telling a drag from a tap', () => {
+  beforeEach(() => {
+    reported.length = 0;
+  });
+
+  function read() {
+    fireEvent.click(screen.getByRole('button', { name: 'read' }));
+  }
+
+  it('reports a press that did not move as a tap', () => {
+    render(<Probe onDismiss={vi.fn()} />);
+    press(0, 0);
+    release();
+    read();
+    expect(reported).toEqual([false]);
+  });
+
+  it('forgives the wobble in a real thumb', () => {
+    render(<Probe onDismiss={vi.fn()} />);
+    press(0, 0);
+    moveTo(1, 2);
+    release();
+    read();
+    expect(reported).toEqual([false]);
+  });
+
+  // The gesture this whole flag exists for: down, far enough to spring back,
+  // then back up and released. Nothing dismissed, and the click that follows
+  // must not close the sheet either.
+  it('reports a drag that sprang back as a drag', () => {
+    const onDismiss = vi.fn();
+    render(<Probe onDismiss={onDismiss} />);
+    press(0, 0);
+    moveTo(0, 30);
+    moveTo(0, 0);
+    release();
+    expect(onDismiss).not.toHaveBeenCalled();
+    read();
+    expect(reported).toEqual([true]);
+  });
+
+  it('reports a sideways drag as a drag', () => {
+    render(<Probe onDismiss={vi.fn()} />);
+    press(0, 0);
+    moveTo(60, 0);
+    release();
+    read();
+    expect(reported).toEqual([true]);
+  });
+
+  // One drag suppresses one click. A drag released off the handle puts its
+  // click elsewhere, and the flag must not still be standing the next time the
+  // handle is activated by keyboard.
+  it('reports the drag once', () => {
+    render(<Probe onDismiss={vi.fn()} />);
+    press(0, 0);
+    moveTo(0, 30);
+    moveTo(0, 0);
+    release();
+    read();
+    read();
+    expect(reported).toEqual([true, false]);
+  });
+
+  it('forgets a drag once the next press starts', () => {
+    render(<Probe onDismiss={vi.fn()} />);
+    press(0, 0);
+    moveTo(0, 30);
+    moveTo(0, 0);
+    release();
+    press(0, 0);
+    release();
+    read();
+    expect(reported).toEqual([false]);
   });
 });

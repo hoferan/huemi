@@ -75,5 +75,8 @@ locked slots passed in as fixed ground, so both constraints hold across a shuffl
 a second implementation.
 
 `composeOutfit` takes its randomness as a parameter. Only the base travels in the URL, so
-a refresh of `/suggest` has to rebuild the outfit the user was looking at rather than a
-different one, and seeding with `() => 0` is what makes that possible.
+a refresh of `/suggest` has to rebuild the same starting outfit rather than a different
+one, and seeding with `() => 0` is what makes that possible. It is the seed that comes
+back, not what was on screen: a shuffle and a Next press are both held in the session, and
+a refresh discards them. Keeping those across a refresh would mean four more colors in the
+URL, and that belongs to #18, which saves an outfit.

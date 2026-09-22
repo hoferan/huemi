@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import * as stylex from '@stylexjs/stylex';
 import { Dialog } from 'radix-ui';
@@ -77,7 +77,26 @@ export function Sheet({
   children: ReactNode;
 }) {
   const sheet = useRef<HTMLDivElement>(null);
-  const { offset, onPointerDown } = useDragDismiss({
+
+  // Where focus came from, so it can be given back.
+  //
+  // Radix restores focus on its own only through `Dialog.Trigger`: its modal
+  // content prevents the default close-autofocus and focuses the trigger
+  // instead. This sheet has no trigger — it is opened by a control several
+  // components away, and rendering a `Dialog.Trigger` there would put the
+  // sheet's markup inside a colour block. With the trigger ref empty, Radix
+  // prevented the default and then focused nothing, so every choice made in
+  // the sheet dropped a keyboard user back at the start of the document, on
+  // the screen the brief calls the app's central interaction.
+  //
+  // Read in a state initialiser because that runs during the first render,
+  // ahead of every effect in the tree below it, and the focus scope inside
+  // `Dialog.Content` moves focus from one of those.
+  const [opener] = useState(() =>
+    open && document.activeElement instanceof HTMLElement ? document.activeElement : null,
+  );
+
+  const { offset, onPointerDown, dragged } = useDragDismiss({
     onDismiss: () => onOpenChange(false),
     height: () => sheet.current?.offsetHeight ?? 0,
   });
@@ -86,12 +105,38 @@ export function Sheet({
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <Dialog.Overlay {...stylex.props(styles.overlay)} />
-        <Dialog.Content ref={sheet} {...stylex.props(styles.sheet, styles.drag(offset))}>
+        <Dialog.Content
+          ref={sheet}
+          // Fires on unmount as well as on close, which is how this sheet
+          // always goes away: the caller stops rendering it rather than
+          // setting `open` to false. Left to Radix it lands on nothing.
+          onCloseAutoFocus={(event) => {
+            if (!opener?.isConnected) return;
+            event.preventDefault();
+            opener.focus();
+          }}
+          {...stylex.props(styles.sheet, styles.drag(offset))}
+        >
           <button
             type="button"
             aria-label="Close"
             onPointerDown={onPointerDown}
-            onClick={() => onOpenChange(false)}
+            // A keyboard activation cannot be what a drag meant to suppress,
+            // so it clears the flag on the way past. The same shape
+            // SuggestionBlock uses, for the same reason: a drag released off
+            // the handle never produces the click that would have cleared it.
+            onKeyDown={() => {
+              dragged();
+            }}
+            // The handle is the drag target and the tap-to-close control at
+            // once, and a press and release inside it produces a click
+            // whatever the drag decided. Without this, grabbing the handle,
+            // pulling down, changing your mind and pulling back up closes the
+            // sheet the spring just put back.
+            onClick={() => {
+              if (dragged()) return;
+              onOpenChange(false);
+            }}
             {...stylex.props(styles.handle)}
           >
             <span {...stylex.props(styles.grip)} />

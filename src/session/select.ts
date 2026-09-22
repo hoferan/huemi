@@ -85,7 +85,9 @@ export function positionLabel(cursor: number, count: number): string {
  * `random` is a parameter rather than a call to `Math.random` so that seeding
  * can pass `() => 0` and be deterministic. That determinism is load-bearing:
  * only the base travels in the URL, so a refresh of `/suggest` rebuilds the
- * outfit the user was looking at rather than a different one.
+ * same starting outfit rather than a different one. It rebuilds the seed, not
+ * whatever was on screen: a shuffle and a Next press both live in the session,
+ * and a refresh discards them.
  */
 export function composeOutfit(
   base: Base,

@@ -1,8 +1,14 @@
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { useEffect, type ReactNode } from 'react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router';
 import { describe, expect, it } from 'vitest';
+import { colorName } from '../../color/palette';
+import type { Hex } from '../../model/hex';
+import { advance, composeOutfit } from '../../session/select';
 import { SessionProvider } from '../../session/SessionProvider';
+import type { Base, SessionAction, SessionState } from '../../session/types';
+import { useSession } from '../../session/useSession';
 import { Announcer } from '../../ui/Announcer';
 import { InitialLocationContext } from '../../ui/InitialLocationContext';
 import { Suggestions } from './Suggestions';
@@ -29,7 +35,60 @@ function at(url: string) {
   );
 }
 
+/**
+ * Runs some session history before the screen mounts, and holds the screen
+ * back until it has landed. Every route into `/suggest` works this way: the
+ * picker dispatches `baseChosen` and then navigates, and a back navigation
+ * from a later screen arrives on a session that already holds picks. A test
+ * that renders a fresh provider at the URL sees neither.
+ *
+ * Readiness is read off the session rather than kept in a flag of its own,
+ * which would be a `setState` inside an effect and a cascading render.
+ */
+function Primed({
+  actions,
+  landed,
+  children,
+}: {
+  actions: SessionAction[];
+  landed: (state: SessionState) => boolean;
+  children: ReactNode;
+}) {
+  const { state, dispatch } = useSession();
+  const ready = landed(state);
+  useEffect(() => {
+    if (ready) return;
+    for (const action of actions) dispatch(action);
+  }, [actions, dispatch, ready]);
+  return ready ? children : null;
+}
+
+function arrivingWith(
+  actions: SessionAction[],
+  landed: (state: SessionState) => boolean,
+  url: string,
+) {
+  render(
+    <MemoryRouter initialEntries={[url]}>
+      <InitialLocationContext value={true}>
+        <SessionProvider>
+          <Announcer>
+            <Primed actions={actions} landed={landed}>
+              <Routes>
+                <Route path="/suggest" element={<Suggestions />} />
+                <Route path="/" element={<Where />} />
+              </Routes>
+            </Primed>
+          </Announcer>
+        </SessionProvider>
+      </InitialLocationContext>
+    </MemoryRouter>,
+  );
+}
+
 const TOP = '/suggest?slot=top&hex=%23c39a3a';
+const MUSTARD: Base = { slot: 'top', hex: '#c39a3a' as Hex };
+const CHOSE_MUSTARD: SessionAction = { type: 'baseChosen', ...MUSTARD };
 
 describe('Suggestions', () => {
   it('sends a visitor with no usable base back to the entry screen', () => {
@@ -40,6 +99,36 @@ describe('Suggestions', () => {
   it('shows a block for every slot', () => {
     at(TOP);
     expect(screen.getAllByRole('group')).toHaveLength(5);
+  });
+
+  // The only in-app route onto this screen. The picker dispatches the base and
+  // then navigates, so the session's base already matches the URL while its
+  // picks are still the empty set `baseChosen` reset them to. Comparing the
+  // base alone read that as settled and never seeded, and every non-base block
+  // returned null: the screen arrived empty by the one path a user takes.
+  it('seeds when the base was dispatched before the screen mounted', () => {
+    arrivingWith([CHOSE_MUSTARD], (state) => state.base !== null, TOP);
+    expect(screen.getAllByRole('group')).toHaveLength(5);
+  });
+
+  // The other half of the same rule. Seeding on an empty non-base set must not
+  // turn into seeding on every mount, or a back navigation would wipe out the
+  // choices the user came back to look at.
+  it('keeps a slot the user already moved when the screen mounts again', () => {
+    const seeded = composeOutfit(MUSTARD, {}, () => 0);
+    const moved = advance(MUSTARD, 'shoes', 0, 6);
+    arrivingWith(
+      [
+        CHOSE_MUSTARD,
+        { type: 'picksReplaced', picks: seeded },
+        { type: 'pickChanged', slot: 'shoes', hex: moved.hex, cursor: moved.cursor },
+      ],
+      (state) => state.picks.shoes?.hex === moved.hex,
+      TOP,
+    );
+    expect(screen.getByRole('group', { name: /^Shoes:/ }).getAttribute('aria-label')).toContain(
+      colorName(moved.hex),
+    );
   });
 
   it('shows the base as its own colour, with no controls on it', () => {
@@ -186,10 +275,37 @@ describe('Suggestions: alternatives', () => {
     await user.click(screen.getByRole('button', { name: 'Keep Shoes' }));
     await user.click(screen.getByRole('button', { name: /^Shoes, / }));
     const options = within(screen.getByRole('dialog')).getAllByRole('button');
+    const chosen = options[5]!.getAttribute('aria-label')!;
     await user.click(options[5]!);
     expect(screen.getByRole('button', { name: 'Keep Shoes' })).toHaveAttribute(
       'aria-pressed',
       'false',
     );
+    // The lock coming off is only half of it, and the half that survives the
+    // bug. What makes the dispatch order load-bearing is that `pickChanged`
+    // reaches a slot that is no longer locked: reversed, the reducer drops it
+    // and the colour never lands, while `aria-pressed` still reads false.
+    expect(screen.getByRole('group', { name: /^Shoes:/ }).getAttribute('aria-label')).toContain(
+      chosen.split(',')[0],
+    );
+  });
+
+  // The sheet is unmounted rather than closed with `open={false}`, so focus
+  // restoration rides on Radix's FocusScope cleanup running on unmount. If it
+  // ever stops, a keyboard user is returned to the document start after every
+  // choice, on the screen the brief calls the app's central interaction.
+  it('returns focus to the block it was opened from', async () => {
+    const user = userEvent.setup();
+    at(TOP);
+    await user.click(screen.getByRole('button', { name: /^Shoes, / }));
+    const options = within(screen.getByRole('dialog')).getAllByRole('button');
+    await user.click(options[5]!);
+    // Waited for rather than asserted outright: Radix restores focus from a
+    // `setTimeout(0)` in the focus scope's cleanup, working around a React
+    // bug about focusing during unmount, so it has not happened yet when the
+    // click settles.
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /^Shoes, / })).toHaveFocus();
+    });
   });
 });
