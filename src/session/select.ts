@@ -1,7 +1,11 @@
-import { suggest } from '../color/engine';
+import { suggest, TUNING } from '../color/engine';
+import { chroma } from '../color/classify';
+import { colorName } from '../color/palette';
+import { chromaLoad } from '../color/score';
 import type { Hex } from '../model/hex';
-import type { Slot } from '../model/types';
-import type { Base } from './types';
+import { SLOTS, type Slot } from '../model/types';
+import type { Base, SlotPick } from './types';
+import type { Suggestion } from '../model/types';
 
 export type Position = { hex: Hex; cursor: number; count: number };
 
@@ -61,4 +65,77 @@ export function locate(base: Base, slot: Slot, hex: Hex): Position | null {
 export function positionLabel(cursor: number, count: number): string {
   if (count < 1) return '';
   return `${wrap(cursor, count) + 1} of ${count}`;
+}
+
+/**
+ * The five pieces of an outfit, chosen together.
+ *
+ * `suggest()` scores one candidate against the base, and the slot reaches that
+ * score only through `SLOT_AREA` weighting the chroma term, which moves the
+ * ranking very little. So every slot's list comes back in nearly the same
+ * order, and taking each slot's best gives four identical blocks. Something
+ * above the engine has to choose the pieces as a set; this is it (ADR 0012).
+ *
+ * Two constraints, in this order. A colour whose name is already on screen is
+ * skipped, because two blocks reading "Rust" say nothing about how they differ
+ * and the name is the only non-colour channel a colour-vision-deficient user
+ * has. Then the area-weighted chroma budget, which ADR 0009 calls the cap on
+ * saturated colours and which `rate()` can only apply to two pieces at a time.
+ *
+ * `random` is a parameter rather than a call to `Math.random` so that seeding
+ * can pass `() => 0` and be deterministic. That determinism is load-bearing:
+ * only the base travels in the URL, so a refresh of `/suggest` rebuilds the
+ * outfit the user was looking at rather than a different one.
+ */
+export function composeOutfit(
+  base: Base,
+  fixed: Partial<Record<Slot, SlotPick>>,
+  random: () => number,
+): Partial<Record<Slot, SlotPick>> {
+  const picks: Partial<Record<Slot, SlotPick>> = {};
+  const pieces: Partial<Record<Slot, Hex>> = { [base.slot]: base.hex };
+  const names = new Set<string>([colorName(base.hex)]);
+
+  // Pre-register all fixed slots so that free slots can see and avoid them,
+  // regardless of order in SLOTS.
+  for (const slot of SLOTS) {
+    if (slot === base.slot) continue;
+    const held = fixed[slot];
+    if (!held) continue;
+    picks[slot] = held;
+    pieces[slot] = held.hex;
+    names.add(colorName(held.hex));
+  }
+
+  for (const slot of SLOTS) {
+    if (slot === base.slot || fixed[slot]) continue;
+
+    const list = suggest(base.hex, slot, base.slot);
+    // Rotating rather than sampling: the walk still runs in rank order from
+    // wherever it starts, so shuffle gets a different outfit without giving up
+    // the ranking that makes the list worth walking.
+    const offset = Math.floor(random() * list.length) % list.length;
+    const rotated = list.map((_, index) => list[(offset + index) % list.length]!);
+
+    const fresh = rotated.filter((entry) => !names.has(colorName(entry.hex)));
+    const within = fresh.find(
+      (entry) => chromaLoad({ ...pieces, [slot]: entry.hex }) <= TUNING.chromaBudget,
+    );
+    // Reachable: a chromatic base in a large slot spends the whole budget by
+    // itself, and then nothing can bring the outfit back under it. The quietest
+    // colour is the least bad answer, not the highest-ranked one.
+    const quietest = fresh.reduce<Suggestion | undefined>(
+      (best, entry) => (best && chroma(best.hex) <= chroma(entry.hex) ? best : entry),
+      undefined,
+    );
+    // Only reachable with a palette smaller than the slot count. It exists so
+    // the function is total and never returns a slot with no colour.
+    const chosen = within ?? quietest ?? rotated[0]!;
+
+    picks[slot] = { hex: chosen.hex, cursor: list.indexOf(chosen) };
+    pieces[slot] = chosen.hex;
+    names.add(colorName(chosen.hex));
+  }
+
+  return picks;
 }
