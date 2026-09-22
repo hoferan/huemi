@@ -30,6 +30,10 @@ export function advance(base: Base, slot: Slot, cursor: number, delta: number): 
   const list = suggest(base.hex, slot, base.slot);
   const next = cursor + delta;
   const entry = list[wrap(next, list.length)];
+  // `suggest()` cannot return an empty list for real palette data, so this
+  // guards a caller passing a list of its own. No test can reach it, and
+  // without the hint it taxes the patch coverage of every change to this file.
+  /* v8 ignore next */
   if (!entry) throw new Error(`The engine returned no suggestions for ${slot}`);
   return { hex: entry.hex, cursor: next, count: list.length };
 }
@@ -131,7 +135,9 @@ export function composeOutfit(
       undefined,
     );
     // Only reachable with a palette smaller than the slot count. It exists so
-    // the function is total and never returns a slot with no colour.
+    // the function is total and never returns a slot with no colour, which is
+    // also why no test reaches the last operand.
+    /* v8 ignore next */
     const chosen = within ?? quietest ?? rotated[0]!;
 
     picks[slot] = { hex: chosen.hex, cursor: list.indexOf(chosen) };

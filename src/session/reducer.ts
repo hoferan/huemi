@@ -107,11 +107,15 @@ export function sessionReducer(state: SessionState, action: SessionAction): Sess
       return { ...state, picks };
     }
 
+    /* v8 ignore start */
     default: {
       // A new action type that nobody handled is a compile error rather than a
-      // silent no-op.
+      // silent no-op, so this branch is unreachable by construction: writing a
+      // test for it means writing an action the union forbids. The hint keeps
+      // it out of the denominator rather than taxing every change to this file.
       const exhaustive: never = action;
       return exhaustive;
     }
+    /* v8 ignore stop */
   }
 }
