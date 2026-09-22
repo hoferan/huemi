@@ -86,3 +86,70 @@ describe('Suggestions', () => {
     expect(screen.getByRole('button', { name: 'Next suggestion for Shoes' })).toBeDisabled();
   });
 });
+
+describe('Suggestions: shuffle', () => {
+  // Shuffle is random, so one press can land on the outfit already showing.
+  // Three presses makes that coincidence vanishingly unlikely without making
+  // the test assert something weaker than "shuffle changes the outfit".
+  it('changes the unlocked slots', async () => {
+    const user = userEvent.setup();
+    at(TOP);
+    const labels = () => screen.getAllByRole('group').map((g) => g.getAttribute('aria-label'));
+    const before = labels();
+    let changed = false;
+    for (let press = 0; press < 3 && !changed; press += 1) {
+      await user.click(screen.getByRole('button', { name: /^Shuffle/ }));
+      changed = JSON.stringify(labels()) !== JSON.stringify(before);
+    }
+    expect(changed).toBe(true);
+  });
+
+  it('leaves the base alone', async () => {
+    const user = userEvent.setup();
+    at(TOP);
+    const base = () => screen.getByRole('group', { name: /^Top:/ }).getAttribute('aria-label');
+    const before = base();
+    await user.click(screen.getByRole('button', { name: /^Shuffle/ }));
+    expect(base()).toBe(before);
+  });
+
+  it('leaves a kept slot alone and says so on the button', async () => {
+    const user = userEvent.setup();
+    at(TOP);
+    await user.click(screen.getByRole('button', { name: 'Keep Shoes' }));
+    const kept = () => screen.getByRole('group', { name: /^Shoes:/ }).getAttribute('aria-label');
+    const before = kept();
+    await user.click(screen.getByRole('button', { name: 'Shuffle the rest' }));
+    expect(kept()).toBe(before);
+  });
+
+  // The blocks change with no focus move, so a screen reader is told nothing
+  // unless the live region says it. Naming the colours rather than saying
+  // "Shuffled" also means an outfit that came back the same reads as the same.
+  it('announces what the outfit became', async () => {
+    const user = userEvent.setup();
+    at(TOP);
+    await user.click(screen.getByRole('button', { name: /^Shuffle/ }));
+    const status = screen.getByRole('status');
+    expect(status).toHaveTextContent(/Outerwear/);
+    expect(status).toHaveTextContent(/Accessory/);
+  });
+
+  it('says why nothing happened when every piece is kept', async () => {
+    const user = userEvent.setup();
+    at(TOP);
+    for (const label of ['Outerwear', 'Bottom', 'Shoes', 'Accessory']) {
+      await user.click(screen.getByRole('button', { name: `Keep ${label}` }));
+    }
+    await user.click(screen.getByRole('button', { name: 'Shuffle the rest' }));
+    expect(screen.getByRole('status')).toHaveTextContent(/every piece is kept/i);
+  });
+
+  it('teaches the gestures until something is kept', async () => {
+    const user = userEvent.setup();
+    at(TOP);
+    expect(screen.getByText(/hold one to keep it/i)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Keep Shoes' }));
+    expect(screen.getByText(/Kept pieces stay when you shuffle/i)).toBeInTheDocument();
+  });
+});
