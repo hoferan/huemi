@@ -9,11 +9,11 @@ import { InitialLocationContext } from '../../ui/InitialLocationContext';
 import { Picker } from './Picker';
 
 function Where() {
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   const { state } = useSession();
   return (
     <p>
-      {pathname} base={state.base ? `${state.base.slot}:${state.base.hex}` : 'none'}
+      {pathname + search} base={state.base ? `${state.base.slot}:${state.base.hex}` : 'none'}
     </p>
   );
 }
@@ -59,7 +59,9 @@ describe('Picker', () => {
     const user = userEvent.setup();
     renderAt('/color?slot=top');
     await user.click(screen.getByRole('button', { name: 'Navy' }));
-    expect(await screen.findByText(/\/suggest base=top:#1f2a44/)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/\/suggest\?slot=top&hex=%231f2a44 base=top:#1f2a44/),
+    ).toBeInTheDocument();
   });
 
   it('sends a visitor with no slot back to choose one', async () => {
@@ -73,6 +75,13 @@ describe('Picker', () => {
       'href',
       '/color/custom?slot=top',
     );
+  });
+
+  it('carries the base in the URL, not only in the session', async () => {
+    const user = userEvent.setup();
+    renderAt('/color?slot=top');
+    await user.click(screen.getByRole('button', { name: 'Navy' }));
+    expect(await screen.findByText(/\/suggest\?slot=top&hex=%231f2a44/)).toBeInTheDocument();
   });
 
   // The redirect for a missing slot uses `replace`, not a plain navigation:
