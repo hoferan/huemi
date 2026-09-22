@@ -11,9 +11,10 @@ import { tokens } from '../styles/tokens.stylex';
 export const BLOCK_TEXT_ALPHA = 1;
 
 /**
- * The two lines of text every block carries. Shared rather than repeated
- * because a base block and a suggestion block sitting one above the other
- * with different type would read as two different kinds of thing.
+ * The type a block is set in: the two lines every block carries, plus the
+ * base block's mark. Shared rather than repeated because a base block and a
+ * suggestion block sitting one above the other with different type would read
+ * as two different kinds of thing.
  *
  * Hierarchy between the lines comes from size, weight, letter-spacing and
  * case only, never opacity: the foreground is whatever `readableForeground`
