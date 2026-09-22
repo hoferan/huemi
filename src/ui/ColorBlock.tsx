@@ -63,11 +63,13 @@ export function ColorBlock({
   slot,
   hex,
   children,
+  style,
   ...handlers
 }: {
   slot: Slot;
   hex: Hex;
   children: ReactNode;
+  style?: stylex.StyleXStyles;
   onPointerDown?: (event: ReactPointerEvent<HTMLElement>) => void;
   onContextMenu?: (event: ReactMouseEvent<HTMLElement>) => void;
 }): ReactElement {
@@ -81,6 +83,7 @@ export function ColorBlock({
         styles.block,
         styles.fill(hex, foreground.color),
         needsBorder(hex) && styles.hairline,
+        style,
       )}
     >
       {children}

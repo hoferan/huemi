@@ -89,6 +89,7 @@ describe('AppRoutes', () => {
     '/slot': 'Choose a garment',
     '/color?slot=top': 'Pick a color',
     '/color/custom?slot=top': 'Mix your own',
+    '/suggest?slot=top&hex=%23c39a3a': 'Goes with it',
   };
 
   it.each(covered)('serves a real screen at %s', async (route) => {

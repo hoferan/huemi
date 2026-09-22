@@ -5,6 +5,7 @@ import { OnboardingGate } from '../features/onboarding/OnboardingGate';
 import { CustomColor } from '../features/pick/CustomColor';
 import { Picker } from '../features/pick/Picker';
 import { SlotChoice } from '../features/pick/SlotChoice';
+import { Suggestions } from '../features/suggest/Suggestions';
 
 export type AppRoute = { path: string; element: ReactElement };
 
@@ -31,4 +32,5 @@ export const APP_ROUTES: readonly AppRoute[] = [
   { path: '/slot', element: <SlotChoice /> },
   { path: '/color', element: <Picker /> },
   { path: '/color/custom', element: <CustomColor /> },
+  { path: '/suggest', element: <Suggestions /> },
 ];
