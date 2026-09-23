@@ -19,10 +19,11 @@ const DWELL_ACTION_MS = Number.parseInt(durations.toastDwellAction, 10);
  *
  * Focus has three rules here. A delete asks for focus to go to Undo, because
  * the button that had it is gone and Undo would otherwise expire before a
- * keyboard user reached it. When the toast leaves while focus is on its
+ * keyboard user reached it. When a toast leaves while focus is on its
  * action, focus goes to the screen's heading rather than falling to the
- * document. After Undo, focus goes to the restored card if the saved screen
- * is showing.
+ * document, whether it leaves through its own dismissal or because another
+ * toast has replaced it before the first was done. After Undo, focus goes to
+ * the restored card if the saved screen is showing.
  */
 export function ToastHost() {
   const { state, dispatch } = useSession();
@@ -30,6 +31,12 @@ export function ToastHost() {
   const announce = useAnnounce();
   const toast = state.toast;
   const actionRef = useRef<HTMLButtonElement>(null);
+  // Set by the outgoing `Toast`'s `onUnmount`, from whether its action had
+  // focus at the instant it left, including when a new toast has replaced it
+  // outright, with no dismissal of its own to check `document.activeElement`
+  // itself. Consumed once, by the effect below, for whichever toast arrives
+  // next.
+  const hadFocusOnReplace = useRef(false);
   // Set before the restore starts, so it is in place for the commit that
   // shows the restored list whichever of the promise and the render lands
   // first. `OutfitsProvider.run` does not serialise concurrent writes, so an
@@ -42,7 +49,12 @@ export function ToastHost() {
   useEffect(() => {
     if (!toast) return;
     announce(toast.message);
-    if (toast.focusAction) actionRef.current?.focus();
+    if (toast.focusAction) {
+      actionRef.current?.focus();
+    } else if (hadFocusOnReplace.current) {
+      document.querySelector<HTMLElement>('main h1')?.focus();
+    }
+    hadFocusOnReplace.current = false;
   }, [toast, announce]);
 
   useEffect(() => {
@@ -90,6 +102,9 @@ export function ToastHost() {
       dwellMs={action ? DWELL_ACTION_MS : DWELL_MS}
       onExpire={leave}
       actionRef={actionRef}
+      onUnmount={(hadFocus) => {
+        hadFocusOnReplace.current = hadFocus;
+      }}
     />
   );
 }

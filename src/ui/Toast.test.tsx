@@ -9,6 +9,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.useRealTimers();
+  vi.restoreAllMocks();
 });
 
 describe('Toast', () => {
@@ -80,7 +81,23 @@ describe('Toast', () => {
     expect(onExpire).toHaveBeenCalledOnce();
   });
 
-  it('holds while focus is inside it', () => {
+  // jsdom does not track real focus-visible heuristics, so keyboard focus is
+  // simulated by stubbing `matches` for that one selector.
+  function stubFocusVisible(visible: boolean) {
+    // Detached on purpose: called below with `.call(this, …)`, against
+    // whatever element the mock is invoked on, not against the prototype.
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    const real = Element.prototype.matches;
+    vi.spyOn(Element.prototype, 'matches').mockImplementation(function (
+      this: Element,
+      selector: string,
+    ) {
+      return selector === ':focus-visible' ? visible : real.call(this, selector);
+    });
+  }
+
+  it('holds while keyboard focus is inside it', () => {
+    stubFocusVisible(true);
     const onExpire = vi.fn();
     render(
       <>
@@ -99,6 +116,27 @@ describe('Toast', () => {
     });
     expect(onExpire).not.toHaveBeenCalled();
     act(() => screen.getByRole('button', { name: 'elsewhere' }).focus());
+    act(() => {
+      vi.advanceTimersByTime(5000);
+    });
+    expect(onExpire).toHaveBeenCalledOnce();
+  });
+
+  // A tap moves focus to Undo in code (`focusAction`), and that is not
+  // `:focus-visible`, so a touch user must not be stuck with the toast
+  // forever because nothing moves focus away afterwards.
+  it('does not hold on focus that is not keyboard-visible', () => {
+    stubFocusVisible(false);
+    const onExpire = vi.fn();
+    render(
+      <Toast
+        message="m"
+        action={{ label: 'Undo', onAction: vi.fn() }}
+        dwellMs={5000}
+        onExpire={onExpire}
+      />,
+    );
+    act(() => screen.getByRole('button', { name: 'Undo' }).focus());
     act(() => {
       vi.advanceTimersByTime(5000);
     });
