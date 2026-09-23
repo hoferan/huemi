@@ -8,26 +8,22 @@ import { formatSavedDate } from './formatSavedDate';
 
 const styles = stylex.create({
   card: {
-    // The open button fills the card and Delete sits over its lower right
-    // corner. They overlap on the grid, not in the DOM, so neither button is
-    // inside the other.
+    // Two columns, not two overlapping layers: Delete has a column of its
+    // own, so it can never cover the name or the date, whatever the text
+    // size.
     display: 'grid',
     gridTemplateColumns: '1fr auto',
-    gridTemplateRows: '1fr auto',
     borderWidth: '1px',
     borderStyle: 'solid',
     borderColor: tokens.line,
     borderRadius: tokens.radius,
   },
   open: {
-    gridColumn: '1 / 3',
-    gridRow: '1 / 3',
+    gridColumn: '1',
     display: 'flex',
     flexDirection: 'column',
     gap: '8px',
     padding: '10px',
-    // Room on the right of the name row for Delete.
-    paddingInlineEnd: '10px',
     borderStyle: 'none',
     borderRadius: tokens.radius,
     backgroundColor: { default: 'transparent', ':hover': tokens.surface },
@@ -46,14 +42,11 @@ const styles = stylex.create({
     alignItems: 'baseline',
     columnGap: '8px',
     minHeight: tokens.touchTarget,
-    // Delete's width, so a long name wraps before it reaches the button.
-    paddingInlineEnd: '112px',
   },
   name: { fontSize: '1.05rem', fontWeight: 500 },
   date: { fontSize: '0.8rem', color: tokens.ink2 },
   remove: {
     gridColumn: '2',
-    gridRow: '2',
     alignSelf: 'end',
     margin: '10px',
     display: 'inline-flex',
