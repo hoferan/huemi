@@ -1,9 +1,19 @@
 import { describe, expect, it } from 'vitest';
+import type { Outfit } from '../model/types';
 import { parseHex } from '../model/hex';
 import { initialSession, sessionReducer } from './reducer';
 
 const navy = parseHex('#1f2a44');
 const cream = parseHex('#e9dfc9');
+
+const OUTFIT: Outfit = {
+  version: 1,
+  id: 'abc',
+  name: 'Navy bottom',
+  createdAt: '2026-09-23T10:00:00.000Z',
+  baseSlot: 'bottom',
+  pieces: { bottom: navy, top: cream },
+};
 
 describe('sessionReducer', () => {
   it('records the base colour and the slot it came from', () => {
@@ -117,10 +127,27 @@ describe('sessionReducer', () => {
   it('carries a toast action through', () => {
     const next = sessionReducer(based, {
       type: 'toastShown',
-      message: 'Outfit removed',
-      action: { label: 'Undo', kind: 'undoDelete', outfitId: 'abc' },
+      message: 'Deleted Navy bottom',
+      action: { label: 'Undo', kind: 'undoDelete', outfits: [OUTFIT] },
     });
-    expect(next.toast?.action).toEqual({ label: 'Undo', kind: 'undoDelete', outfitId: 'abc' });
+    expect(next.toast?.action).toEqual({ label: 'Undo', kind: 'undoDelete', outfits: [OUTFIT] });
+  });
+
+  // Delete moves focus to Undo because the button that had focus is gone. The
+  // request travels with the toast so the host can act on it once it renders.
+  it('carries a request to focus the action', () => {
+    const next = sessionReducer(based, {
+      type: 'toastShown',
+      message: 'Deleted Navy bottom',
+      action: { label: 'Undo', kind: 'undoDelete', outfits: [OUTFIT] },
+      focusAction: true,
+    });
+    expect(next.toast?.focusAction).toBe(true);
+  });
+
+  it('leaves the focus request off a toast that did not ask for it', () => {
+    const next = sessionReducer(based, { type: 'toastShown', message: 'Saved' });
+    expect(next.toast).toEqual({ id: 1, message: 'Saved' });
   });
 
   it('dismisses only the toast it names', () => {

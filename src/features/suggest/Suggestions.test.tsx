@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useEffect, type ReactNode } from 'react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router';
@@ -11,6 +11,8 @@ import type { Base, SessionAction, SessionState } from '../../session/types';
 import { useSession } from '../../session/useSession';
 import { Announcer } from '../../ui/Announcer';
 import { InitialLocationContext } from '../../ui/InitialLocationContext';
+import { OutfitsProvider } from '../saved/OutfitsProvider';
+import { fakeOutfitStore } from '../saved/testing';
 import { Suggestions } from './Suggestions';
 
 function Where() {
@@ -18,21 +20,27 @@ function Where() {
   return <p>{`at ${pathname}`}</p>;
 }
 
-function at(url: string) {
+// Awaits the provider's first load before returning, the way `SaveToggle`'s
+// own tests do. Without this, its `list()` promise settles after the test
+// body has already made its assertions, outside of `act()`.
+async function at(url: string) {
   render(
     <MemoryRouter initialEntries={[url]}>
       <InitialLocationContext value={true}>
         <SessionProvider>
-          <Announcer>
-            <Routes>
-              <Route path="/suggest" element={<Suggestions />} />
-              <Route path="/" element={<Where />} />
-            </Routes>
-          </Announcer>
+          <OutfitsProvider store={fakeOutfitStore()}>
+            <Announcer>
+              <Routes>
+                <Route path="/suggest" element={<Suggestions />} />
+                <Route path="/" element={<Where />} />
+              </Routes>
+            </Announcer>
+          </OutfitsProvider>
         </SessionProvider>
       </InitialLocationContext>
     </MemoryRouter>,
   );
+  await act(async () => {});
 }
 
 /**
@@ -63,7 +71,7 @@ function Primed({
   return ready ? children : null;
 }
 
-function arrivingWith(
+async function arrivingWith(
   actions: SessionAction[],
   landed: (state: SessionState) => boolean,
   url: string,
@@ -72,18 +80,21 @@ function arrivingWith(
     <MemoryRouter initialEntries={[url]}>
       <InitialLocationContext value={true}>
         <SessionProvider>
-          <Announcer>
-            <Primed actions={actions} landed={landed}>
-              <Routes>
-                <Route path="/suggest" element={<Suggestions />} />
-                <Route path="/" element={<Where />} />
-              </Routes>
-            </Primed>
-          </Announcer>
+          <OutfitsProvider store={fakeOutfitStore()}>
+            <Announcer>
+              <Primed actions={actions} landed={landed}>
+                <Routes>
+                  <Route path="/suggest" element={<Suggestions />} />
+                  <Route path="/" element={<Where />} />
+                </Routes>
+              </Primed>
+            </Announcer>
+          </OutfitsProvider>
         </SessionProvider>
       </InitialLocationContext>
     </MemoryRouter>,
   );
+  await act(async () => {});
 }
 
 const TOP = '/suggest?slot=top&hex=%23c39a3a';
@@ -91,13 +102,13 @@ const MUSTARD: Base = { slot: 'top', hex: '#c39a3a' as Hex };
 const CHOSE_MUSTARD: SessionAction = { type: 'baseChosen', ...MUSTARD };
 
 describe('Suggestions', () => {
-  it('sends a visitor with no usable base back to the entry screen', () => {
-    at('/suggest');
+  it('sends a visitor with no usable base back to the entry screen', async () => {
+    await at('/suggest');
     expect(screen.getByText('at /')).toBeInTheDocument();
   });
 
-  it('shows a block for every slot', () => {
-    at(TOP);
+  it('shows a block for every slot', async () => {
+    await at(TOP);
     expect(screen.getAllByRole('group')).toHaveLength(5);
   });
 
@@ -106,18 +117,18 @@ describe('Suggestions', () => {
   // picks are still the empty set `baseChosen` reset them to. Comparing the
   // base alone read that as settled and never seeded, and every non-base block
   // returned null: the screen arrived empty by the one path a user takes.
-  it('seeds when the base was dispatched before the screen mounted', () => {
-    arrivingWith([CHOSE_MUSTARD], (state) => state.base !== null, TOP);
+  it('seeds when the base was dispatched before the screen mounted', async () => {
+    await arrivingWith([CHOSE_MUSTARD], (state) => state.base !== null, TOP);
     expect(screen.getAllByRole('group')).toHaveLength(5);
   });
 
   // The other half of the same rule. Seeding on an empty non-base set must not
   // turn into seeding on every mount, or a back navigation would wipe out the
   // choices the user came back to look at.
-  it('keeps a slot the user already moved when the screen mounts again', () => {
+  it('keeps a slot the user already moved when the screen mounts again', async () => {
     const seeded = composeOutfit(MUSTARD, {}, () => 0);
     const moved = advance(MUSTARD, 'shoes', 0, 6);
-    arrivingWith(
+    await arrivingWith(
       [
         CHOSE_MUSTARD,
         { type: 'picksReplaced', picks: seeded },
@@ -131,23 +142,23 @@ describe('Suggestions', () => {
     );
   });
 
-  it('shows the base as its own colour, with no controls on it', () => {
-    at(TOP);
+  it('shows the base as its own colour, with no controls on it', async () => {
+    await at(TOP);
     const base = screen.getByRole('group', { name: /^Top:/ });
     expect(base).toBeInTheDocument();
     expect(base.querySelectorAll('button')).toHaveLength(0);
   });
 
-  it('gives every other slot a suggestion with its three controls', () => {
-    at(TOP);
+  it('gives every other slot a suggestion with its three controls', async () => {
+    await at(TOP);
     for (const label of ['Outerwear', 'Bottom', 'Shoes', 'Accessory']) {
       expect(screen.getByRole('button', { name: `Next suggestion for ${label}` })).toBeEnabled();
       expect(screen.getByRole('button', { name: `Keep ${label}` })).toBeInTheDocument();
     }
   });
 
-  it('never shows one colour name twice', () => {
-    at(TOP);
+  it('never shows one colour name twice', async () => {
+    await at(TOP);
     const names = screen
       .getAllByRole('group')
       .map((group) => group.getAttribute('aria-label')!.split(': ')[1]);
@@ -156,7 +167,7 @@ describe('Suggestions', () => {
 
   it('advances one slot without touching the others', async () => {
     const user = userEvent.setup();
-    at(TOP);
+    await at(TOP);
     const before = screen.getAllByRole('group').map((group) => group.getAttribute('aria-label'));
     await user.click(screen.getByRole('button', { name: 'Next suggestion for Shoes' }));
     const after = screen.getAllByRole('group').map((group) => group.getAttribute('aria-label'));
@@ -166,7 +177,7 @@ describe('Suggestions', () => {
 
   it('keeps a slot and stops it advancing', async () => {
     const user = userEvent.setup();
-    at(TOP);
+    await at(TOP);
     await user.click(screen.getByRole('button', { name: 'Keep Shoes' }));
     expect(screen.getByRole('button', { name: 'Keep Shoes' })).toHaveAttribute(
       'aria-pressed',
@@ -182,7 +193,7 @@ describe('Suggestions: shuffle', () => {
   // the test assert something weaker than "shuffle changes the outfit".
   it('changes the unlocked slots', async () => {
     const user = userEvent.setup();
-    at(TOP);
+    await at(TOP);
     const labels = () => screen.getAllByRole('group').map((g) => g.getAttribute('aria-label'));
     const before = labels();
     let changed = false;
@@ -195,7 +206,7 @@ describe('Suggestions: shuffle', () => {
 
   it('leaves the base alone', async () => {
     const user = userEvent.setup();
-    at(TOP);
+    await at(TOP);
     const base = () => screen.getByRole('group', { name: /^Top:/ }).getAttribute('aria-label');
     const before = base();
     await user.click(screen.getByRole('button', { name: /^Shuffle/ }));
@@ -204,7 +215,7 @@ describe('Suggestions: shuffle', () => {
 
   it('leaves a kept slot alone and says so on the button', async () => {
     const user = userEvent.setup();
-    at(TOP);
+    await at(TOP);
     await user.click(screen.getByRole('button', { name: 'Keep Shoes' }));
     const kept = () => screen.getByRole('group', { name: /^Shoes:/ }).getAttribute('aria-label');
     const before = kept();
@@ -217,7 +228,7 @@ describe('Suggestions: shuffle', () => {
   // "Shuffled" also means an outfit that came back the same reads as the same.
   it('announces what the outfit became', async () => {
     const user = userEvent.setup();
-    at(TOP);
+    await at(TOP);
     await user.click(screen.getByRole('button', { name: /^Shuffle/ }));
     const status = screen.getByRole('status');
     expect(status).toHaveTextContent(/Outerwear/);
@@ -226,7 +237,7 @@ describe('Suggestions: shuffle', () => {
 
   it('says why nothing happened when every piece is kept', async () => {
     const user = userEvent.setup();
-    at(TOP);
+    await at(TOP);
     for (const label of ['Outerwear', 'Bottom', 'Shoes', 'Accessory']) {
       await user.click(screen.getByRole('button', { name: `Keep ${label}` }));
     }
@@ -236,7 +247,7 @@ describe('Suggestions: shuffle', () => {
 
   it('teaches the gestures until something is kept', async () => {
     const user = userEvent.setup();
-    at(TOP);
+    await at(TOP);
     expect(screen.getByText(/hold one to keep it/i)).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Keep Shoes' }));
     expect(screen.getByText(/Kept pieces stay when you shuffle/i)).toBeInTheDocument();
@@ -246,14 +257,14 @@ describe('Suggestions: shuffle', () => {
 describe('Suggestions: alternatives', () => {
   it('opens a sheet for the slot whose colour was tapped', async () => {
     const user = userEvent.setup();
-    at(TOP);
+    await at(TOP);
     await user.click(screen.getByRole('button', { name: /^Shoes, / }));
     expect(screen.getByRole('dialog', { name: /Shoes/ })).toBeInTheDocument();
   });
 
   it('applies the colour chosen there', async () => {
     const user = userEvent.setup();
-    at(TOP);
+    await at(TOP);
     await user.click(screen.getByRole('button', { name: /^Shoes, / }));
     const dialog = screen.getByRole('dialog');
     const options = within(dialog).getAllByRole('button');
@@ -271,7 +282,7 @@ describe('Suggestions: alternatives', () => {
   // instruction than that.
   it('releases the lock when a kept slot is given a colour', async () => {
     const user = userEvent.setup();
-    at(TOP);
+    await at(TOP);
     await user.click(screen.getByRole('button', { name: 'Keep Shoes' }));
     await user.click(screen.getByRole('button', { name: /^Shoes, / }));
     const options = within(screen.getByRole('dialog')).getAllByRole('button');
@@ -296,7 +307,7 @@ describe('Suggestions: alternatives', () => {
   // choice, on the screen the brief calls the app's central interaction.
   it('returns focus to the block it was opened from', async () => {
     const user = userEvent.setup();
-    at(TOP);
+    await at(TOP);
     await user.click(screen.getByRole('button', { name: /^Shoes, / }));
     const options = within(screen.getByRole('dialog')).getAllByRole('button');
     await user.click(options[5]!);

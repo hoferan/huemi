@@ -1,4 +1,4 @@
-import type { SessionAction, SessionState } from './types';
+import type { SessionAction, SessionState, Toast } from './types';
 import { SLOTS } from '../model/types';
 
 export type { SlotPick, SessionAction, SessionState } from './types';
@@ -74,10 +74,9 @@ export function sessionReducer(state: SessionState, action: SessionAction): Sess
       // this field does not, which is the single-toast rule from the handoff
       // notes.
       const id = state.toastSeq + 1;
-      const toast =
-        action.action === undefined
-          ? { id, message: action.message }
-          : { id, message: action.message, action: action.action };
+      const toast: Toast = { id, message: action.message };
+      if (action.action !== undefined) toast.action = action.action;
+      if (action.focusAction) toast.focusAction = true;
       return { ...state, toast, toastSeq: id };
     }
 

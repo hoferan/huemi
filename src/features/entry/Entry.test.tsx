@@ -12,6 +12,7 @@ function renderAt() {
         <Routes>
           <Route path="/" element={<Entry />} />
           <Route path="/slot" element={<p>slot screen</p>} />
+          <Route path="/saved" element={<p>saved screen</p>} />
         </Routes>
       </InitialLocationContext>
     </MemoryRouter>,
@@ -38,5 +39,12 @@ describe('Entry', () => {
     renderAt();
     await user.click(screen.getByRole('button', { name: 'Pick a color' }));
     expect(await screen.findByText('slot screen')).toBeInTheDocument();
+  });
+
+  it('links to the saved outfits', async () => {
+    const user = userEvent.setup();
+    renderAt();
+    await user.click(screen.getByRole('link', { name: 'Saved' }));
+    expect(await screen.findByText('saved screen')).toBeInTheDocument();
   });
 });

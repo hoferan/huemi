@@ -3,6 +3,8 @@ import { MemoryRouter } from 'react-router';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { AppRoutes } from './routes';
 import { APP_ROUTES } from './routeTable';
+import { OutfitsProvider } from '../features/saved/OutfitsProvider';
+import { fakeOutfitStore } from '../features/saved/testing';
 import { ONBOARDED_KEY } from '../storage/localPreferences';
 import { SessionProvider } from '../session/SessionProvider';
 import { Announcer } from '../ui/Announcer';
@@ -30,14 +32,17 @@ function pathnameOnly(route: string): string {
 // This is not Root: it renders AppRoutes bare, on purpose, so a route
 // missing from the table fails here rather than in a heavier harness. The
 // session provider and the announcer still have to be here, for the route
-// table entries that now need them.
+// table entries that now need them, and the outfits provider is here for the
+// saved screen.
 function at(path: string) {
   return render(
     <MemoryRouter initialEntries={[path]}>
       <SessionProvider>
-        <Announcer>
-          <AppRoutes />
-        </Announcer>
+        <OutfitsProvider store={fakeOutfitStore()}>
+          <Announcer>
+            <AppRoutes />
+          </Announcer>
+        </OutfitsProvider>
       </SessionProvider>
     </MemoryRouter>,
   );
@@ -57,9 +62,11 @@ describe('AppRoutes', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders the not-found screen for an unknown path', () => {
+  it('renders the not-found screen for an unknown path', async () => {
     at('/nowhere');
-    expect(screen.getByRole('heading', { level: 1, name: 'Page not found' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Page not found' }),
+    ).toBeInTheDocument();
   });
 
   // The accessibility gate runs over e2e/routes.ts, so the two lists have to
@@ -90,6 +97,7 @@ describe('AppRoutes', () => {
     '/color?slot=top': 'Pick a color',
     '/color/custom?slot=top': 'Mix your own',
     '/suggest?slot=top&hex=%23c39a3a': 'Goes with it',
+    '/saved': 'Saved outfits',
   };
 
   it.each(covered)('serves a real screen at %s', async (route) => {

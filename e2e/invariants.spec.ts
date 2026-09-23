@@ -5,6 +5,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 import { ROUTES } from './routes';
 import { seedOnboarded } from './seedOnboarded';
+import { seedOutfit } from './seedOutfit';
 
 // Every route here is visited with onboarding already marked seen, so `/`
 // renders the entry screen it is listed for rather than redirecting to
@@ -12,8 +13,11 @@ import { seedOnboarded } from './seedOnboarded';
 // of these checks, and `/welcome` is the only screen among them that ever
 // gets scanned — twice, while Entry gets scanned never. `/welcome` itself is
 // unaffected: it renders onboarding regardless of the flag.
+// Every route also has one saved outfit, so `/saved` is checked with a card
+// on it rather than its empty state.
 test.beforeEach(async ({ page }) => {
   await seedOnboarded(page);
+  await seedOutfit(page);
 });
 
 for (const route of ROUTES) {

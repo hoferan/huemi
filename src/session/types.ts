@@ -1,12 +1,16 @@
 import type { Hex } from '../model/hex';
-import type { Slot } from '../model/types';
+import type { Outfit, Slot } from '../model/types';
 
 /** The garment the user started from. Always populated once a colour is picked. */
 export type Base = { slot: Slot; hex: Hex };
 
-export type ToastAction = { label: string; kind: 'undoDelete'; outfitId: string };
+/**
+ * Outfits are stored complete, with their id and createdAt, so Undo can restore
+ * them unchanged after deletion and they return to their original place.
+ */
+export type ToastAction = { label: string; kind: 'undoDelete'; outfits: Outfit[] };
 
-export type Toast = { id: number; message: string; action?: ToastAction };
+export type Toast = { id: number; message: string; action?: ToastAction; focusAction?: true };
 
 /**
  * What is showing in one slot.
@@ -43,6 +47,6 @@ export type SessionAction =
   | { type: 'lockToggled'; slot: Slot }
   | { type: 'outfitLoaded'; base: Base; picks: Partial<Record<Slot, SlotPick>> }
   | { type: 'picksReplaced'; picks: Partial<Record<Slot, SlotPick>> }
-  | { type: 'toastShown'; message: string; action?: ToastAction }
+  | { type: 'toastShown'; message: string; action?: ToastAction; focusAction?: true }
   | { type: 'toastDismissed'; id: number }
   | { type: 'reset' };
