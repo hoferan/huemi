@@ -9,6 +9,12 @@ import type { Outfit, Slot } from '../model/types';
 export type StorageResult<T> = { ok: true; value: T } | { ok: false; reason: string };
 
 /**
+ * The list comes back with a count of entries that could not be read, so the
+ * saved screen can say some are missing rather than quietly showing fewer.
+ */
+export type OutfitList = { outfits: Outfit[]; unreadable: number };
+
+/**
  * Interfaces below differ in their return types: OutfitStore methods return
  * StorageResult because a save failure is user-visible and the caller must act
  * on it. PreferenceStore and CorrectionLog return bare promises: preference
@@ -16,7 +22,8 @@ export type StorageResult<T> = { ok: true; value: T } | { ok: false; reason: str
  * correction failures lose a training signal but do not change the screen.
  */
 export interface OutfitStore {
-  list(): Promise<StorageResult<Outfit[]>>;
+  list(): Promise<StorageResult<OutfitList>>;
+  /** An upsert: saving an id that is already stored replaces that entry. */
   save(outfit: Outfit): Promise<StorageResult<void>>;
   remove(id: string): Promise<StorageResult<void>>;
 }
