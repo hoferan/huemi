@@ -32,7 +32,8 @@ function pathnameOnly(route: string): string {
 // This is not Root: it renders AppRoutes bare, on purpose, so a route
 // missing from the table fails here rather than in a heavier harness. The
 // session provider and the announcer still have to be here, for the route
-// table entries that now need them.
+// table entries that now need them, and the outfits provider is here for the
+// saved screen.
 function at(path: string) {
   return render(
     <MemoryRouter initialEntries={[path]}>
@@ -96,6 +97,7 @@ describe('AppRoutes', () => {
     '/color?slot=top': 'Pick a color',
     '/color/custom?slot=top': 'Mix your own',
     '/suggest?slot=top&hex=%23c39a3a': 'Goes with it',
+    '/saved': 'Saved outfits',
   };
 
   it.each(covered)('serves a real screen at %s', async (route) => {

@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import * as stylex from '@stylexjs/stylex';
 import { tokens } from '../../styles/tokens.stylex';
 import { Button } from '../../ui/Button';
@@ -10,6 +10,17 @@ const styles = stylex.create({
     fontFamily: tokens.fontHeading,
     fontSize: tokens.textBody,
     margin: 0,
+  },
+  header: { display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
+  saved: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: tokens.touchTarget,
+    minWidth: tokens.touchTarget,
+    paddingInline: '8px',
+    color: tokens.ink,
+    fontSize: tokens.textBody,
   },
   body: {
     color: tokens.ink2,
@@ -29,15 +40,24 @@ const styles = stylex.create({
  * would be decoration, and the brief is explicit that colour is the content
  * and the interface around it has to stay out of the way.
  *
- * The header holds the wordmark alone. The saved collection belongs here too,
- * per the spec, but `/saved` does not exist until #18 and a link to the
- * not-found screen is worse than no link. The camera route joins it in M4.
+ * The header holds the wordmark and the way into the saved collection. The
+ * camera route joins them in M4.
  */
 export function Entry() {
   const navigate = useNavigate();
 
   return (
-    <Screen title="Start with a garment" header={<p {...stylex.props(styles.wordmark)}>huemi</p>}>
+    <Screen
+      title="Start with a garment"
+      header={
+        <div {...stylex.props(styles.header)}>
+          <p {...stylex.props(styles.wordmark)}>huemi</p>
+          <Link to="/saved" {...stylex.props(styles.saved)}>
+            Saved
+          </Link>
+        </div>
+      }
+    >
       <p {...stylex.props(styles.body)}>
         Choose the color of something you already own, and huemi suggests the rest.
       </p>
