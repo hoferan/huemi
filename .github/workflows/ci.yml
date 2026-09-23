@@ -47,7 +47,7 @@ jobs:
       # context is absent, so the condition is true and coverage uploads.
       - name: Upload coverage
         # codecov/codecov-action v7.1.0
-        uses: codecov/codecov-action@0b35c9ecc4f0529d0eb674914510c22f85b196b4
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5
         if: ${{ !cancelled() && github.event.pull_request.head.repo.fork != true }}
         with:
           use_oidc: true
@@ -58,7 +58,7 @@ jobs:
       # is archived and Codecov routes test results through this one now.
       - name: Upload unit test results
         # codecov/codecov-action v7.1.0
-        uses: codecov/codecov-action@0b35c9ecc4f0529d0eb674914510c22f85b196b4
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5
         if: ${{ !cancelled() && github.event.pull_request.head.repo.fork != true }}
         with:
           use_oidc: true
@@ -128,7 +128,7 @@ jobs:
       # test results are worth having, and flake detection needs the failures.
       - name: Upload browser test results
         # codecov/codecov-action v7.1.0
-        uses: codecov/codecov-action@0b35c9ecc4f0529d0eb674914510c22f85b196b4
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5
         if: ${{ !cancelled() && github.event.pull_request.head.repo.fork != true }}
         with:
           use_oidc: true
