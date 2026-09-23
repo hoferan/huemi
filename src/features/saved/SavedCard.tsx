@@ -4,16 +4,13 @@ import { needsBorder } from '../../color/contrast';
 import { colorName } from '../../color/palette';
 import { SLOTS, SLOT_LABELS, type Outfit } from '../../model/types';
 import { tokens } from '../../styles/tokens.stylex';
-import { SR_ONLY } from '../../ui/srOnly';
 import { formatSavedDate } from './formatSavedDate';
 
 const styles = stylex.create({
   card: {
     // The open button fills the card and Delete sits over its lower right
     // corner. They overlap on the grid, not in the DOM, so neither button is
-    // inside the other. Positioned, so the hidden description below lays out
-    // against the card rather than some ancestor.
-    position: 'relative',
+    // inside the other.
     display: 'grid',
     gridTemplateColumns: '1fr auto',
     gridTemplateRows: '1fr auto',
@@ -133,7 +130,12 @@ export function SavedCard({
           </span>
         </span>
       </button>
-      <span id={details} style={SR_ONLY}>
+      {/* `hidden` rather than a visually-hidden style: `aria-describedby`
+          reads a referenced node's text even when the node itself renders
+          nothing, so there is no need to keep it in the layout at all, and
+          nothing here can widen the page the way a positioned, unwrapped
+          span could. */}
+      <span id={details} hidden>
         {`${date}. ${pieces}`}
       </span>
       <button
