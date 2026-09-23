@@ -58,10 +58,9 @@ describe('motion tokens under prefers-reduced-motion', () => {
   // defineVars values into var() references even under Vitest.
   const CONDITIONAL = ['colorFade', 'shuffle', 'sheet', 'toastSlide'];
 
-  // These must NOT gate. `hold` is the long-press threshold: zeroing it fires
-  // the press instantly. The dwell times are how long a message stays
-  // readable: zeroing them makes toasts vanish before they can be read, which
-  // is an accessibility regression wearing an accessibility feature's clothes.
+  // Must NOT gate. `hold` is the long-press threshold: zeroing it fires the
+  // press instantly, which is an accessibility regression wearing an
+  // accessibility feature's clothes.
   const UNCONDITIONAL = ['hold'];
 
   it.each(CONDITIONAL)('zeroes %s under reduced motion', (name) => {
