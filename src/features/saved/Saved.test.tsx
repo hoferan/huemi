@@ -2,6 +2,7 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router';
 import { describe, expect, it } from 'vitest';
+import { parseHex } from '../../model/hex';
 import type { OutfitStore } from '../../storage/port';
 import { SessionProvider } from '../../session/SessionProvider';
 import { useSession } from '../../session/useSession';
@@ -122,6 +123,18 @@ describe('Saved', () => {
     // The year appears once the suite runs after 2026.
     expect(open).toHaveAccessibleDescription(/^Mon, Sep 21(, 2026)?\. .*Navy bottom/);
     expect(open.id).toBe('outfit-navy');
+  });
+
+  // An outfit saved with slots missing lists only what it has, in the strip
+  // and in the description. White is light enough to need the hairline.
+  it('describes only the pieces an outfit has', async () => {
+    setup(
+      fakeOutfitStore([
+        makeOutfit({ pieces: { bottom: NAVY_BOTTOM.hex, top: parseHex('#f7f6f3') } }),
+      ]),
+    );
+    const open = await screen.findByRole('button', { name: 'Navy bottom' });
+    expect(open).toHaveAccessibleDescription(/\. White top, Navy bottom$/);
   });
 
   it('opens an outfit back into the suggestions screen', async () => {

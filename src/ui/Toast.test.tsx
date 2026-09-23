@@ -122,6 +122,36 @@ describe('Toast', () => {
     expect(onExpire).toHaveBeenCalledOnce();
   });
 
+  // A browser that cannot parse the selector throws from `matches`. The toast
+  // then treats the focus as not keyboard-visible and lets the dwell run.
+  it('does not hold when the browser cannot evaluate :focus-visible', () => {
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    const real = Element.prototype.matches;
+    vi.spyOn(Element.prototype, 'matches').mockImplementation(function (
+      this: Element,
+      selector: string,
+    ) {
+      if (selector === ':focus-visible') throw new SyntaxError('unsupported selector');
+      return real.call(this, selector);
+    });
+    const onExpire = vi.fn();
+    render(
+      <Toast
+        message="m"
+        action={{ label: 'Undo', onAction: vi.fn() }}
+        dwellMs={5000}
+        onExpire={onExpire}
+      />,
+    );
+    act(() => {
+      screen.getByRole('button', { name: 'Undo' }).focus();
+    });
+    act(() => {
+      vi.advanceTimersByTime(5000);
+    });
+    expect(onExpire).toHaveBeenCalledOnce();
+  });
+
   // A tap moves focus to Undo in code (`focusAction`), and that is not
   // `:focus-visible`, so a touch user must not be stuck with the toast
   // forever because nothing moves focus away afterwards.
