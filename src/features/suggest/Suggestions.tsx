@@ -14,6 +14,7 @@ import { Sheet } from '../../ui/Sheet';
 import { SuggestionBlock } from '../../ui/SuggestionBlock';
 import { useAnnounce } from '../../ui/useAnnounce';
 import { Alternatives } from './Alternatives';
+import { SaveToggle } from './SaveToggle';
 import { useBaseParam } from './useBaseParam';
 
 // The crossfade is CSS and the flag that triggers it is a timer, so one of the
@@ -24,6 +25,7 @@ import { useBaseParam } from './useBaseParam';
 const SHUFFLE_MS = Number.parseInt(durations.shuffle, 10);
 
 const styles = stylex.create({
+  header: { display: 'flex', justifyContent: 'flex-end' },
   blocks: { display: 'flex', flexDirection: 'column', gap: '8px', flexGrow: 1 },
   // The base is the ground every suggestion is made against, so it reads
   // larger. The proportion is the prototype's.
@@ -152,7 +154,14 @@ export function Suggestions() {
   const anyKept = SLOTS.some((slot) => state.locked[slot]);
 
   return (
-    <Screen title="Goes with it">
+    <Screen
+      title="Goes with it"
+      header={
+        <div {...stylex.props(styles.header)}>
+          <SaveToggle base={base} picks={picks} />
+        </div>
+      }
+    >
       <div {...stylex.props(styles.blocks)}>
         {SLOTS.map((slot) => {
           const pick = picks[slot];
