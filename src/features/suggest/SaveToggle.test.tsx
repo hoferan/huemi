@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import { composeOutfit } from '../../session/select';
 import { SessionProvider } from '../../session/SessionProvider';
 import { useSession } from '../../session/useSession';
@@ -123,5 +123,28 @@ describe('SaveToggle', () => {
     fireEvent.click(toggle());
     await waitFor(() => expect(toggle()).toHaveAttribute('aria-pressed', 'true'));
     expect(store.contents()).toHaveLength(1);
+  });
+
+  // A non-secure http origin has no `crypto.randomUUID`, and saving must
+  // still work there (F3). The method lives on `Crypto.prototype`, not on
+  // the instance, so removing it means deleting it there.
+  describe('without crypto.randomUUID', () => {
+    const proto = Object.getPrototypeOf(crypto) as {
+      randomUUID?: Crypto['randomUUID'] | undefined;
+    };
+    const original = proto.randomUUID;
+
+    afterEach(() => {
+      proto.randomUUID = original;
+    });
+
+    it('still saves', async () => {
+      delete proto.randomUUID;
+      const { store, user, toggle } = setup();
+      await waitFor(() => expect(toggle()).toHaveAttribute('aria-pressed', 'false'));
+      await user.click(toggle());
+      await waitFor(() => expect(toggle()).toHaveAttribute('aria-pressed', 'true'));
+      expect(store.contents()).toHaveLength(1);
+    });
   });
 });

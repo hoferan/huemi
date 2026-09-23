@@ -6,6 +6,7 @@ import type { Base, SlotPick } from '../../session/types';
 import { useSession } from '../../session/useSession';
 import { tokens } from '../../styles/tokens.stylex';
 import { buildOutfit } from '../saved/buildOutfit';
+import { makeOutfitId } from '../saved/makeOutfitId';
 import { sameOutfit } from '../saved/matching';
 import { useOutfits } from '../saved/useOutfits';
 
@@ -59,25 +60,28 @@ export function SaveToggle({
   async function toggle() {
     if (inFlight.current) return;
     inFlight.current = true;
-    if (pressed) {
-      const ok = await outfits.remove(matches.map((outfit) => outfit.id));
-      dispatch(
-        ok
-          ? {
-              type: 'toastShown',
-              message: 'Removed from saved',
-              action: { label: 'Undo', kind: 'undoDelete', outfits: matches },
-            }
-          : { type: 'toastShown', message: "Couldn't remove this outfit." },
-      );
-    } else {
-      const ok = await outfits.save(buildOutfit(base, picks, crypto.randomUUID(), new Date()));
-      dispatch({
-        type: 'toastShown',
-        message: ok ? 'Saved' : "Couldn't save this outfit on this device.",
-      });
+    try {
+      if (pressed) {
+        const ok = await outfits.remove(matches.map((outfit) => outfit.id));
+        dispatch(
+          ok
+            ? {
+                type: 'toastShown',
+                message: 'Removed from saved',
+                action: { label: 'Undo', kind: 'undoDelete', outfits: matches },
+              }
+            : { type: 'toastShown', message: "Couldn't remove this outfit." },
+        );
+      } else {
+        const ok = await outfits.save(buildOutfit(base, picks, makeOutfitId(), new Date()));
+        dispatch({
+          type: 'toastShown',
+          message: ok ? 'Saved' : "Couldn't save this outfit on this device.",
+        });
+      }
+    } finally {
+      inFlight.current = false;
     }
-    inFlight.current = false;
   }
 
   return (
