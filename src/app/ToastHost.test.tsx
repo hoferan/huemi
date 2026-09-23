@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { OutfitsProvider } from '../features/saved/OutfitsProvider';
 import { fakeOutfitStore, makeOutfit, type FakeOutfitStore } from '../features/saved/testing';
+import { useOutfits } from '../features/saved/useOutfits';
 import type { SessionAction } from '../session/types';
 import { SessionProvider } from '../session/SessionProvider';
 import { useSession } from '../session/useSession';
@@ -20,16 +21,38 @@ function Trigger({ action }: { action: SessionAction }) {
   );
 }
 
+// Stands in for the saved screen: a card per outfit, with the id `ToastHost`
+// looks for after a restore. Only rendered by tests that check what happens
+// when that screen is actually on show.
+function OutfitCards() {
+  const outfits = useOutfits();
+  if (outfits.state.status !== 'ready') return null;
+  return (
+    <>
+      {outfits.state.outfits.map((outfit) => (
+        <button key={outfit.id} type="button" id={`outfit-${outfit.id}`}>
+          {outfit.name}
+        </button>
+      ))}
+    </>
+  );
+}
+
 // Async and flushed under act() so the provider's initial `store.list()`
 // settles before a test proceeds; without that flush, the fake store's
 // already-resolved promise lands its setState after render() returns, outside
 // any act(), and React warns on every test that does not otherwise await.
-async function setup(action: SessionAction | null, store: FakeOutfitStore = fakeOutfitStore()) {
+async function setup(
+  action: SessionAction | null,
+  store: FakeOutfitStore = fakeOutfitStore(),
+  { withCards = false }: { withCards?: boolean } = {},
+) {
   render(
     <SessionProvider>
       <OutfitsProvider store={store}>
         <Announcer>
           {action && <Trigger action={action} />}
+          {withCards && <OutfitCards />}
           <ToastHost />
         </Announcer>
       </OutfitsProvider>
@@ -110,6 +133,17 @@ describe('ToastHost', () => {
     expect(store.contents()).toEqual([makeOutfit()]);
     expect(toastRoot()).toBeNull();
     expect(screen.getByRole('heading', { name: 'Screen' })).toHaveFocus();
+  });
+
+  it('focuses the restored card instead of the heading when it is on screen', async () => {
+    const store = await setup(DELETED, undefined, { withCards: true });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
+      await Promise.resolve();
+    });
+    expect(store.contents()).toEqual([makeOutfit()]);
+    expect(toastRoot()).toBeNull();
+    expect(screen.getByRole('button', { name: makeOutfit().name })).toHaveFocus();
   });
 
   it('says so when Undo could not restore', async () => {

@@ -32,7 +32,11 @@ export function ToastHost() {
   const actionRef = useRef<HTMLButtonElement>(null);
   // Set before the restore starts, so it is in place for the commit that
   // shows the restored list whichever of the promise and the render lands
-  // first. Cleared by the first list change after it, found or not.
+  // first. `OutfitsProvider.run` does not serialise concurrent writes, so an
+  // unrelated commit can land first; the effect below only clears this once
+  // it has actually found one of these ids in the ready list, and `undo`
+  // clears it itself if the restore fails, since no later commit will ever
+  // match then.
   const focusAfterRestore = useRef<string[]>([]);
 
   useEffect(() => {
@@ -43,6 +47,9 @@ export function ToastHost() {
 
   useEffect(() => {
     const ids = focusAfterRestore.current;
+    if (ids.length === 0 || outfits.state.status !== 'ready') return;
+    const landed = new Set(outfits.state.outfits.map((outfit) => outfit.id));
+    if (!ids.some((restoredId) => landed.has(restoredId))) return;
     focusAfterRestore.current = [];
     for (const id of ids) {
       const card = document.getElementById(`outfit-${id}`);
@@ -66,7 +73,10 @@ export function ToastHost() {
     leave();
     focusAfterRestore.current = action.outfits.map((outfit) => outfit.id);
     void outfits.restore(action.outfits).then((ok) => {
-      if (!ok) dispatch({ type: 'toastShown', message: "Couldn't restore this outfit." });
+      if (!ok) {
+        focusAfterRestore.current = [];
+        dispatch({ type: 'toastShown', message: "Couldn't restore this outfit." });
+      }
     });
   }
 
