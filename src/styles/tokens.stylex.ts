@@ -13,6 +13,11 @@ import * as stylex from '@stylexjs/stylex';
  */
 export const durations = stylex.defineConsts({
   shuffle: '200ms',
+  // Timers, not transitions: `src/app/ToastHost.tsx` parses them into the
+  // toast's auto-dismiss. They stay unconditional under reduced motion, since
+  // zeroing a dwell takes the message away before it can be read.
+  toastDwell: '2500ms',
+  toastDwellAction: '5000ms',
 });
 
 export const tokens = stylex.defineVars({
@@ -65,14 +70,11 @@ export const tokens = stylex.defineVars({
   // `colorFade` cannot forget to opt out of it.
   //
   // Only animation durations gate. `hold` is an input timing — the long-press
-  // threshold — and zeroing it would fire the press on touch. The dwell times
-  // are how long a message stays on screen; zeroing those would take the
-  // message away before it could be read.
+  // threshold — and zeroing it would fire the press on touch. The toast dwell
+  // times live in `durations` above, for the same reason.
   colorFade: { default: '150ms', '@media (prefers-reduced-motion: reduce)': '0ms' },
   hold: '450ms',
   shuffle: { default: durations.shuffle, '@media (prefers-reduced-motion: reduce)': '0ms' },
   sheet: { default: '320ms', '@media (prefers-reduced-motion: reduce)': '0ms' },
   toastSlide: { default: '200ms', '@media (prefers-reduced-motion: reduce)': '0ms' },
-  toastDwell: '2500ms',
-  toastDwellAction: '5000ms',
 });

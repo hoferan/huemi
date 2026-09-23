@@ -42,6 +42,14 @@ describe('durations', () => {
       expect(value).toMatch(/^\d+ms$/);
     }
   });
+
+  // The handoff notes' dwell times. They are constants because a timer reads
+  // them, and a constant cannot carry a reduced-motion condition at all, which
+  // is what keeps the toast readable under that preference.
+  it('holds the toast dwell times from the handoff notes', () => {
+    expect(durations.toastDwell).toBe('2500ms');
+    expect(durations.toastDwellAction).toBe('5000ms');
+  });
 });
 
 describe('motion tokens under prefers-reduced-motion', () => {
@@ -54,7 +62,7 @@ describe('motion tokens under prefers-reduced-motion', () => {
   // the press instantly. The dwell times are how long a message stays
   // readable: zeroing them makes toasts vanish before they can be read, which
   // is an accessibility regression wearing an accessibility feature's clothes.
-  const UNCONDITIONAL = ['hold', 'toastDwell', 'toastDwellAction'];
+  const UNCONDITIONAL = ['hold'];
 
   it.each(CONDITIONAL)('zeroes %s under reduced motion', (name) => {
     const block = new RegExp(`${name}:\\s*\\{([^}]*)\\}`).exec(tokensSource)?.[1];
