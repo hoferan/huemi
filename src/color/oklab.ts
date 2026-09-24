@@ -1,5 +1,5 @@
 import type { Hex } from '../model/hex';
-import { hexToRgb } from './convert';
+import { hexToRgb, type Rgb } from './convert';
 
 export type Oklab = [number, number, number];
 
@@ -8,8 +8,9 @@ const toLinear = (v: number): number => {
   return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
 };
 
-export function hexToOklab(hex: Hex): Oklab {
-  const [r, g, b] = hexToRgb(hex).map(toLinear) as [number, number, number];
+/** From 8-bit sRGB channels, for pixels that never were a hex. */
+export function rgbToOklab(rgb: Rgb): Oklab {
+  const [r, g, b] = rgb.map(toLinear) as [number, number, number];
 
   const l = 0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b;
   const m = 0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b;
@@ -24,6 +25,10 @@ export function hexToOklab(hex: Hex): Oklab {
     1.9779984951 * l_ - 2.428592205 * m_ + 0.4505937099 * s_,
     0.0259040371 * l_ + 0.7827717662 * m_ - 0.808675766 * s_,
   ];
+}
+
+export function hexToOklab(hex: Hex): Oklab {
+  return rgbToOklab(hexToRgb(hex));
 }
 
 /** Lightness 0-1, chroma 0-~0.4, hue 0-360 degrees. */

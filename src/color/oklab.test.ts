@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { parseHex } from '../model/hex';
-import { hexToOklab, hexToOklch, oklabDistance } from './oklab';
+import { hexToOklab, hexToOklch, oklabDistance, rgbToOklab } from './oklab';
 
 describe('hexToOklab', () => {
   it('puts white at L=1 with no chroma', () => {
@@ -61,5 +61,16 @@ describe('oklabDistance', () => {
     const darkStep = oklabDistance(parseHex('#000000'), parseHex('#101010'));
     const lightStep = oklabDistance(parseHex('#efefef'), parseHex('#ffffff'));
     expect(darkStep).toBeGreaterThan(lightStep * 2);
+  });
+});
+
+describe('rgbToOklab', () => {
+  it('agrees with hexToOklab, which is now built on it', () => {
+    expect(rgbToOklab([31, 42, 68])).toEqual(hexToOklab(parseHex('#1f2a44')));
+  });
+
+  it('puts white at lightness 1 and black at 0', () => {
+    expect(rgbToOklab([255, 255, 255])[0]).toBeCloseTo(1, 4);
+    expect(rgbToOklab([0, 0, 0])[0]).toBeCloseTo(0, 4);
   });
 });

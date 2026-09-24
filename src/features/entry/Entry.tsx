@@ -41,7 +41,8 @@ const styles = stylex.create({
  * and the interface around it has to stay out of the way.
  *
  * The header holds the wordmark and the way into the saved collection. The
- * camera route joins them in M4.
+ * camera route exists from #19 but joins them only with #21, once a capture
+ * has somewhere to go.
  */
 export function Entry() {
   const navigate = useNavigate();

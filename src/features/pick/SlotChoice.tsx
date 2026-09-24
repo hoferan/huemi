@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router';
+import { useNavigate, useSearchParams } from 'react-router';
 import * as stylex from '@stylexjs/stylex';
 import { SLOTS, SLOT_LABELS, type Slot } from '../../model/types';
 import { tokens } from '../../styles/tokens.stylex';
@@ -30,9 +30,13 @@ const styles = stylex.create({
  */
 export function SlotChoice() {
   const navigate = useNavigate();
+  const [params] = useSearchParams();
+  // Checked against the one value it can take, not interpolated: the URL is
+  // user input, and anything unknown keeps the route that always works.
+  const next = params.get('next') === 'camera' ? '/camera' : '/color';
 
   function choose(slot: Slot) {
-    void navigate(`/color?slot=${slot}`);
+    void navigate(`${next}?slot=${slot}`);
   }
 
   return (

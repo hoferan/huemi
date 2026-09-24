@@ -75,6 +75,15 @@ describe('AppRoutes', () => {
   // listed is a screen axe, reflow and the text-size check never visit, and
   // nothing else in the repository notices. Both assertions compare arrays so
   // that a failure names the path rather than reporting false !== true.
+  it('shows the camera screen as unavailable where there is no camera', async () => {
+    // jsdom has no mediaDevices. The screen has to settle on a state rather
+    // than wait on a camera forever.
+    at('/camera?slot=top');
+    expect(
+      await screen.findByRole('heading', { level: 2, name: 'No camera found' }),
+    ).toBeInTheDocument();
+  });
+
   it('lists every served route in e2e/routes.ts', () => {
     const coveredPaths = covered.map(pathnameOnly);
     expect(served.filter((path) => !coveredPaths.includes(path))).toEqual([]);
@@ -96,6 +105,7 @@ describe('AppRoutes', () => {
     '/slot': 'Choose a garment',
     '/color?slot=top': 'Pick a color',
     '/color/custom?slot=top': 'Mix your own',
+    '/camera?slot=top': 'Frame the garment',
     '/suggest?slot=top&hex=%23c39a3a': 'Goes with it',
     '/saved': 'Saved outfits',
   };

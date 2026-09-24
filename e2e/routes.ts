@@ -13,6 +13,7 @@ export const ROUTES: readonly string[] = [
   '/slot',
   '/color?slot=top',
   '/color/custom?slot=top',
+  '/camera?slot=top',
   '/suggest?slot=top&hex=%23c39a3a',
   '/saved',
   '/this-route-does-not-exist',

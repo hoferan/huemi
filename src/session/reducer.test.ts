@@ -224,4 +224,24 @@ describe('sessionReducer', () => {
       expect(state.picks.shoes).toEqual(kept);
     });
   });
+
+  const frame = {
+    pixels: { width: 1, height: 1, data: new Uint8ClampedArray([31, 42, 68, 255]) },
+    source: 'camera' as const,
+  };
+
+  it('holds a captured frame and the slot it is for', () => {
+    const next = sessionReducer(initialSession, { type: 'frameCaptured', slot: 'bottom', frame });
+    expect(next.capture).toEqual({ slot: 'bottom', frame });
+  });
+
+  it('replaces an earlier capture rather than keeping both', () => {
+    const first = sessionReducer(initialSession, { type: 'frameCaptured', slot: 'top', frame });
+    const second = sessionReducer(first, { type: 'frameCaptured', slot: 'shoes', frame });
+    expect(second.capture?.slot).toBe('shoes');
+  });
+
+  it('starts with no capture', () => {
+    expect(initialSession.capture).toBeNull();
+  });
 });
