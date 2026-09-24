@@ -13,6 +13,7 @@ import { tokens } from '../../styles/tokens.stylex';
 import { blockText } from '../../ui/blockText';
 import { Button } from '../../ui/Button';
 import { Screen } from '../../ui/Screen';
+import { selection } from '../../ui/selection';
 import { useAnnounce } from '../../ui/useAnnounce';
 import { useSlotParam } from '../pick/useSlotParam';
 import { CorrectionPanel } from './CorrectionPanel';
@@ -138,7 +139,7 @@ function ColorChoice({
       onClick={() => onSelect(color)}
       aria-pressed={selected}
       aria-label={`${name}, ${Math.round(share * 100)}% of the area`}
-      {...stylex.props(styles.choice)}
+      {...stylex.props(styles.choice, selected && selection.outline)}
     >
       <span
         {...stylex.props(

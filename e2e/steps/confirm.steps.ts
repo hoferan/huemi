@@ -65,3 +65,21 @@ When('I tap the garment on the photo', async ({ page }) => {
   const y = 120 * scale + (box.height - 240 * scale) / 2;
   await photo.click({ position: { x, y } });
 });
+
+// Selection is drawn as an outline, on top of `aria-pressed`, so that a sighted
+// user can see it too. StyleX emits no CSS under Vitest (ADR 0002), which is
+// why this is checked here. The style is what shows whether an outline is
+// drawn at all, and an unpressed button has to have none, or every button in
+// the group would look selected.
+Then('only the pressed button in {string} is outlined', async ({ page }, group: string) => {
+  const buttons = page.getByRole('group', { name: group, exact: true }).getByRole('button');
+  const pressed = buttons.and(page.locator('[aria-pressed="true"]'));
+  const unpressed = buttons.and(page.locator('[aria-pressed="false"]'));
+  await expect(pressed).toHaveCount(1);
+  await expect(pressed).not.toHaveCSS('outline-style', 'none');
+  await expect(pressed).toHaveCSS('outline-width', '3px');
+  await expect(unpressed.first()).toBeVisible();
+  for (const button of await unpressed.all()) {
+    await expect(button).toHaveCSS('outline-style', 'none');
+  }
+});

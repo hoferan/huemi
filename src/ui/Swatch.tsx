@@ -3,6 +3,7 @@ import { needsBorder } from '../color/contrast';
 import { colorName } from '../color/palette';
 import type { Hex } from '../model/hex';
 import { tokens } from '../styles/tokens.stylex';
+import { selection } from './selection';
 import { SR_ONLY } from './srOnly';
 
 const styles = stylex.create({
@@ -54,7 +55,12 @@ export function Swatch({
       type="button"
       onClick={() => onSelect(hex)}
       aria-pressed={pressed}
-      {...stylex.props(styles.swatch, styles.fill(hex), needsBorder(hex) && styles.hairline)}
+      {...stylex.props(
+        styles.swatch,
+        styles.fill(hex),
+        needsBorder(hex) && styles.hairline,
+        pressed && selection.outline,
+      )}
     >
       <span style={SR_ONLY}>{colorName(hex)}</span>
     </button>

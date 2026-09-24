@@ -35,6 +35,20 @@ Feature: Confirming the color
     When I press "Use Navy"
     Then I see the heading "Goes with it"
 
+  Scenario: The selected swatch is outlined
+    Given my camera shows a plain garment
+    When I open the camera for the top
+    And I take a photo
+    And I press "Not quite"
+    Then only the pressed button in "Closer to one of these?" is outlined
+
+  Scenario: The selected choice is outlined
+    Given my camera shows a striped garment
+    When I open the camera for the top
+    And I take a photo
+    And I see the heading "Which color is it?"
+    Then only the pressed button in "Which color is it?" is outlined
+
   Scenario: A busy photo asks for a tap
     Given my camera shows a busy scene
     When I open the camera for the top
