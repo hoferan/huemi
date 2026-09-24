@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { parseHex } from '../model/hex';
+import { isHex, parseHex } from '../model/hex';
 import { hexToRgb } from './convert';
-import { hexToOklab, hexToOklch, oklabDistance, oklabToRgb, rgbToOklab } from './oklab';
+import {
+  hexToOklab,
+  hexToOklch,
+  oklabDistance,
+  oklabToRgb,
+  rgbToOklab,
+  withLightness,
+} from './oklab';
 import { PALETTE } from './palette';
 
 describe('hexToOklab', () => {
@@ -94,4 +101,31 @@ describe('oklabToRgb', () => {
       expect(v).toBeLessThanOrEqual(255);
     }
   });
+});
+
+describe('withLightness', () => {
+  const denim = parseHex('#4a6285');
+
+  it('leaves a color alone at zero', () => {
+    expect(oklabDistance(withLightness(denim, 0), denim)).toBeLessThan(0.005);
+  });
+
+  it('moves OKLab lightness by the delta and nothing else much', () => {
+    const [l0, a0, b0] = hexToOklab(denim);
+    const [l1, a1, b1] = hexToOklab(withLightness(denim, 0.1));
+    expect(l1 - l0).toBeCloseTo(0.1, 2);
+    expect(Math.hypot(a1 - a0, b1 - b0)).toBeLessThan(0.01);
+    expect(hexToOklab(withLightness(denim, -0.1))[0]).toBeCloseTo(l0 - 0.1, 2);
+  });
+
+  // Review focus 5: the slider's ends on colors already near an end.
+  it.each(['#f7f6f3', '#1b1b1b', '#ffffff', '#000000'])(
+    'stays a valid hex at the ends for %s',
+    (value) => {
+      for (const delta of [-0.15, 0.15]) {
+        const out = withLightness(parseHex(value), delta);
+        expect(isHex(out)).toBe(true);
+      }
+    },
+  );
 });

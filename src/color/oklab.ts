@@ -1,5 +1,5 @@
 import type { Hex } from '../model/hex';
-import { hexToRgb, type Rgb } from './convert';
+import { hexToRgb, rgbToHex, type Rgb } from './convert';
 
 export type Oklab = [number, number, number];
 
@@ -84,4 +84,18 @@ export function oklabDistance(a: Hex, b: Hex): number {
   const [l1, a1, b1] = hexToOklab(a);
   const [l2, a2, b2] = hexToOklab(b);
   return Math.hypot(l1 - l2, a1 - a2, b1 - b2);
+}
+
+/**
+ * The same color, lighter or darker by `delta` in OKLab lightness.
+ *
+ * What the confirm screen's slider moves. OKLab rather than HSL lightness,
+ * because HSL's steps are not perceptually even and shift the apparent hue of
+ * a dark blue as it lightens. Lightness is clamped to 0–1 and the channels by
+ * `oklabToRgb` and `rgbToHex`, so the ends of the slider on a color that is
+ * already near white or black give white or black, never an invalid hex.
+ */
+export function withLightness(hex: Hex, delta: number): Hex {
+  const [l, a, b] = hexToOklab(hex);
+  return rgbToHex(oklabToRgb([Math.max(0, Math.min(1, l + delta)), a, b]));
 }
