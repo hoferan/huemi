@@ -28,7 +28,9 @@ const styles = stylex.create({
   caption: { margin: 0, fontSize: '0.875rem', color: tokens.ink2 },
   grid: { display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '8px' },
   sliderRow: { display: 'flex', flexDirection: 'column', gap: '4px' },
-  slider: { minHeight: tokens.touchTarget, width: '100%' },
+  // Ink rather than the browser's default accent, a saturated blue that sits
+  // next to the colors the user is judging and would pull on that judgement.
+  slider: { minHeight: tokens.touchTarget, width: '100%', accentColor: tokens.ink },
 });
 
 /**

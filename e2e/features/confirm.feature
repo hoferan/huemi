@@ -42,6 +42,13 @@ Feature: Confirming the color
     And I press "Not quite"
     Then only the pressed button in "Closer to one of these?" is outlined
 
+  Scenario: The lightness slider is drawn in ink
+    Given my camera shows a plain garment
+    When I open the camera for the top
+    And I take a photo
+    And I press "Not quite"
+    Then the "Lighter or darker" slider's accent color is "#151413"
+
   Scenario: The selected choice is outlined
     Given my camera shows a striped garment
     When I open the camera for the top

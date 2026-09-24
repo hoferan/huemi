@@ -1,6 +1,7 @@
 import { expect } from '@playwright/test';
 import { createBdd } from 'playwright-bdd';
 import { fakeCamera } from '../fakeCamera';
+import { hexToRgb } from './entry.steps';
 
 const { Given, When, Then } = createBdd();
 
@@ -102,3 +103,16 @@ Then('{string} is on screen without scrolling', async ({ page }, text: string) =
   expect(box.y).toBeGreaterThanOrEqual(0);
   expect(box.y + box.height).toBeLessThanOrEqual(viewport.height);
 });
+
+// The browser's default accent is a saturated blue, and the panel exists to
+// judge a color against the photo. The hex is written out, like the copy
+// above, so the scenario fails if the token changes without anyone meaning it.
+Then(
+  "the {string} slider's accent color is {string}",
+  async ({ page }, name: string, hex: string) => {
+    await expect(page.getByRole('slider', { name, exact: true })).toHaveCSS(
+      'accent-color',
+      hexToRgb(hex),
+    );
+  },
+);
