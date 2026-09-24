@@ -144,6 +144,25 @@ describe('colorName', () => {
     expect(colorName(parseHex('#ffffff'))).toBe('White');
   });
 
+  // Real camera reads from the #20 tuning photos. Each is a neutral whose
+  // nearest palette entry was a color, so it got a hue it does not have.
+  it.each([
+    ['#bdb8b4', 'Pale blue', 'Light grey'],
+    ['#94998b', 'Khaki', 'Grey'],
+    ['#635a56', 'Olive', 'Charcoal'],
+  ])('names the neutral read %s by a neutral, not %s', (hex, _wrong, expected) => {
+    expect(colorName(parseHex(hex))).toBe(expected);
+  });
+
+  it('never gives a color a neutral name', () => {
+    // The lit crinkled aubergine trousers from the same photos, hue 25 at
+    // chroma 0.052. Its nearest entry is Grey.
+    expect(nearestColor(parseHex('#a37a76')).color.name).toBe('Grey');
+    expect(['Black', 'Charcoal', 'Grey', 'Light grey', 'White']).not.toContain(
+      colorName(parseHex('#a37a76')),
+    );
+  });
+
   it('keeps every palette color and a camera-sized nudge inside the cutoff', () => {
     for (const c of PALETTE) {
       const [r, g, b] = [1, 3, 5].map((i) => Number.parseInt(c.hex.slice(i, i + 2), 16)) as [

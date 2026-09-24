@@ -51,10 +51,11 @@ function renderAt(url: string) {
 
 // The sliders' default position (hue 210, saturation 40, lightness 50) names
 // "Denim". Nudging saturation or hue by a little stays inside the same named
-// bucket; raising lightness to 55 crosses into "Grey". Found by trying
+// bucket; raising lightness to 55 leaves it, and no palette color is close
+// enough, so it is described as "blue". Found by trying
 // nearby values against colorName() directly, rather than guessed.
 const DEFAULT_NAME = 'Denim';
-const DIFFERENT_NAME = 'Grey';
+const DIFFERENT_NAME = 'blue';
 
 describe('CustomColor', () => {
   it('offers hue, saturation and lightness', () => {
@@ -111,7 +112,7 @@ describe('CustomColor', () => {
     // therefore proof an announcement fired, not just a plausible read.
     const announcedOnce = status.textContent;
 
-    // Saturation +1 (40 -> 41) stays inside the "Grey" bucket at this
+    // Saturation +1 (40 -> 41) stays inside the "blue" description at this
     // lightness, same as it stays inside "Denim" at the default lightness.
     fireEvent.change(screen.getByRole('slider', { name: 'Saturation' }), {
       target: { value: '41' },

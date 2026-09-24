@@ -113,21 +113,48 @@ export function describeColor(hex: Hex): string {
 export const NAME_MAX_DISTANCE = 0.125;
 
 /**
+ * Below this chroma a color is named as a neutral.
+ *
+ * Wider than the engine's `NEUTRAL_CHROMA` of 0.02, because camera reads
+ * carry a white-balance cast: a grey heather tee photographed indoors read at
+ * 0.021. Cream is the palette's least saturated color at 0.031, and the line
+ * sits far enough below it that Cream keeps its name after a camera-sized
+ * nudge. At 0.03 it did not.
+ */
+const NAME_NEUTRAL_CHROMA = 0.025;
+
+const namesAsNeutral = (hex: Hex): boolean => hexToOklch(hex).c < NAME_NEUTRAL_CHROMA;
+
+/**
  * What to call a color, in a word a user can act on.
  *
  * A palette name where one fits, a description built from the color otherwise.
  * `nearestColor` answers which of 18 entries is closest and will answer even
  * when none is close; this decides whether that answer is worth saying.
  *
- * Neutrals are exempt from the cutoff. OKLab lightness is steep at the dark
- * end, which puts pure black 0.222 from Black, further than yellow sits from
- * Cream. The cutoff exists to stop a wrong hue being stated as fact, and
+ * Neutrals are only named by neutrals, and colors only by colors. The palette
+ * has no neutral between Grey and Light grey, so without this a white shirt in
+ * shade was called Pale blue, and a lit dusky red was called Grey. Either way
+ * the name stated a hue that was not there, or hid one that was.
+ *
+ * Neutrals are also exempt from the cutoff. OKLab lightness is steep at the
+ * dark end, which puts pure black 0.222 from Black, further than yellow sits
+ * from Cream. The cutoff exists to stop a wrong hue being stated as fact, and
  * between two neutrals there is no hue to get wrong.
  */
 export function colorName(hex: Hex): string {
-  const { color, distance } = nearestColor(hex);
-  if (distance <= NAME_MAX_DISTANCE) return color.name;
-  if (isNeutral(hex) && isNeutral(color.hex)) return color.name;
+  const neutral = namesAsNeutral(hex);
+  let best: NamedColor | null = null;
+  let distance = Infinity;
+  for (const candidate of PALETTE) {
+    if (namesAsNeutral(candidate.hex) !== neutral) continue;
+    const d = oklabDistance(candidate.hex, hex);
+    if (d < distance) {
+      best = candidate;
+      distance = d;
+    }
+  }
+  if (best && (neutral || distance <= NAME_MAX_DISTANCE)) return best.name;
   return describeColor(hex);
 }
 
