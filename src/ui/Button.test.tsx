@@ -1,3 +1,4 @@
+import { createRef } from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
@@ -35,5 +36,11 @@ describe('Button', () => {
     const button = screen.getByRole('button', { name: 'Not quite' });
     expect(button).toHaveAttribute('aria-expanded', 'false');
     expect(button).toHaveAttribute('aria-controls', 'panel');
+  });
+
+  it('hands its element to a ref, so a caller can give focus back to it', () => {
+    const ref = createRef<HTMLButtonElement>();
+    render(<Button label="Start" onClick={() => {}} ref={ref} />);
+    expect(ref.current).toBe(screen.getByRole('button', { name: 'Start' }));
   });
 });

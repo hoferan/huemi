@@ -1,4 +1,4 @@
-import { startTransition, useMemo, useState } from 'react';
+import { startTransition, useMemo, useRef, useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router';
 import * as stylex from '@stylexjs/stylex';
 import { needsBorder, readableForeground } from '../../color/contrast';
@@ -125,6 +125,7 @@ function ConfirmForCapture({ slot, pixels }: { slot: Slot; pixels: Pixels }) {
   const [selected, setSelected] = useState<Hex | null>(firstColor(initial));
   const [shift, setShift] = useState(0);
   const [panelOpen, setPanelOpen] = useState(false);
+  const toggle = useRef<HTMLButtonElement>(null);
 
   const shown = selected && shift !== 0 ? withLightness(selected, shift) : selected;
   const corrected = reading.kind === 'single' && shown !== reading.color;
@@ -140,6 +141,14 @@ function ConfirmForCapture({ slot, pixels }: { slot: Slot; pixels: Pixels }) {
       dispatch({ type: 'baseChosen', slot, hex });
       void navigate(`/suggest?slot=${slot}&hex=${encodeURIComponent(hex)}`);
     });
+  }
+
+  // The panel's handle, or a swipe, closes it from inside, and the handle
+  // unmounts with it. Without this, focus would fall back to the body.
+  // Closing with "Done" needs nothing, because focus is already on the toggle.
+  function closePanel() {
+    setPanelOpen(false);
+    toggle.current?.focus();
   }
 
   function select(hex: Hex) {
@@ -182,11 +191,12 @@ function ConfirmForCapture({ slot, pixels }: { slot: Slot; pixels: Pixels }) {
                 shift={shift}
                 onSelect={select}
                 onShift={setShift}
-                onClose={() => setPanelOpen(false)}
+                onClose={closePanel}
               />
             )}
             <div {...stylex.props(styles.actions)}>
               <Button
+                ref={toggle}
                 variant="secondary"
                 label={panelOpen ? DONE : NOT_QUITE}
                 onClick={() => setPanelOpen((open) => !open)}

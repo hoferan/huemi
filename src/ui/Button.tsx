@@ -1,3 +1,4 @@
+import type { Ref } from 'react';
 import * as stylex from '@stylexjs/stylex';
 import { tokens } from '../styles/tokens.stylex';
 
@@ -40,15 +41,18 @@ export function Button({
   variant = 'primary',
   expanded,
   controls,
+  ref,
 }: {
   label: string;
   onClick: () => void;
   variant?: 'primary' | 'secondary';
   expanded?: boolean;
   controls?: string;
+  ref?: Ref<HTMLButtonElement>;
 }) {
   return (
     <button
+      ref={ref}
       type="button"
       onClick={onClick}
       aria-expanded={expanded}

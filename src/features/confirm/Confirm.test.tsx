@@ -143,6 +143,17 @@ describe('Confirm', () => {
     expect(screen.getByText(CAPTION_CORRECTED)).toBeInTheDocument();
   });
 
+  // The handle unmounts with the panel, so focus has to go somewhere on
+  // purpose. A swipe-down dismissal takes the same onClose path.
+  it('gives focus back to the toggle when the panel closes from its handle', async () => {
+    const user = userEvent.setup();
+    renderWith(solid(NAVY));
+    await user.click(await screen.findByRole('button', { name: NOT_QUITE }));
+    await user.click(screen.getByRole('button', { name: 'Close' }));
+    expect(screen.queryByRole('group', { name: CLOSER })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: NOT_QUITE })).toHaveFocus();
+  });
+
   it('confirms the corrected color, not the reading', async () => {
     const user = userEvent.setup();
     const reading = readColor(solid(NAVY));
