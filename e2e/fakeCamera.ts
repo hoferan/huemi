@@ -3,13 +3,19 @@ import type { Page } from '@playwright/test';
 /**
  * Replaces the camera before any page script runs.
  *
- * A solid canvas streamed through `captureStream`, rather than Chromium's fake
- * device flags. The flags give every test the same bright test pattern, and
- * the low-light scenario needs a dark scene. There is no binary video fixture
- * either; the scene is two hex values. As with `seedOnboarded`, the callback
- * runs in the browser and cannot close over anything in this module.
+ * A canvas streamed through `captureStream`, rather than Chromium's fake
+ * device flags: the flags give every test the same bright test pattern, and
+ * the confirm screen's scenarios need a plain garment, a striped one and a
+ * busy background too. There is no binary video fixture either; each scene is
+ * painted from the hex values below, written out here so a scenario states
+ * what the camera sees rather than pointing at an image file. As with
+ * `seedOnboarded`, the callback runs in the browser and cannot close over
+ * anything in this module.
  */
-export async function fakeCamera(page: Page, scene: 'bright' | 'dark' | 'denied'): Promise<void> {
+export async function fakeCamera(
+  page: Page,
+  scene: 'bright' | 'dark' | 'denied' | 'garment' | 'striped' | 'busy',
+): Promise<void> {
   await page.addInitScript((scene) => {
     function getUserMedia(): Promise<MediaStream> {
       if (scene === 'denied') {
@@ -22,6 +28,48 @@ export async function fakeCamera(page: Page, scene: 'bright' | 'dark' | 'denied'
       // Repainted, because a canvas that never changes may stop producing
       // frames, and the low-light check samples a live video.
       const paint = () => {
+        if (scene === 'garment') {
+          context.fillStyle = '#4a6285';
+          context.fillRect(0, 0, canvas.width, canvas.height);
+          return;
+        }
+        if (scene === 'striped') {
+          // 3:2 bands, so the majority stripe reads as a clear majority
+          // rather than a near-even split the reader could call either way.
+          const bands: [string, number][] = [
+            ['#1f2a44', 24],
+            ['#f7f6f3', 16],
+          ];
+          let y = 0;
+          let i = 0;
+          while (y < canvas.height) {
+            const [color, height] = bands[i % bands.length]!;
+            context.fillStyle = color;
+            context.fillRect(0, y, canvas.width, height);
+            y += height;
+            i += 1;
+          }
+          return;
+        }
+        if (scene === 'busy') {
+          const colors = ['#b9ad9a', '#5d6b52', '#a8413a', '#3a3633', '#d9c38a'];
+          for (let row = 0; row * 16 < canvas.height; row += 1) {
+            for (let col = 0; col * 16 < canvas.width; col += 1) {
+              context.fillStyle = colors[(col + 2 * row) % colors.length]!;
+              context.fillRect(col * 16, row * 16, 16, 16);
+            }
+          }
+          // A patch the tap scenario aims at: solid, and a single palette
+          // colour, so a tap that lands on it reads as a clean single colour
+          // rather than another mix of the grid around it. Centred on the
+          // frame's own horizontal midpoint, which object-fit: cover always
+          // keeps in view no matter how the viewport crops the sides, and far
+          // enough below the default read circle's centre (48px radius around
+          // 160, 120) that the first, untapped read never touches it.
+          context.fillStyle = '#1f2a44';
+          context.fillRect(120, 170, 80, 70);
+          return;
+        }
         context.fillStyle = scene === 'dark' ? '#101010' : '#c0c0c0';
         context.fillRect(0, 0, canvas.width, canvas.height);
       };
