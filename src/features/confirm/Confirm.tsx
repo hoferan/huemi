@@ -4,7 +4,7 @@ import * as stylex from '@stylexjs/stylex';
 import { needsBorder, readableForeground } from '../../color/contrast';
 import { withLightness } from '../../color/oklab';
 import { blockLabel, colorName } from '../../color/palette';
-import { readColor, type ColorReading } from '../../color/read';
+import { readColor, tapRegion, type ColorReading } from '../../color/read';
 import type { Pixels } from '../../model/frame';
 import type { Hex } from '../../model/hex';
 import type { Slot } from '../../model/types';
@@ -13,6 +13,7 @@ import { tokens } from '../../styles/tokens.stylex';
 import { blockText } from '../../ui/blockText';
 import { Button } from '../../ui/Button';
 import { Screen } from '../../ui/Screen';
+import { useAnnounce } from '../../ui/useAnnounce';
 import { useSlotParam } from '../pick/useSlotParam';
 import { CorrectionPanel } from './CorrectionPanel';
 import { FramePhoto } from './FramePhoto';
@@ -25,9 +26,12 @@ import {
   NEITHER,
   NOT_QUITE,
   PICK_BY_HAND,
+  STILL_UNCLEAR,
+  TAP_ELSEWHERE,
   TITLE_SEVERAL,
   TITLE_SINGLE,
   TITLE_UNCLEAR,
+  UNCLEAR_BODY,
   USE_THIS,
 } from './copy';
 
@@ -96,6 +100,14 @@ const styles = stylex.create({
     color: tokens.ink,
     fontSize: tokens.textBody,
     textAlign: 'center',
+  },
+  // Entry.tsx's body style: ink2, not the block's on-color foreground, since
+  // this text sits on the page background rather than a swatch.
+  unclearBody: {
+    color: tokens.ink2,
+    fontSize: tokens.textBody,
+    lineHeight: 1.5,
+    margin: 0,
   },
 });
 
@@ -182,10 +194,13 @@ export function Confirm() {
 function ConfirmForCapture({ slot, pixels }: { slot: Slot; pixels: Pixels }) {
   const { dispatch } = useSession();
   const navigate = useNavigate();
+  const announce = useAnnounce();
 
   const initial = useMemo(() => readColor(pixels), [pixels]);
-  const [reading] = useState<ColorReading>(initial);
-  const [tap] = useState<{ x: number; y: number } | null>(null);
+  const [reading, setReading] = useState<ColorReading>(initial);
+  const [fromTap, setFromTap] = useState(false);
+  const [missed, setMissed] = useState(false);
+  const [tap, setTap] = useState<{ x: number; y: number } | null>(null);
   const [selected, setSelected] = useState<Hex | null>(firstColor(initial));
   const [shift, setShift] = useState(0);
   const [panelOpen, setPanelOpen] = useState(false);
@@ -220,6 +235,36 @@ function ConfirmForCapture({ slot, pixels }: { slot: Slot; pixels: Pixels }) {
     setShift(0);
   }
 
+  // Reads again around the tap instead of trusting the default centered
+  // region. A failed tap keeps the unclear state and only speaks through the
+  // live region (nothing else moves, so nothing else would carry the news);
+  // a successful one behaves like the initial read, down to resetting the
+  // panel, since it is one.
+  function onTap(x: number, y: number) {
+    const next = readColor(pixels, tapRegion(pixels, x, y));
+    setTap({ x, y });
+    if (next.kind === 'unclear') {
+      setMissed(true);
+      announce(STILL_UNCLEAR);
+      return;
+    }
+    setMissed(false);
+    setFromTap(true);
+    setReading(next);
+    setSelected(firstColor(next));
+    setShift(0);
+    setPanelOpen(false);
+  }
+
+  // Reachable only from a reading that came from a tap: retaking is the only
+  // way back to unclear otherwise, and that is a heavier fix for what might
+  // be a single mis-tap. The mark stays on the photo, so the user sees where
+  // the last tap landed while they try again.
+  function tapElsewhere() {
+    setReading({ kind: 'unclear' });
+    setMissed(false);
+  }
+
   return (
     // The key remounts Screen when the reading changes kind, which re-runs
     // its focus effect: the new heading takes focus, and a screen reader
@@ -227,7 +272,11 @@ function ConfirmForCapture({ slot, pixels }: { slot: Slot; pixels: Pixels }) {
     <Screen key={reading.kind} title={TITLES[reading.kind]}>
       <div {...stylex.props(styles.body)}>
         <div {...stylex.props(styles.pair)}>
-          <FramePhoto pixels={pixels} {...(tap && { mark: tap })} />
+          <FramePhoto
+            pixels={pixels}
+            {...(reading.kind === 'unclear' && { onTap })}
+            {...(tap && { mark: tap })}
+          />
           {(reading.kind === 'single' || reading.kind === 'several') && shown && (
             <div
               role="group"
@@ -247,6 +296,9 @@ function ConfirmForCapture({ slot, pixels }: { slot: Slot; pixels: Pixels }) {
             </div>
           )}
         </div>
+        {reading.kind === 'unclear' && (
+          <p {...stylex.props(styles.unclearBody)}>{missed ? STILL_UNCLEAR : UNCLEAR_BODY}</p>
+        )}
         {reading.kind === 'single' && selected && shown && (
           <>
             {panelOpen && (
@@ -271,6 +323,7 @@ function ConfirmForCapture({ slot, pixels }: { slot: Slot; pixels: Pixels }) {
               />
               <Button label={corrected ? USE_THIS : LOOKS_RIGHT} onClick={() => confirm(shown)} />
             </div>
+            {fromTap && <Button variant="secondary" label={TAP_ELSEWHERE} onClick={tapElsewhere} />}
           </>
         )}
         {reading.kind === 'several' && selected && (
@@ -287,6 +340,7 @@ function ConfirmForCapture({ slot, pixels }: { slot: Slot; pixels: Pixels }) {
               ))}
             </div>
             <Button label={colorAction(colorName(selected))} onClick={() => confirm(selected)} />
+            {fromTap && <Button variant="secondary" label={TAP_ELSEWHERE} onClick={tapElsewhere} />}
           </>
         )}
         <Link to={`/color?slot=${slot}`} {...stylex.props(styles.link)}>

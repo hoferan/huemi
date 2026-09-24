@@ -1,11 +1,11 @@
 import { useEffect } from 'react';
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router';
 import { describe, expect, it } from 'vitest';
 import { colorName } from '../../color/palette';
 import { readColor } from '../../color/read';
-import { NAVY, WHITE, paint, solid } from '../../color/testing';
+import { NAVY, WHITE, busy, paint, solid } from '../../color/testing';
 import type { Pixels } from '../../model/frame';
 import { parseHex } from '../../model/hex';
 import type { Slot } from '../../model/types';
@@ -24,8 +24,12 @@ import {
   NEITHER,
   NOT_QUITE,
   PICK_BY_HAND,
+  STILL_UNCLEAR,
+  TAP_ELSEWHERE,
   TITLE_SEVERAL,
   TITLE_SINGLE,
+  TITLE_UNCLEAR,
+  UNCLEAR_BODY,
   USE_THIS,
 } from './copy';
 
@@ -249,5 +253,63 @@ describe('Confirm, several', () => {
       .getAllByRole('button')
       .map((b) => b.getAttribute('aria-label') ?? b.textContent);
     expect(new Set(names).size).toBe(names.length);
+  });
+});
+
+describe('Confirm, unclear', () => {
+  // A solid navy patch in the top-left quadrant, over a busy background of
+  // five colors in 8px squares. Coordinates checked in a scratch test against
+  // `readColor(pixels, tapRegion(pixels, x, y))`: the default region (centered)
+  // sees only the busy background and comes back unclear; a tap inside the
+  // patch lands on solid navy, and a tap in the far corner stays on the busy
+  // background and stays unclear too.
+  const busyWithPatch = () => paint(100, 100, (x, y) => (x < 40 && y < 40 ? NAVY : busy(x, y)));
+
+  function stubLayout() {
+    // jsdom lays nothing out. The photo is 100x100 CSS px, one per frame pixel.
+    const photo = screen.getByRole('img', { name: 'Your photo' });
+    photo.getBoundingClientRect = () => ({ left: 0, top: 0, width: 100, height: 100 }) as DOMRect;
+    return photo;
+  }
+
+  it('asks for a tap when nothing covers enough of the photo', async () => {
+    renderWith(paint(100, 100, busy));
+    expect(
+      await screen.findByRole('heading', { level: 1, name: TITLE_UNCLEAR }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(UNCLEAR_BODY)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: PICK_BY_HAND })).toBeInTheDocument();
+  });
+
+  it('reads again where the user tapped', async () => {
+    renderWith(busyWithPatch());
+    await screen.findByRole('heading', { level: 1, name: TITLE_UNCLEAR });
+    fireEvent.click(stubLayout(), { clientX: 20, clientY: 20 });
+    expect(await screen.findByRole('heading', { level: 1, name: TITLE_SINGLE })).toHaveFocus();
+    expect(screen.getByText('Navy')).toBeInTheDocument();
+  });
+
+  it('says so when a tap is still unclear, through the live region too', async () => {
+    renderWith(busyWithPatch());
+    await screen.findByRole('heading', { level: 1, name: TITLE_UNCLEAR });
+    fireEvent.click(stubLayout(), { clientX: 90, clientY: 90 });
+    expect(await screen.findAllByText(STILL_UNCLEAR)).toHaveLength(2);
+  });
+
+  it('can go back to tapping after a tap reading', async () => {
+    const user = userEvent.setup();
+    renderWith(busyWithPatch());
+    await screen.findByRole('heading', { level: 1, name: TITLE_UNCLEAR });
+    fireEvent.click(stubLayout(), { clientX: 20, clientY: 20 });
+    await user.click(await screen.findByRole('button', { name: TAP_ELSEWHERE }));
+    expect(
+      await screen.findByRole('heading', { level: 1, name: TITLE_UNCLEAR }),
+    ).toBeInTheDocument();
+  });
+
+  it('offers no tap-again on a reading that was not tapped', async () => {
+    renderWith(solid(NAVY));
+    await screen.findByRole('heading', { level: 1, name: TITLE_SINGLE });
+    expect(screen.queryByRole('button', { name: TAP_ELSEWHERE })).not.toBeInTheDocument();
   });
 });
