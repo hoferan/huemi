@@ -42,7 +42,7 @@ Then(
     // import is missing — fix that rather than weakening this assertion.
     //
     // This is a weaker proof than the spike screen's was: it checks the
-    // "Pick a color" button's background against `tokens.primary`, a
+    // "Take a photo" button's background against `tokens.primary`, a
     // compile-time token, rather than against a literal runtime hex chosen
     // independently of the source. #15 owes the runtime-hex assertion back
     // once the palette swatches land.

@@ -115,9 +115,6 @@ function stopTracks(stream: MediaStream) {
  * be poor and puts the two alternatives in reach, and the confirm step (#21)
  * is where a poor read gets corrected. Blocking the shutter would punish the
  * common case on a threshold nobody has tuned yet.
- *
- * Nothing links here until #21 exists, so the navigation to `/confirm` below
- * cannot be reached in the shipped app until then.
  */
 export function Camera() {
   const slot = useSlotParam();

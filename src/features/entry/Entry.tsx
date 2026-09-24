@@ -29,6 +29,7 @@ const styles = stylex.create({
     margin: 0,
   },
   spacer: { flex: '1' },
+  actions: { display: 'flex', flexDirection: 'column', gap: '8px' },
 });
 
 /**
@@ -40,9 +41,11 @@ const styles = stylex.create({
  * would be decoration, and the brief is explicit that colour is the content
  * and the interface around it has to stay out of the way.
  *
- * The header holds the wordmark and the way into the saved collection. The
- * camera route exists from #19 but joins them only with #21, once a capture
- * has somewhere to go.
+ * The header holds the wordmark and the way into the saved collection.
+ *
+ * The camera leads because photographing a garment you own is the faster
+ * path, a choice André made on 2026-09-24 over putting the picker first or
+ * asking for the method after the slot.
  */
 export function Entry() {
   const navigate = useNavigate();
@@ -60,10 +63,13 @@ export function Entry() {
       }
     >
       <p {...stylex.props(styles.body)}>
-        Choose the color of something you already own, and huemi suggests the rest.
+        Photograph something you already own, or choose its color, and huemi suggests the rest.
       </p>
       <div {...stylex.props(styles.spacer)} />
-      <Button label="Pick a color" onClick={() => void navigate('/slot')} />
+      <div {...stylex.props(styles.actions)}>
+        <Button label="Take a photo" onClick={() => void navigate('/slot?next=camera')} />
+        <Button variant="secondary" label="Pick a color" onClick={() => void navigate('/slot')} />
+      </div>
     </Screen>
   );
 }
