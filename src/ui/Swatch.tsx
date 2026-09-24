@@ -1,3 +1,4 @@
+import type { Ref } from 'react';
 import * as stylex from '@stylexjs/stylex';
 import { needsBorder } from '../color/contrast';
 import { colorName } from '../color/palette';
@@ -42,6 +43,7 @@ export function Swatch({
   hex,
   onSelect,
   pressed,
+  ref,
 }: {
   hex: Hex;
   onSelect: (hex: Hex) => void;
@@ -49,9 +51,11 @@ export function Swatch({
   // button, and most callers of this component are not one. Only the
   // correction panel's selection grid passes it.
   pressed?: boolean;
+  ref?: Ref<HTMLButtonElement>;
 }) {
   return (
     <button
+      ref={ref}
       type="button"
       onClick={() => onSelect(hex)}
       aria-pressed={pressed}

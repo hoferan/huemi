@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import * as stylex from '@stylexjs/stylex';
 import { withLightness } from '../../color/oklab';
 import { colorName, nearbyColors } from '../../color/palette';
@@ -60,10 +60,22 @@ export function CorrectionPanel({
   onClose: () => void;
 }) {
   const panel = useRef<HTMLElement>(null);
+  const pressed = useRef<HTMLButtonElement>(null);
   const { offset, onPointerDown, dragged } = useDragDismiss({
     onDismiss: onClose,
     height: () => panel.current?.offsetHeight ?? 0,
   });
+
+  // The panel renders above the button that opened it, so leaving focus on that
+  // button would put the panel behind a keyboard or screen-reader user: the
+  // next Tab reaches "Looks right". Focus goes to the selected swatch, so the
+  // user lands on the current choice. This runs on mount only, because
+  // mounting is what opening the panel means, and choosing another swatch
+  // leaves focus where the user put it. The confirm screen gives focus back to
+  // the toggle when the panel closes.
+  useEffect(() => {
+    pressed.current?.focus();
+  }, []);
 
   // A neighbour named like the reading is left out. Two swatches with one name
   // are ambiguous to a screen reader, and choosing it would show "Your
@@ -95,7 +107,13 @@ export function CorrectionPanel({
         <p {...stylex.props(styles.caption)}>{CLOSER}</p>
         <div {...stylex.props(styles.grid)}>
           {choices.map((hex) => (
-            <Swatch key={hex} hex={hex} onSelect={onSelect} pressed={hex === selected} />
+            <Swatch
+              key={hex}
+              {...(hex === selected && { ref: pressed })}
+              hex={hex}
+              onSelect={onSelect}
+              pressed={hex === selected}
+            />
           ))}
         </div>
       </div>

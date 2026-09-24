@@ -151,6 +151,16 @@ describe('Confirm', () => {
     expect(screen.getByText(CAPTION_CORRECTED)).toBeInTheDocument();
   });
 
+  // The panel renders above the toggle, so from the toggle the next Tab goes to
+  // "Looks right" and the panel is behind the user in reading order.
+  it('moves focus into the panel, onto the selected swatch, when it opens', async () => {
+    const user = userEvent.setup();
+    renderWith(solid(NAVY));
+    await user.click(await screen.findByRole('button', { name: NOT_QUITE }));
+    const group = screen.getByRole('group', { name: CLOSER });
+    expect(within(group).getByRole('button', { pressed: true })).toHaveFocus();
+  });
+
   // The handle unmounts with the panel, so focus has to go somewhere on
   // purpose. A swipe-down dismissal takes the same onClose path.
   it('gives focus back to the toggle when the panel closes from its handle', async () => {
