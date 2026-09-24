@@ -10,13 +10,14 @@ function Where() {
   return <p>{pathname + search}</p>;
 }
 
-function renderAt() {
+function renderAt(url = '/slot') {
   render(
-    <MemoryRouter initialEntries={['/slot']}>
+    <MemoryRouter initialEntries={[url]}>
       <InitialLocationContext value={true}>
         <Routes>
           <Route path="/slot" element={<SlotChoice />} />
           <Route path="/color" element={<Where />} />
+          <Route path="/camera" element={<Where />} />
         </Routes>
       </InitialLocationContext>
     </MemoryRouter>,
@@ -37,5 +38,19 @@ describe('SlotChoice', () => {
     renderAt();
     await user.click(screen.getByRole('button', { name: 'Bottom' }));
     expect(await screen.findByText('/color?slot=bottom')).toBeInTheDocument();
+  });
+
+  it('leads to the camera when the camera is where the user was going', async () => {
+    const user = userEvent.setup();
+    renderAt('/slot?next=camera');
+    await user.click(screen.getByRole('button', { name: 'Top' }));
+    expect(await screen.findByText('/camera?slot=top')).toBeInTheDocument();
+  });
+
+  it('falls back to the picker for a next it does not know', async () => {
+    const user = userEvent.setup();
+    renderAt('/slot?next=elsewhere');
+    await user.click(screen.getByRole('button', { name: 'Top' }));
+    expect(await screen.findByText('/color?slot=top')).toBeInTheDocument();
   });
 });
