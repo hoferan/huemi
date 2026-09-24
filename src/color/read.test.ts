@@ -44,6 +44,19 @@ const solid = (rgb: Rgb, size = 100) => paint(size, size, () => rgb);
 const busy = (x: number, y: number): Rgb =>
   [BEIGE, OLIVE, RUST, CHARCOAL, MUSTARD][(Math.floor(x / 8) + 2 * Math.floor(y / 8)) % 5]!;
 
+// Seeded Gaussian noise per channel, the way a dim sensor adds it.
+function noisy(at: (x: number, y: number) => Rgb, sigma: number, seed: number) {
+  let a = seed >>> 0;
+  const next = () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = Math.imul(a ^ (a >>> 15), a | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  const gauss = () => Math.sqrt(-2 * Math.log(1 - next())) * Math.cos(2 * Math.PI * next());
+  return paint(160, 120, (x, y) => at(x, y).map((v) => v + sigma * gauss()) as Rgb);
+}
+
 describe('defaultRegion', () => {
   it('centers a circle a fifth of the short side in radius', () => {
     expect(defaultRegion(paint(200, 100, () => NAVY))).toEqual({ cx: 100, cy: 50, r: 20 });
@@ -78,6 +91,15 @@ describe('readColor', () => {
     expect(readColor(fold).kind).toBe('single');
   });
 
+  it.each([
+    ['black', [20, 20, 22] as Rgb],
+    ['navy', NAVY],
+  ])('keeps a dark %s garment single under sensor noise', (_, rgb) => {
+    for (const seed of [1, 2, 3, 4, 5]) {
+      expect(readColor(noisy(() => rgb, 15, seed)).kind, `seed ${seed}`).toBe('single');
+    }
+  });
+
   it('is not pulled toward white by a few highlight pixels', () => {
     const shiny = paint(100, 100, (x, y) => ((x * 7 + y * 13) % 33 === 0 ? [255, 255, 255] : NAVY));
     const reading = readColor(shiny);
@@ -97,6 +119,13 @@ describe('readColor', () => {
     expect(reading.colors[0]!.share).toBeLessThan(0.7);
   });
 
+  it('still offers both colors of stripes under sensor noise', () => {
+    for (const seed of [1, 2, 3]) {
+      const stripes = noisy((_, y) => (y % 10 < 6 ? NAVY : WHITE), 15, seed);
+      expect(readColor(stripes).kind).toBe('several');
+    }
+  });
+
   it('offers three colors of a three-color print', () => {
     const print = paint(100, 100, (x) => (x % 12 < 4 ? NAVY : x % 12 < 8 ? RUST : OLIVE));
     const reading = readColor(print);
@@ -109,6 +138,12 @@ describe('readColor', () => {
 
   it('gives up on a busy scene with no dominant color', () => {
     expect(readColor(paint(100, 100, busy)).kind).toBe('unclear');
+  });
+
+  it('still gives up on a busy scene under sensor noise', () => {
+    for (const seed of [1, 2, 3]) {
+      expect(readColor(noisy(busy, 15, seed)).kind, `seed ${seed}`).toBe('unclear');
+    }
   });
 
   it('reads only inside the default circle', () => {

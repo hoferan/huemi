@@ -17,7 +17,11 @@ export const READ_TUNING = {
   /** Most pixels visited per reading. */
   maxSamples: 4096,
 
-  clusters: 4,
+  /**
+   * More groups than a busy scene has colors. With fewer, one group has to
+   * hold two colors, and its median is a blend that is in neither.
+   */
+  clusters: 6,
   lightnessWeight: 0.5,
   iterations: 12,
   mergeDistance: 0.06,
@@ -73,10 +77,34 @@ export function tapRegion({ width, height }: Pixels, x: number, y: number): Regi
   return { cx: x, cy: y, r: READ_TUNING.tapRadius * Math.min(width, height) };
 }
 
+const median = (values: number[]): number => {
+  values.sort((a, b) => a - b);
+  return values[(values.length - 1) >> 1]!;
+};
+
+// The channel medians of a pixel and its neighbors within the frame. Sensor
+// noise is independent from pixel to pixel, and in dim light it is strong
+// enough that k-means cuts one dark fabric into pieces the merge step reads
+// as a pattern. A median removes it without blurring a stripe's edge, which
+// an average would turn into a third color.
+function denoised({ width, height, data }: Pixels, x: number, y: number): Oklab {
+  const channels: [number[], number[], number[]] = [[], [], []];
+  for (let ny = Math.max(0, y - 1); ny <= Math.min(height - 1, y + 1); ny++) {
+    for (let nx = Math.max(0, x - 1); nx <= Math.min(width - 1, x + 1); nx++) {
+      const i = (ny * width + nx) * 4;
+      channels[0].push(data[i]!);
+      channels[1].push(data[i + 1]!);
+      channels[2].push(data[i + 2]!);
+    }
+  }
+  return rgbToOklab([median(channels[0]), median(channels[1]), median(channels[2])]);
+}
+
 // Pixels whose centers fall inside the circle and the frame, at a stride
 // that keeps the count under maxSamples. Written so NaN coordinates fail
 // every comparison and produce no samples.
-function sample({ width, height, data }: Pixels, { cx, cy, r }: Region): Oklab[] {
+function sample(pixels: Pixels, { cx, cy, r }: Region): Oklab[] {
+  const { width, height } = pixels;
   if (!(r > 0)) return [];
   const x0 = Math.max(0, Math.floor(cx - r));
   const x1 = Math.min(width, Math.ceil(cx + r));
@@ -94,8 +122,7 @@ function sample({ width, height, data }: Pixels, { cx, cy, r }: Region): Oklab[]
       const dx = x + 0.5 - cx;
       const dy = y + 0.5 - cy;
       if (dx * dx + dy * dy > r * r) continue;
-      const i = (y * width + x) * 4;
-      out.push(rgbToOklab([data[i]!, data[i + 1]!, data[i + 2]!]));
+      out.push(denoised(pixels, x, y));
     }
   }
   return out;
