@@ -85,8 +85,8 @@ Then('only the pressed button in {string} is outlined', async ({ page }, group: 
   }
 });
 
-// A phone turned on its side. The photo's canvas once set the row's height
-// from its own aspect ratio, which pushed the buttons below the fold.
+// A phone turned on its side, where the photo is wide and short and the
+// buttons below it have the least room.
 Given('my screen is {int} by {int}', async ({ page }, width: number, height: number) => {
   await page.setViewportSize({ width, height });
 });

@@ -12,8 +12,8 @@ const styles = stylex.create({
   // The wrap takes whatever height the screen leaves it, down to a floor that
   // keeps the photo worth looking at. It cannot get that height from the
   // canvas: `main` has a minimum height and no definite one, so an in-flow
-  // canvas's aspect ratio set the row's height, and on a phone held
-  // landscape that pushed "Looks right" below the fold.
+  // canvas's aspect ratio would set the row's height, and on a phone held
+  // landscape that pushes "Looks right" below the fold.
   wrap: { position: 'relative', flex: '1', minHeight: '160px' },
   // Out of flow for the reason above: positioned against the wrap, the canvas
   // contributes no intrinsic size and fills whatever box the layout gave it.
