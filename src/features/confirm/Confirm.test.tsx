@@ -5,7 +5,7 @@ import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-rou
 import { describe, expect, it } from 'vitest';
 import { colorName } from '../../color/palette';
 import { readColor } from '../../color/read';
-import { NAVY, solid } from '../../color/testing';
+import { NAVY, WHITE, paint, solid } from '../../color/testing';
 import type { Pixels } from '../../model/frame';
 import { parseHex } from '../../model/hex';
 import type { Slot } from '../../model/types';
@@ -18,10 +18,13 @@ import {
   CAPTION_CORRECTED,
   CAPTION_READ,
   CLOSER,
+  colorAction,
   DONE,
   LOOKS_RIGHT,
+  NEITHER,
   NOT_QUITE,
   PICK_BY_HAND,
+  TITLE_SEVERAL,
   TITLE_SINGLE,
   USE_THIS,
 } from './copy';
@@ -193,5 +196,58 @@ describe('Confirm', () => {
   it('handles a one-pixel photo', async () => {
     renderWith(solid(NAVY, 1));
     expect(await screen.findByRole('heading', { level: 1 })).toBeInTheDocument();
+  });
+});
+
+describe('Confirm, several', () => {
+  // 60/40 navy and white bands, as in read.test.ts.
+  const stripes = () => paint(100, 100, (_x, y) => (y % 10 < 6 ? NAVY : WHITE));
+
+  it('asks which color a patterned garment is, largest first and chosen', async () => {
+    renderWith(stripes());
+    expect(
+      await screen.findByRole('heading', { level: 1, name: TITLE_SEVERAL }),
+    ).toBeInTheDocument();
+    const choices = within(screen.getByRole('group', { name: TITLE_SEVERAL })).getAllByRole(
+      'button',
+    );
+    expect(choices).toHaveLength(2);
+    expect(choices[0]).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: colorAction('Navy') })).toBeInTheDocument();
+  });
+
+  it('uses the one chosen', async () => {
+    const user = userEvent.setup();
+    renderWith(stripes());
+    const choices = within(await screen.findByRole('group', { name: TITLE_SEVERAL })).getAllByRole(
+      'button',
+    );
+    await user.click(choices[1]!);
+    const use = screen.getByRole('button', { name: /^Use / });
+    expect(use).not.toHaveAccessibleName(colorAction('Navy'));
+    await user.click(use);
+    expect(await screen.findByText(/^\/suggest/)).toBeInTheDocument();
+  });
+
+  it('lets the user pick by hand instead', async () => {
+    renderWith(stripes());
+    expect(await screen.findByRole('link', { name: NEITHER })).toHaveAttribute(
+      'href',
+      '/color?slot=top',
+    );
+  });
+
+  // Review focus 3: two shades that share a name must still be told apart.
+  // This shade is stepped off NAVY in OKLab L, far enough that the reader
+  // keeps them as two groups but close enough that colorName still calls
+  // both of them "Navy" (measured; see task-8-report.md).
+  it('names each choice with its share, so two of one name differ', async () => {
+    const twoNavies = paint(100, 100, (_x, y) => (y % 10 < 6 ? NAVY : [10, 18, 38]));
+    renderWith(twoNavies);
+    const group = await screen.findByRole('group', { name: TITLE_SEVERAL });
+    const names = within(group)
+      .getAllByRole('button')
+      .map((b) => b.getAttribute('aria-label') ?? b.textContent);
+    expect(new Set(names).size).toBe(names.length);
   });
 });

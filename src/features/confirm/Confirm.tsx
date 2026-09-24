@@ -19,8 +19,10 @@ import { FramePhoto } from './FramePhoto';
 import {
   CAPTION_CORRECTED,
   CAPTION_READ,
+  colorAction,
   DONE,
   LOOKS_RIGHT,
+  NEITHER,
   NOT_QUITE,
   PICK_BY_HAND,
   TITLE_SEVERAL,
@@ -64,6 +66,27 @@ const styles = stylex.create({
   // against the background without it.
   hairline: { boxShadow: `inset 0 0 0 1px ${tokens.line}` },
   actions: { display: 'flex', gap: '8px' },
+  choices: { display: 'flex', gap: '8px' },
+  // Each choice is a button of its own, swatch above and name below, rather
+  // than reusing `Swatch`: that component's name is screen-reader-only, and
+  // here the name has to be the visible label the spec asks for, with the
+  // share folded into the accessible name instead (see `ColorChoice`).
+  choice: {
+    flex: '1',
+    minWidth: tokens.touchTarget,
+    minHeight: tokens.touchTarget,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '6px',
+    borderStyle: 'none',
+    backgroundColor: 'transparent',
+    padding: 0,
+    cursor: 'pointer',
+  },
+  choiceSwatch: { minHeight: tokens.touchTarget, borderRadius: tokens.radius },
+  // Dynamic: the color is a runtime value (ADR 0002).
+  choiceFill: (background: string) => ({ backgroundColor: background }),
+  choiceName: { fontSize: tokens.textBody, color: tokens.ink, textAlign: 'center' },
   // Picker.tsx's link style, for the same reason: a link is a hit target.
   link: {
     display: 'inline-flex',
@@ -75,6 +98,47 @@ const styles = stylex.create({
     textAlign: 'center',
   },
 });
+
+/**
+ * One choice in the `several` state's group: a swatch with its name shown
+ * underneath, so every option carries a name a colour-vision-deficient user
+ * can read, not only the selected one.
+ *
+ * Two stripes can land on the same palette name (a dark and a darker navy,
+ * say) while covering different areas of the garment. The share is folded
+ * into the accessible name so a screen reader still tells them apart.
+ */
+function ColorChoice({
+  color,
+  share,
+  selected,
+  onSelect,
+}: {
+  color: Hex;
+  share: number;
+  selected: boolean;
+  onSelect: (hex: Hex) => void;
+}) {
+  const name = colorName(color);
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect(color)}
+      aria-pressed={selected}
+      aria-label={`${name}, ${Math.round(share * 100)}% of the area`}
+      {...stylex.props(styles.choice)}
+    >
+      <span
+        {...stylex.props(
+          styles.choiceSwatch,
+          styles.choiceFill(color),
+          needsBorder(color) && styles.hairline,
+        )}
+      />
+      <span {...stylex.props(styles.choiceName)}>{name}</span>
+    </button>
+  );
+}
 
 function firstColor(reading: ColorReading): Hex | null {
   switch (reading.kind) {
@@ -164,7 +228,7 @@ function ConfirmForCapture({ slot, pixels }: { slot: Slot; pixels: Pixels }) {
       <div {...stylex.props(styles.body)}>
         <div {...stylex.props(styles.pair)}>
           <FramePhoto pixels={pixels} {...(tap && { mark: tap })} />
-          {reading.kind === 'single' && shown && (
+          {(reading.kind === 'single' || reading.kind === 'several') && shown && (
             <div
               role="group"
               aria-label={blockLabel(slot, shown)}
@@ -174,9 +238,11 @@ function ConfirmForCapture({ slot, pixels }: { slot: Slot; pixels: Pixels }) {
                 needsBorder(shown) && styles.hairline,
               )}
             >
-              <span {...stylex.props(blockText.slot)}>
-                {corrected ? CAPTION_CORRECTED : CAPTION_READ}
-              </span>
+              {reading.kind === 'single' && (
+                <span {...stylex.props(blockText.slot)}>
+                  {corrected ? CAPTION_CORRECTED : CAPTION_READ}
+                </span>
+              )}
               <span {...stylex.props(blockText.name)}>{colorName(shown)}</span>
             </div>
           )}
@@ -207,8 +273,24 @@ function ConfirmForCapture({ slot, pixels }: { slot: Slot; pixels: Pixels }) {
             </div>
           </>
         )}
+        {reading.kind === 'several' && selected && (
+          <>
+            <div role="group" aria-label={TITLE_SEVERAL} {...stylex.props(styles.choices)}>
+              {reading.colors.map(({ color, share }) => (
+                <ColorChoice
+                  key={color}
+                  color={color}
+                  share={share}
+                  selected={color === selected}
+                  onSelect={select}
+                />
+              ))}
+            </div>
+            <Button label={colorAction(colorName(selected))} onClick={() => confirm(selected)} />
+          </>
+        )}
         <Link to={`/color?slot=${slot}`} {...stylex.props(styles.link)}>
-          {PICK_BY_HAND}
+          {reading.kind === 'several' ? NEITHER : PICK_BY_HAND}
         </Link>
       </div>
     </Screen>
