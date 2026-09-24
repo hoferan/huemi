@@ -11,6 +11,7 @@ export type { SlotPick, SessionAction, SessionState } from './types';
  */
 export const initialSession: SessionState = {
   base: null,
+  capture: null,
   // Frozen because these two objects are shared by reference into every state
   // derived from the initial one, here and through `reset` and `baseChosen`.
   // Every case below replaces them rather than writing into them, and a lapse
@@ -85,6 +86,10 @@ export function sessionReducer(state: SessionState, action: SessionAction): Sess
       // successor.
       if (state.toast?.id !== action.id) return state;
       return { ...state, toast: null };
+
+    case 'frameCaptured':
+      // One capture at a time: a new shot means the last one was not wanted.
+      return { ...state, capture: { slot: action.slot, frame: action.frame } };
 
     case 'reset':
       return { ...initialSession, toastSeq: state.toastSeq };
