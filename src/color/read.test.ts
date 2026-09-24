@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import type { Pixels } from '../model/frame';
 import { isHex, type Hex } from '../model/hex';
 import { rgbToHex, type Rgb } from './convert';
 import { oklabDistance, hexToOklab } from './oklab';
@@ -12,37 +11,9 @@ import {
   tapRegion,
   type ColorShare,
 } from './read';
-
-function paint(width: number, height: number, at: (x: number, y: number) => Rgb): Pixels {
-  const data = new Uint8ClampedArray(width * height * 4);
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
-      const [r, g, b] = at(x, y);
-      const i = (y * width + x) * 4;
-      data[i] = r;
-      data[i + 1] = g;
-      data[i + 2] = b;
-      data[i + 3] = 255;
-    }
-  }
-  return { width, height, data };
-}
-
-const NAVY: Rgb = [43, 58, 92];
-const WHITE: Rgb = [236, 235, 230];
-const RUST: Rgb = [168, 65, 58];
-const OLIVE: Rgb = [93, 107, 82];
-const BEIGE: Rgb = [185, 173, 154];
-const CHARCOAL: Rgb = [58, 54, 51];
-const MUSTARD: Rgb = [217, 195, 138];
+import { NAVY, OLIVE, RUST, WHITE, busy, paint, solid } from './testing';
 
 const near = (hex: Hex, rgb: Rgb) => oklabDistance(hex, rgbToHex(rgb)) < 0.02;
-
-const solid = (rgb: Rgb, size = 100) => paint(size, size, () => rgb);
-
-// Five colors in 8px squares, none covering more than a fifth.
-const busy = (x: number, y: number): Rgb =>
-  [BEIGE, OLIVE, RUST, CHARCOAL, MUSTARD][(Math.floor(x / 8) + 2 * Math.floor(y / 8)) % 5]!;
 
 // Seeded Gaussian noise per channel, the way a dim sensor adds it.
 function noisy(at: (x: number, y: number) => Rgb, sigma: number, seed: number) {
