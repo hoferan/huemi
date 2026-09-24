@@ -1,3 +1,4 @@
+import AxeBuilder from '@axe-core/playwright';
 import { expect } from '@playwright/test';
 import { createBdd } from 'playwright-bdd';
 import { fakeCamera } from '../fakeCamera';
@@ -53,4 +54,64 @@ Then('I do not see the low-light warning', async ({ page }) => {
 // The panel's heading sits under the screen's own, so it is a level 2.
 Then('I am told {string}', async ({ page }, name: string) => {
   await expect(page.getByRole('heading', { level: 2, name })).toBeVisible();
+});
+
+// A 1x1 PNG, written out so the scenario carries no binary fixture.
+const ONE_PIXEL_PNG =
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+
+// Retried, because a tap before the video has decoded a frame does nothing on
+// purpose (`hasFrame`), and the fake camera's first frame is a moment behind
+// the shutter appearing.
+When('I take a photo', async ({ page }) => {
+  await expect(async () => {
+    await page.getByRole('button', { name: 'Take photo', exact: true }).click();
+    await expect(page).toHaveURL(/\/confirm\?slot=top$/, { timeout: 500 });
+  }).toPass();
+});
+
+When('I choose a photo of a garment', async ({ page }) => {
+  await page.locator('input[type="file"]').setInputFiles({
+    name: 'shirt.png',
+    mimeType: 'image/png',
+    buffer: Buffer.from(ONE_PIXEL_PNG, 'base64'),
+  });
+});
+
+When('I choose a file that is not a photo', async ({ page }) => {
+  await page.locator('input[type="file"]').setInputFiles({
+    name: 'notes.txt',
+    mimeType: 'text/plain',
+    buffer: Buffer.from('not a photo'),
+  });
+});
+
+// `/confirm` arrives with #21. Until then the URL is the proof the capture
+// was taken and handed on; the screen there is the not-found one.
+Then('I am taken to confirm the top', async ({ page }) => {
+  await expect(page).toHaveURL(/\/confirm\?slot=top$/);
+});
+
+Then('I see the text {string}', async ({ page }, text: string) => {
+  await expect(page.locator('p:not([role])', { hasText: text })).toBeVisible();
+});
+
+// The invariant sweep scans `/camera` in its live state only. These two carry
+// the same checks into the states it cannot reach by URL alone.
+Then('the screen has no detectable accessibility violations', async ({ page }) => {
+  const results = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+    .analyze();
+  expect(results.violations).toEqual([]);
+});
+
+Then('every link and button is at least 44 by 44', async ({ page }) => {
+  const controls = await page.getByRole('link').or(page.getByRole('button')).all();
+  expect(controls.length).toBeGreaterThan(0);
+  for (const control of controls) {
+    const box = await control.boundingBox();
+    expect(box).not.toBeNull();
+    expect(box!.width).toBeGreaterThanOrEqual(44);
+    expect(box!.height).toBeGreaterThanOrEqual(44);
+  }
 });

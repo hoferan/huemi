@@ -21,6 +21,24 @@ export function scaledSize(width: number, height: number, maxSide: number): [num
   return [Math.max(1, Math.round(width * k)), Math.max(1, Math.round(height * k))];
 }
 
+/**
+ * Whether the video has a decoded frame to draw.
+ *
+ * The size alone is not enough. It is known from HAVE_METADATA, before any
+ * frame is decoded, and drawing then gives transparent black. A shutter tap in
+ * that window would capture a black garment, and every low-light sample would
+ * read as darkness.
+ */
+export function hasFrame(video: HTMLVideoElement): boolean {
+  return (
+    video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA &&
+    video.videoWidth > 0 &&
+    video.videoHeight > 0
+  );
+}
+
+const UNDECODABLE = { ok: false, reason: 'undecodable' } as const;
+
 /* v8 ignore start */
 // Canvas drawing and media playback. jsdom implements neither, so no unit test
 // can reach these lines. The Playwright scenarios in e2e/features/camera.feature
@@ -44,32 +62,41 @@ function draw(
 function attach(video: HTMLVideoElement, stream: MediaStream): void {
   video.srcObject = stream;
   // Browsers allow a muted inline video to autoplay. If play() is refused
-  // anyway, the viewfinder stays still and the rest of the screen works.
+  // anyway, no frame is ever decoded, so `hasFrame` keeps the shutter and the
+  // low-light check from reading one.
   void video.play().catch(() => undefined);
 }
 
-function readFrame(video: HTMLVideoElement, maxSide: number) {
-  if (!video.videoWidth || !video.videoHeight) return null;
+function drawFrame(video: HTMLVideoElement, maxSide: number) {
   const pixels = draw(video, video.videoWidth, video.videoHeight, maxSide);
   return pixels && { pixels, source: 'camera' as const };
 }
 
-async function readPhoto(file: File, maxSide: number) {
+function drawPhoto(bitmap: ImageBitmap, maxSide: number) {
   try {
-    const bitmap = await createImageBitmap(file);
-    try {
-      const pixels = draw(bitmap, bitmap.width, bitmap.height, maxSide);
-      return pixels
-        ? { ok: true as const, frame: { pixels, source: 'photo' as const } }
-        : { ok: false as const, reason: 'undecodable' as const };
-    } finally {
-      bitmap.close();
-    }
-  } catch {
-    return { ok: false as const, reason: 'undecodable' as const };
+    const pixels = draw(bitmap, bitmap.width, bitmap.height, maxSide);
+    return pixels
+      ? { ok: true as const, frame: { pixels, source: 'photo' as const } }
+      : UNDECODABLE;
+  } finally {
+    bitmap.close();
   }
 }
 /* v8 ignore stop */
+
+function readFrame(video: HTMLVideoElement, maxSide: number) {
+  return hasFrame(video) ? drawFrame(video, maxSide) : null;
+}
+
+async function readPhoto(file: File, maxSide: number) {
+  let bitmap: ImageBitmap;
+  try {
+    bitmap = await createImageBitmap(file);
+  } catch {
+    return UNDECODABLE;
+  }
+  return drawPhoto(bitmap, maxSide);
+}
 
 export const browserCamera: CameraPort = {
   async open() {

@@ -137,6 +137,17 @@ function CameraForSlot({ slot }: { slot: Slot }) {
   const [attempt, setAttempt] = useState(0);
   const [lowLight, setLowLight] = useState(initialLowLight);
   const [photoFailed, setPhotoFailed] = useState(false);
+  // False once the screen has gone. A large photo can take a second to
+  // decode, and by then the user may have picked by hand or gone back. Acting
+  // on it then would pull them to /confirm from wherever they went.
+  const here = useRef(true);
+
+  useEffect(() => {
+    here.current = true;
+    return () => {
+      here.current = false;
+    };
+  }, []);
 
   // Asked for on arrival. The user picked the camera on the screen before, so
   // a pre-prompt would only ask the same question twice.
@@ -179,6 +190,13 @@ function CameraForSlot({ slot }: { slot: Slot }) {
   }, [camera, status]);
 
   const dark = status === 'live' && lowLight.dark;
+  const panel = status === 'opening' || status === 'live' ? null : PANELS[status];
+
+  // The panel replaces the viewfinder after the permission prompt, with no
+  // focus move to carry the news, so it goes through the live region.
+  useEffect(() => {
+    if (panel) announce(panel.heading);
+  }, [panel, announce]);
 
   // Said once on the way into the dark, not on every sample that stays there.
   // The banner arrives with no focus move to carry it, which is what the live
@@ -205,6 +223,7 @@ function CameraForSlot({ slot }: { slot: Slot }) {
     event.target.value = '';
     if (!file) return;
     const result = await camera.readPhoto(file, FRAME_MAX_SIDE);
+    if (!here.current) return;
     if (result.ok) {
       captured(result.frame);
       return;
@@ -214,6 +233,10 @@ function CameraForSlot({ slot }: { slot: Slot }) {
   }
 
   function retry() {
+    // The focused button goes with the panel. The heading stays on screen
+    // through every state, so focus waits there, as it does when a toast
+    // leaves (ToastHost).
+    document.querySelector<HTMLElement>('main h1')?.focus();
     setStatus('opening');
     setAttempt((n) => n + 1);
   }
@@ -244,8 +267,7 @@ function CameraForSlot({ slot }: { slot: Slot }) {
     </>
   );
 
-  if (status !== 'opening' && status !== 'live') {
-    const panel = PANELS[status];
+  if (panel) {
     return (
       <Screen title="Frame the garment">
         <section aria-labelledby="camera-panel" {...stylex.props(styles.panel)}>

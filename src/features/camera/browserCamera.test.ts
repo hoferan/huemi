@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { browserCamera, cameraFailure, scaledSize } from './browserCamera';
+import { browserCamera, cameraFailure, hasFrame, scaledSize } from './browserCamera';
 
 function withMediaDevices(value: unknown) {
   Object.defineProperty(navigator, 'mediaDevices', { value, configurable: true });
@@ -64,5 +64,53 @@ describe('browserCamera.open', () => {
       getUserMedia: vi.fn().mockRejectedValue(new DOMException('no', 'NotAllowedError')),
     });
     await expect(browserCamera.open()).resolves.toEqual({ ok: false, reason: 'denied' });
+  });
+});
+
+describe('hasFrame', () => {
+  function video(readyState: number, width = 640, height = 480) {
+    const element = document.createElement('video');
+    Object.defineProperty(element, 'readyState', { value: readyState });
+    Object.defineProperty(element, 'videoWidth', { value: width });
+    Object.defineProperty(element, 'videoHeight', { value: height });
+    return element;
+  }
+
+  // Dimensions are known from HAVE_METADATA, before any frame is decoded, and
+  // drawing then gives transparent black. A shutter tap in that window would
+  // capture a black garment.
+  it('says no while only the metadata is in', () => {
+    expect(hasFrame(video(HTMLMediaElement.HAVE_METADATA))).toBe(false);
+  });
+
+  it('says yes once a frame has been decoded', () => {
+    expect(hasFrame(video(HTMLMediaElement.HAVE_CURRENT_DATA))).toBe(true);
+  });
+
+  it('says no for a video with no size', () => {
+    expect(hasFrame(video(HTMLMediaElement.HAVE_ENOUGH_DATA, 0, 0))).toBe(false);
+  });
+});
+
+describe('browserCamera.readFrame', () => {
+  it('draws nothing before the video has a frame', () => {
+    const element = document.createElement('video');
+    Object.defineProperty(element, 'readyState', { value: HTMLMediaElement.HAVE_METADATA });
+    Object.defineProperty(element, 'videoWidth', { value: 640 });
+    Object.defineProperty(element, 'videoHeight', { value: 480 });
+    const create = vi.spyOn(document, 'createElement');
+    expect(browserCamera.readFrame(element, 32)).toBeNull();
+    expect(create).not.toHaveBeenCalledWith('canvas');
+    create.mockRestore();
+  });
+});
+
+describe('browserCamera.readPhoto', () => {
+  // jsdom has no createImageBitmap, so this is the browser refusing to decode.
+  it('returns a photo it cannot decode as a result rather than throwing', async () => {
+    await expect(browserCamera.readPhoto(new File(['x'], 'notes.txt'), 512)).resolves.toEqual({
+      ok: false,
+      reason: 'undecodable',
+    });
   });
 });

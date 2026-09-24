@@ -2,7 +2,7 @@
 // showing. Given-When-Then adds nothing to these, so they stay as plain
 // Playwright specs instead of Gherkin scenarios (see ADR 0008).
 import AxeBuilder from '@axe-core/playwright';
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import { ROUTES } from './routes';
 import { seedOnboarded } from './seedOnboarded';
 import { fakeCamera } from './fakeCamera';
@@ -26,9 +26,22 @@ test.beforeEach(async ({ page }) => {
   await fakeCamera(page, 'bright');
 });
 
+// Screens that settle after their first render, and the sign that they have.
+// `/camera` renders an empty viewfinder until the camera answers, and a check
+// that ran then would pass without ever measuring the shutter.
+const READY: Readonly<Record<string, (page: Page) => Promise<void>>> = {
+  '/camera?slot=top': (page) =>
+    expect(page.getByRole('button', { name: 'Take photo' })).toBeVisible(),
+};
+
+async function visit(page: Page, route: string): Promise<void> {
+  await page.goto(route);
+  await READY[route]?.(page);
+}
+
 for (const route of ROUTES) {
   test(`has no detectable accessibility violations at ${route}`, async ({ page }) => {
-    await page.goto(route);
+    await visit(page, route);
     const results = await new AxeBuilder({ page })
       .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
       .analyze();
@@ -36,7 +49,7 @@ for (const route of ROUTES) {
   });
 
   test(`does not scroll horizontally at ${route}`, async ({ page }) => {
-    await page.goto(route);
+    await visit(page, route);
     const overflows = await page.evaluate(
       () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
     );
@@ -53,7 +66,7 @@ for (const route of ROUTES) {
   // down, and content clipped inside it leaves the document itself the right
   // height, so every element is checked for hiding its own overflow.
   test(`keeps content reachable at 200% text size at ${route}`, async ({ page }) => {
-    await page.goto(route);
+    await visit(page, route);
     await page.addStyleTag({ content: ':root { font-size: 32px }' });
     const clipped = await page.evaluate(() =>
       [...document.querySelectorAll<HTMLElement>('body *')]
@@ -77,7 +90,7 @@ for (const route of ROUTES) {
   // elsewhere, so a repo-wide grep for the token was already satisfied while
   // these two links, styled by hand, were not.
   test(`keeps every link and button at least a 44x44 hit target at ${route}`, async ({ page }) => {
-    await page.goto(route);
+    await visit(page, route);
     const controls = await page.getByRole('link').or(page.getByRole('button')).all();
     expect(controls.length).toBeGreaterThan(0);
     for (const control of controls) {
@@ -100,7 +113,7 @@ for (const route of ROUTES) {
   test(`keeps its screen-reader-only live region visually clipped at ${route}`, async ({
     page,
   }) => {
-    await page.goto(route);
+    await visit(page, route);
     const clipPath = await page.getByRole('status').evaluate((el) => getComputedStyle(el).clipPath);
     expect(clipPath).not.toBe('none');
   });

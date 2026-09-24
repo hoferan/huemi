@@ -10,7 +10,7 @@ import { InitialLocationContext } from '../../ui/InitialLocationContext';
 import { CameraContext } from './CameraContext';
 import { Camera } from './Camera';
 import { DARK_MESSAGE, PHOTO_FAILED } from './copy';
-import { SAMPLE_INTERVAL_MS, type CameraPort, type CameraResult } from './port';
+import { SAMPLE_INTERVAL_MS, type CameraPort, type CameraResult, type PhotoResult } from './port';
 
 function solid(value: number): Pixels {
   const data = new Uint8ClampedArray(16);
@@ -165,6 +165,49 @@ describe('Camera', () => {
     await user.click(await screen.findByRole('button', { name: 'Try again' }));
     expect(await screen.findByRole('button', { name: 'Take photo' })).toBeInTheDocument();
     expect(open).toHaveBeenCalledTimes(2);
+  });
+
+  it('leaves a user where they went if their photo opens after they left', async () => {
+    const user = userEvent.setup();
+    let resolve!: (result: PhotoResult) => void;
+    const readPhoto = vi.fn(() => new Promise<PhotoResult>((r) => (resolve = r)));
+    const { container } = renderAt(
+      fakeCamera({
+        open: vi.fn(() => Promise.resolve({ ok: false as const, reason: 'denied' as const })),
+        readPhoto,
+      }).port,
+    );
+    await screen.findByRole('link', { name: 'Pick by hand' });
+    fireEvent.change(photoInput(container), { target: { files: [new File(['x'], 'big.jpg')] } });
+    await user.click(screen.getByRole('link', { name: 'Pick by hand' }));
+    expect(await screen.findByText('/color?slot=top capture=none')).toBeInTheDocument();
+    await act(() => {
+      resolve({ ok: true, frame: bright });
+      return Promise.resolve();
+    });
+    expect(screen.getByText('/color?slot=top capture=none')).toBeInTheDocument();
+  });
+
+  it('keeps focus on the heading when trying again, rather than dropping it', async () => {
+    const user = userEvent.setup();
+    const open = vi.fn(() => Promise.resolve({ ok: false as const, reason: 'failed' as const }));
+    renderAt(fakeCamera({ open }).port);
+    await user.click(await screen.findByRole('button', { name: 'Try again' }));
+    expect(screen.getByRole('heading', { level: 1, name: 'Frame the garment' })).toHaveFocus();
+  });
+
+  it('says what went wrong when the camera does not open', async () => {
+    renderAt(
+      fakeCamera({
+        open: vi.fn(() => Promise.resolve({ ok: false as const, reason: 'denied' as const })),
+      }).port,
+    );
+    await screen.findByRole('heading', { level: 2, name: "huemi can't see your camera" });
+    // Waited for: the announcement is an effect of the render that shows the
+    // panel, and runs just after it (see `liveWith` below).
+    await waitFor(() =>
+      expect(screen.getByRole('status')).toHaveTextContent("huemi can't see your camera"),
+    );
   });
 
   it('stops the camera when the screen goes away', async () => {
