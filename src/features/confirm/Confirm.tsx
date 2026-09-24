@@ -45,6 +45,18 @@ const TITLES: Record<ColorReading['kind'], string> = {
 // No container here clips its overflow, for the reason FramePhoto.tsx gives:
 // the 200% text-size check in e2e/invariants.spec.ts fails any element that
 // hides its own overflow.
+//
+// `fill` and `choiceFill` below are the only dynamic entries here, and
+// `stylex.create` compiles each of those into its own null-guard around the
+// value, in case a caller passes one in as null. Neither ever does: `fill`
+// only runs on `shown`, already narrowed non-null by the `shown &&` above its
+// one call site, and `choiceFill` only runs on a `ColorShare`'s own `color`.
+// No test reaches those guards' other branch. The ignore has to bracket the
+// whole object, not just the two functions: the StyleX transform rewrites
+// `stylex.create({...})` as one node and gives everything inside it that
+// node's own source position, so a v8 ignore comment placed on `fill` or
+// `choiceFill` themselves is not seen as covering anything.
+/* v8 ignore start */
 const styles = stylex.create({
   body: { display: 'flex', flexDirection: 'column', gap: '16px', flex: '1', minHeight: 0 },
   // `minHeight: 0` lets the pair give up height when the correction panel
@@ -111,6 +123,7 @@ const styles = stylex.create({
     margin: 0,
   },
 });
+/* v8 ignore stop */
 
 /**
  * One choice in the `several` state's group: a swatch with its name shown
@@ -158,6 +171,11 @@ function firstColor(reading: ColorReading): Hex | null {
     case 'single':
       return reading.color;
     case 'several':
+      // `decide` in color/read.ts only ever returns `kind: 'several'` with at
+      // least two colors, so `colors[0]` is never missing here. The `?? null`
+      // guards a `ColorReading` built by hand, which nothing in this codebase
+      // does, and no test reaches it.
+      /* v8 ignore next */
       return reading.colors[0]?.color ?? null;
     case 'unclear':
       return null;

@@ -9,6 +9,18 @@ import { Swatch } from '../../ui/Swatch';
 import { useDragDismiss } from '../../ui/useDragDismiss';
 import { CLOSER, LIGHTER_DARKER, NOT_QUITE } from './copy';
 
+// `drag` below is the only dynamic entry here. `stylex.create` compiles
+// `transform` and `transitionDuration` into their own null-guards, plus a
+// second copy of the `offset === 0` choice to fall back to; none of it can
+// come out null. Whether that choice lands on `tokens.sheet` or `'0ms'` is
+// real behaviour, but StyleX produces no CSS under Vitest to check it against
+// (ADR 0002): the drag tests in CorrectionPanel.test.tsx move `offset` both
+// ways, and Playwright covers what it looks like. The ignore brackets the
+// whole object, not just `drag`, because the StyleX transform rewrites
+// `stylex.create({...})` as one node and gives everything inside it that
+// node's own source position; a v8 ignore comment on `drag` alone is not
+// seen as covering anything.
+/* v8 ignore start */
 const styles = stylex.create({
   panel: {
     display: 'flex',
@@ -32,6 +44,7 @@ const styles = stylex.create({
   // next to the colors the user is judging and would pull on that judgement.
   slider: { minHeight: tokens.touchTarget, width: '100%', accentColor: tokens.ink },
 });
+/* v8 ignore stop */
 
 /**
  * The panel behind "Not quite": a swatch grid and a lightness slider to
@@ -65,6 +78,10 @@ export function CorrectionPanel({
   const pressed = useRef<HTMLButtonElement>(null);
   const { offset, onPointerDown, dragged } = useDragDismiss({
     onDismiss: onClose,
+    // `panel` is this element's own ref, attached for as long as a drag can
+    // be in progress to call this, so the `?? 0` guards a measurement taken
+    // before mount, which nothing here does. No test reaches it.
+    /* v8 ignore next */
     height: () => panel.current?.offsetHeight ?? 0,
   });
 

@@ -20,6 +20,7 @@ import {
   CLOSER,
   colorAction,
   DONE,
+  LIGHTER_DARKER,
   LOOKS_RIGHT,
   NEITHER,
   NOT_QUITE,
@@ -64,9 +65,9 @@ function GoBack() {
   );
 }
 
-function renderWith(pixels: Pixels | null, slot: Slot = 'top') {
+function renderWith(pixels: Pixels | null, slot: Slot = 'top', path?: string) {
   render(
-    <MemoryRouter initialEntries={[pixels ? '/seed' : '/confirm?slot=top']}>
+    <MemoryRouter initialEntries={[path ?? (pixels ? '/seed' : '/confirm?slot=top')]}>
       <SessionProvider>
         <Announcer>
           <InitialLocationContext value={false}>
@@ -75,6 +76,7 @@ function renderWith(pixels: Pixels | null, slot: Slot = 'top') {
               <Route path="/confirm" element={<Confirm />} />
               <Route path="/camera" element={<Where />} />
               <Route path="/color" element={<Where />} />
+              <Route path="/slot" element={<Where />} />
               <Route
                 path="/suggest"
                 element={
@@ -101,6 +103,11 @@ describe('Confirm', () => {
   it('sends a capture for another slot back to the camera', async () => {
     renderWith(solid(NAVY), 'bottom');
     expect(await screen.findByText(/^\/camera\?slot=top/)).toBeInTheDocument();
+  });
+
+  it('sends a visit with no slot to the slot picker', async () => {
+    renderWith(null, 'top', '/confirm');
+    expect(await screen.findByText(/^\/slot\?next=camera/)).toBeInTheDocument();
   });
 
   it('shows what it read', async () => {
@@ -187,6 +194,22 @@ describe('Confirm', () => {
     expect(base).not.toBe(reading.color);
     expect(colorName(parseHex(base))).toBe(chosen);
     expect(where).toHaveTextContent(`hex=${encodeURIComponent(base)}`);
+  });
+
+  it('confirms a lightness-only correction, not just a swatch pick', async () => {
+    const user = userEvent.setup();
+    const reading = readColor(solid(NAVY));
+    if (reading.kind !== 'single') throw new Error('expected a single reading of navy');
+    renderWith(solid(NAVY));
+    await user.click(await screen.findByRole('button', { name: NOT_QUITE }));
+    fireEvent.change(screen.getByRole('slider', { name: LIGHTER_DARKER }), {
+      target: { value: '0.1' },
+    });
+    expect(screen.getByText(CAPTION_CORRECTED)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: USE_THIS }));
+    const where = await screen.findByText(/^\/suggest\?slot=top&hex=%23/);
+    const base = /base=top:(#[0-9a-f]{6})/.exec(where.textContent)![1]!;
+    expect(base).not.toBe(reading.color);
   });
 
   it('offers picking by hand', async () => {
@@ -352,6 +375,21 @@ describe('Confirm, unclear', () => {
     renderWith(solid(NAVY));
     await screen.findByRole('heading', { level: 1, name: TITLE_SINGLE });
     expect(screen.queryByRole('button', { name: TAP_ELSEWHERE })).not.toBeInTheDocument();
+  });
+
+  // A tap can land on a patterned part of the garment just as the default
+  // region can, so several is reachable from a tap too, and the offer to tap
+  // elsewhere has to follow it there.
+  it('offers tap-again on a several reading that came from a tap', async () => {
+    const stripedPatch = () =>
+      paint(100, 100, (x, y) => (x < 40 && y < 40 ? (y % 8 < 5 ? NAVY : WHITE) : busy(x, y)));
+    renderWith(stripedPatch());
+    await screen.findByRole('heading', { level: 1, name: TITLE_UNCLEAR });
+    fireEvent.click(stubLayout(), { clientX: 20, clientY: 20 });
+    expect(
+      await screen.findByRole('heading', { level: 1, name: TITLE_SEVERAL }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: TAP_ELSEWHERE })).toBeInTheDocument();
   });
 
   // A portrait box (the shape the real confirm screen measures) holding a

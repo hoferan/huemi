@@ -4,6 +4,15 @@ import type { Pixels } from '../../model/frame';
 import { tokens } from '../../styles/tokens.stylex';
 import { elementPoint, framePoint, type Fit, type Rect } from './framePoint';
 
+// `mark` below is the only dynamic entry here, and `stylex.create` compiles
+// its `left`/`top` into their own null-guards, in case a caller passes one in
+// as null. `elementPoint` never returns one: the mark only renders once
+// `fraction` is non-null (see below), so no test reaches those guards' other
+// branch. The ignore has to bracket the whole object, not just `mark`: the
+// StyleX transform rewrites `stylex.create({...})` as one node and gives
+// everything inside it that node's own source position, so a v8 ignore
+// comment placed on `mark` itself is not seen as covering anything.
+/* v8 ignore start */
 const styles = stylex.create({
   // No overflow clipping here either, for the same reason as Camera.tsx's
   // viewfinder: the 200% text-size check in e2e/invariants.spec.ts fails any
@@ -48,6 +57,7 @@ const styles = stylex.create({
     pointerEvents: 'none',
   }),
 });
+/* v8 ignore stop */
 
 const zeroRect: Rect = { left: 0, top: 0, width: 0, height: 0 };
 
@@ -110,6 +120,11 @@ export function FramePhoto({
     if (!mark) return;
     function measure() {
       const measured = canvas.current?.getBoundingClientRect();
+      // `canvas` is this element's own ref, attached for as long as this
+      // effect can run, so `measured` guards a canvas that unmounted between
+      // the resize event and this handler running, which React does not do.
+      // No test reaches the branch where it stays unset.
+      /* v8 ignore next */
       if (measured) setRect(measured);
     }
     measure();
