@@ -1,5 +1,6 @@
 import type { ReactElement } from 'react';
 import { Camera } from '../features/camera/Camera';
+import { Confirm } from '../features/confirm/Confirm';
 import { Entry } from '../features/entry/Entry';
 import { Onboarding } from '../features/onboarding/Onboarding';
 import { OnboardingGate } from '../features/onboarding/OnboardingGate';
@@ -35,6 +36,7 @@ export const APP_ROUTES: readonly AppRoute[] = [
   { path: '/color', element: <Picker /> },
   { path: '/color/custom', element: <CustomColor /> },
   { path: '/camera', element: <Camera /> },
+  { path: '/confirm', element: <Confirm /> },
   { path: '/suggest', element: <Suggestions /> },
   { path: '/saved', element: <Saved /> },
 ];

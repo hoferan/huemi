@@ -86,8 +86,8 @@ When('I choose a file that is not a photo', async ({ page }) => {
   });
 });
 
-// `/confirm` arrives with #21. Until then the URL is the proof the capture
-// was taken and handed on; the screen there is the not-found one.
+// The URL is the proof the capture was handed on; `confirm.feature` covers
+// what the screen does with it.
 Then('I am taken to confirm the top', async ({ page }) => {
   await expect(page).toHaveURL(/\/confirm\?slot=top$/);
 });

@@ -106,6 +106,8 @@ describe('AppRoutes', () => {
     '/color?slot=top': 'Pick a color',
     '/color/custom?slot=top': 'Mix your own',
     '/camera?slot=top': 'Frame the garment',
+    // Nothing is captured here, so the confirm screen hands over to the camera.
+    '/confirm?slot=top': 'Frame the garment',
     '/suggest?slot=top&hex=%23c39a3a': 'Goes with it',
     '/saved': 'Saved outfits',
   };

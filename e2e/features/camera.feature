@@ -1,7 +1,7 @@
 Feature: Framing a garment
 
-  The camera screen ships before anything links to it, so these scenarios
-  reach it by URL or through slot choice's camera route.
+  The camera is reached from the entry screen through slot choice; these
+  scenarios mostly open it by URL.
 
   Background:
     Given I have seen the welcome screen

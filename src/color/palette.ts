@@ -1,6 +1,6 @@
 import { parseHex, type Hex } from '../model/hex';
 import { SLOT_LABELS, type Slot } from '../model/types';
-import { hexToOklch, oklabDistance } from './oklab';
+import { hexToOklab, hexToOklch, oklabDistance } from './oklab';
 import { isNeutral } from './classify';
 
 export type NamedColor = { name: string; hex: Hex };
@@ -165,4 +165,44 @@ export function colorName(hex: Hex): string {
  */
 export function blockLabel(slot: Slot, hex: Hex): string {
   return `${SLOT_LABELS[slot]}: ${colorName(hex)}`;
+}
+
+/**
+ * The lightness weight for nearbyColors distance metric.
+ *
+ * The confirm screen's lightness slider lets users adjust lightness
+ * independently, so the correction panel should show hue neighbours, not
+ * overall-distance neighbours. Plain OKLab distance is dominated by lightness
+ * and would offer olive and forest greens before navy for a denim reading.
+ * Weighting lightness at 0.35 prioritizes hue while still respecting
+ * perceptual lightness differences.
+ */
+export const NEARBY_LIGHTNESS_WEIGHT = 0.35;
+
+const nearbyDistance = (a: Hex, b: Hex): number => {
+  const [l1, a1, b1] = hexToOklab(a);
+  const [l2, a2, b2] = hexToOklab(b);
+  return Math.hypot(NEARBY_LIGHTNESS_WEIGHT * (l1 - l2), a1 - a2, b1 - b2);
+};
+
+/**
+ * The palette entries nearest a color, for "Closer to one of these?" on the
+ * confirm screen.
+ *
+ * Split the way `colorName` splits: a neutral is offered neutrals first and a
+ * color colors first, so the choices never put back the hue the name was
+ * careful to leave out. When one side has fewer than `count`, the rest come
+ * from the other side, still by distance (using lightness-weighted OKLab
+ * distance to prioritize hue). An entry equal to `hex` is left out, because
+ * the screen already shows the reading itself as the first choice.
+ */
+export function nearbyColors(hex: Hex, count: number): NamedColor[] {
+  const neutral = namesAsNeutral(hex);
+  const byDistance = PALETTE.filter((c) => c.hex !== hex)
+    .map((color) => ({ color, distance: nearbyDistance(color.hex, hex) }))
+    .sort((a, b) => a.distance - b.distance)
+    .map(({ color }) => color);
+  const same = byDistance.filter((c) => namesAsNeutral(c.hex) === neutral);
+  const other = byDistance.filter((c) => namesAsNeutral(c.hex) !== neutral);
+  return [...same, ...other].slice(0, count);
 }

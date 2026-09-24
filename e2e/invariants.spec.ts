@@ -32,6 +32,10 @@ test.beforeEach(async ({ page }) => {
 const READY: Readonly<Record<string, (page: Page) => Promise<void>>> = {
   '/camera?slot=top': (page) =>
     expect(page.getByRole('button', { name: 'Take photo' })).toBeVisible(),
+  // Redirects to the camera without a capture in the session, so wait for the
+  // camera screen before checking.
+  '/confirm?slot=top': (page) =>
+    expect(page.getByRole('button', { name: 'Take photo' })).toBeVisible(),
 };
 
 async function visit(page: Page, route: string): Promise<void> {
