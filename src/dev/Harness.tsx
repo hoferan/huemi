@@ -8,8 +8,15 @@ import { readableForeground } from '../color/contrast';
 import { chromaLoad, hueContrast, lightnessContrast } from '../color/score';
 import { rate, suggest } from '../color/engine';
 import Compare from './Compare';
+import Read from './Read';
 
-type Mode = 'browse' | 'compare';
+type Mode = 'browse' | 'compare' | 'read';
+
+const MODES: Readonly<Record<Mode, string>> = {
+  browse: 'Browse the ranking',
+  compare: 'Judge pairs',
+  read: 'Read a photo',
+};
 
 type SortKey = 'rank' | 'lightness' | 'hue' | 'load';
 
@@ -128,18 +135,27 @@ export default function Harness() {
   const modeSwitch = (
     <div {...stylex.props(styles.controls)}>
       <span {...stylex.props(styles.label)}>Mode</span>
-      {(['browse', 'compare'] as Mode[]).map((key) => (
+      {(Object.keys(MODES) as Mode[]).map((key) => (
         <button
           key={key}
           type="button"
           onClick={() => setMode(key)}
           {...stylex.props(styles.chip, key === mode ? styles.chipOn : styles.chipOff)}
         >
-          {key === 'browse' ? 'Browse the ranking' : 'Judge pairs'}
+          {MODES[key]}
         </button>
       ))}
     </div>
   );
+
+  if (mode === 'read') {
+    return (
+      <main {...stylex.props(styles.page)}>
+        {modeSwitch}
+        <Read />
+      </main>
+    );
+  }
 
   if (mode === 'compare') {
     return (
