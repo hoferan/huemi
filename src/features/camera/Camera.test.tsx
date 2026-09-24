@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -96,7 +96,8 @@ describe('Camera', () => {
     expect(await screen.findByRole('button', { name: 'Take photo' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Choose a photo' })).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Pick by hand' })).not.toBeInTheDocument();
-    expect(attach).toHaveBeenCalledWith(expect.any(HTMLVideoElement), stream);
+    // Waited for, for the reason `liveWith` below gives.
+    await waitFor(() => expect(attach).toHaveBeenCalledWith(expect.any(HTMLVideoElement), stream));
   });
 
   it('captures the current frame for the chosen slot and moves on', async () => {
@@ -190,8 +191,16 @@ describe('Camera', () => {
   describe('in low light', () => {
     async function liveWith(readFrame: CameraPort['readFrame']) {
       vi.useFakeTimers({ shouldAdvanceTime: true });
-      renderAt(fakeCamera({ readFrame }).port);
+      const { port, attach } = fakeCamera({ readFrame });
+      renderAt(port);
       await screen.findByRole('button', { name: 'Take photo' });
+      // The shutter can be on screen before the effects of that render have
+      // run, because the camera's answer arrives outside act. Attaching runs
+      // in the same commit as the sampling interval and is declared before
+      // it, so once attach has been called the interval exists. Advancing the
+      // clock any earlier fires no samples, which is how this failed under
+      // the full suite's load and passed alone.
+      await waitFor(() => expect(attach).toHaveBeenCalled());
     }
 
     function tick(samples: number) {

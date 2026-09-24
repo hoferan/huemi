@@ -5,6 +5,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 import { ROUTES } from './routes';
 import { seedOnboarded } from './seedOnboarded';
+import { fakeCamera } from './fakeCamera';
 import { seedOutfit } from './seedOutfit';
 
 // Every route here is visited with onboarding already marked seen, so `/`
@@ -18,6 +19,11 @@ import { seedOutfit } from './seedOutfit';
 test.beforeEach(async ({ page }) => {
   await seedOnboarded(page);
   await seedOutfit(page);
+  // A working camera for every route, so `/camera` is scanned in its live
+  // state, the one with the shutter on it. Without this, headless Chromium
+  // answers with whichever refusal its sandbox produces, which differs from
+  // machine to machine. Routes that never ask for a camera are unaffected.
+  await fakeCamera(page, 'bright');
 });
 
 for (const route of ROUTES) {
