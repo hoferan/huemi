@@ -5,9 +5,15 @@ import { rgbToHex } from './convert';
 import { oklabToRgb, rgbToOklab, type Oklab } from './oklab';
 
 /**
- * What the harness tunes. None of these are measured yet. They are first
- * guesses from designing #20, to be settled against real photos in the dev
- * harness's `read` mode.
+ * What the harness tunes, in its `read` mode.
+ *
+ * Checked against eight photos of real garments: four plain ones, a heather,
+ * denim, a glen check and two polka-dot shots. Only `lightnessWeight` moved,
+ * from 0.5 to 0.35. At 0.5 the shadows in a crinkled dark fabric split off as
+ * a second color and the reading sat at 0.77, just over `singleMin`; at 0.35
+ * it reads 0.94 and the glen check still comes back as a pattern. None of the
+ * photos was a busy scene or taken in dim light, so the three shares below
+ * are still unmeasured against those.
  */
 export const READ_TUNING = {
   /** The default circle's radius, as a share of the frame's short side. */
@@ -22,7 +28,7 @@ export const READ_TUNING = {
    * hold two colors, and its median is a blend that is in neither.
    */
   clusters: 6,
-  lightnessWeight: 0.5,
+  lightnessWeight: 0.35,
   iterations: 12,
   mergeDistance: 0.06,
   seed: 20,

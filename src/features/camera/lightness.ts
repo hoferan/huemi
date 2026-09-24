@@ -20,8 +20,16 @@ export function meanLightness({ data }: Pixels): number {
  * When the viewfinder counts as too dark.
  *
  * Provisional. 0.25 is roughly sRGB 35 of 255, a dim wardrobe rather than a
- * dark room. Nothing measures yet how a color read degrades as light falls.
- * #20 is where that gets measured, and this is the number it should move.
+ * dark room.
+ *
+ * #20 could only test this by simulation. Daylight photos of eight garments,
+ * dimmed to a mean lightness of 0.12 with sensor noise added, still read the
+ * dimmed color to within 0.02 in OKLab, and every plain garment stayed plain.
+ * A glen check stopped reading as a pattern much earlier, near 0.35, because
+ * dimming flattens its contrast. So the reader copes with the noise. Whether
+ * a dim reading matches the garment itself depends on the phone's exposure,
+ * which uniform dimming does not model, and no real dim photo has been
+ * measured yet. Until one is, this number stays.
  *
  * The margin and the sample count stop the banner flickering when a scene
  * sits near the line. It takes two readings in a row to cross in either
