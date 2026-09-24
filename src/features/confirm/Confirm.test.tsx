@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { colorName } from '../../color/palette';
 import { readColor } from '../../color/read';
 import { NAVY, WHITE, busy, paint, solid } from '../../color/testing';
@@ -287,6 +287,30 @@ describe('Confirm, unclear', () => {
     fireEvent.click(stubLayout(), { clientX: 20, clientY: 20 });
     expect(await screen.findByRole('heading', { level: 1, name: TITLE_SINGLE })).toHaveFocus();
     expect(screen.getByText('Navy')).toBeInTheDocument();
+  });
+
+  // The color block beside the photo already answers what was read once the
+  // screen leaves unclear; the ring is only for pointing at the garment.
+  // Going back to unclear remounts FramePhoto (Screen's key change), which
+  // swaps in a fresh canvas node, so the rect is stubbed on the prototype
+  // here rather than on one instance the way `stubLayout` does for a tap.
+  it('shows the tap mark only while asking for a tap', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(HTMLCanvasElement.prototype, 'getBoundingClientRect').mockReturnValue({
+      left: 0,
+      top: 0,
+      width: 100,
+      height: 100,
+    } as DOMRect);
+    renderWith(busyWithPatch());
+    await screen.findByRole('heading', { level: 1, name: TITLE_UNCLEAR });
+    fireEvent.click(screen.getByRole('img', { name: 'Your photo' }), { clientX: 20, clientY: 20 });
+    await screen.findByRole('heading', { level: 1, name: TITLE_SINGLE });
+    expect(screen.queryByTestId('tap-mark')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: TAP_ELSEWHERE }));
+    await screen.findByRole('heading', { level: 1, name: TITLE_UNCLEAR });
+    expect(screen.getByTestId('tap-mark')).toBeInTheDocument();
+    vi.restoreAllMocks();
   });
 
   it('says so when a tap is still unclear, through the live region too', async () => {

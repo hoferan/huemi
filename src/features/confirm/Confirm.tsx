@@ -274,8 +274,7 @@ function ConfirmForCapture({ slot, pixels }: { slot: Slot; pixels: Pixels }) {
         <div {...stylex.props(styles.pair)}>
           <FramePhoto
             pixels={pixels}
-            {...(reading.kind === 'unclear' && { onTap })}
-            {...(tap && { mark: tap })}
+            {...(reading.kind === 'unclear' && { onTap, ...(tap && { mark: tap }) })}
           />
           {(reading.kind === 'single' || reading.kind === 'several') && shown && (
             <div

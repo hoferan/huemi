@@ -116,7 +116,10 @@ export function FramePhoto({
         {...stylex.props(styles.photo, onTap && styles.tappable)}
       />
       {fraction && (
-        <div {...stylex.props(styles.mark(`${fraction.left * 100}%`, `${fraction.top * 100}%`))} />
+        <div
+          data-testid="tap-mark"
+          {...stylex.props(styles.mark(`${fraction.left * 100}%`, `${fraction.top * 100}%`))}
+        />
       )}
     </div>
   );
