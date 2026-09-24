@@ -33,3 +33,6 @@ export const FRAME_MAX_SIDE = 512;
 
 /** Long side of the frame the low-light check samples. */
 export const SAMPLE_SIDE = 32;
+
+/** How often the low-light check samples the viewfinder. */
+export const SAMPLE_INTERVAL_MS = 500;
