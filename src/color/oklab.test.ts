@@ -118,7 +118,8 @@ describe('withLightness', () => {
     expect(hexToOklab(withLightness(denim, -0.1))[0]).toBeCloseTo(l0 - 0.1, 2);
   });
 
-  // Review focus 5: the slider's ends on colors already near an end.
+  // The slider's full range applied to colors already at or near the end of
+  // lightness it pushes toward: the result has to stay inside sRGB.
   it.each(['#f7f6f3', '#1b1b1b', '#ffffff', '#000000'])(
     'stays a valid hex at the ends for %s',
     (value) => {

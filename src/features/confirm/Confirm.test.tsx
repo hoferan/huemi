@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { colorName } from '../../color/palette';
 import { readColor } from '../../color/read';
 import { NAVY, WHITE, busy, paint, solid } from '../../color/testing';
@@ -251,17 +251,18 @@ describe('Confirm, several', () => {
     );
   });
 
-  // Review focus 3: two shades that share a name must still be told apart.
-  // This shade is stepped off NAVY in OKLab L, far enough that the reader
-  // keeps them as two groups but close enough that colorName still calls
-  // both of them "Navy" (measured; see task-8-report.md).
+  // Two shades that share a name must still be told apart. The second shade
+  // is a step darker than NAVY in OKLab L: far enough apart that the reader
+  // keeps them as two groups, close enough that colorName calls both "Navy".
+  // The first assertion holds both of those, so the last cannot pass on a
+  // photo that no longer has two choices of one name.
   it('names each choice with its share, so two of one name differ', async () => {
     const twoNavies = paint(100, 100, (_x, y) => (y % 10 < 6 ? NAVY : [10, 18, 38]));
     renderWith(twoNavies);
     const group = await screen.findByRole('group', { name: TITLE_SEVERAL });
-    const names = within(group)
-      .getAllByRole('button')
-      .map((b) => b.getAttribute('aria-label') ?? b.textContent);
+    const choices = within(group).getAllByRole('button');
+    expect(choices.map((b) => b.textContent)).toEqual(['Navy', 'Navy']);
+    const names = choices.map((b) => b.getAttribute('aria-label'));
     expect(new Set(names).size).toBe(names.length);
   });
 });
@@ -274,6 +275,13 @@ describe('Confirm, unclear', () => {
   // patch lands on solid navy, and a tap in the far corner stays on the busy
   // background and stays unclear too.
   const busyWithPatch = () => paint(100, 100, (x, y) => (x < 40 && y < 40 ? NAVY : busy(x, y)));
+
+  // For the one test that spies on the canvas prototype. Restored here rather
+  // than at the end of that test, so a failing assertion cannot leave the spy
+  // in place for the tests after it.
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
 
   function stubLayout() {
     // jsdom lays nothing out. The photo is 100x100 CSS px, one per frame pixel.
@@ -320,7 +328,6 @@ describe('Confirm, unclear', () => {
     await user.click(screen.getByRole('button', { name: TAP_ELSEWHERE }));
     await screen.findByRole('heading', { level: 1, name: TITLE_UNCLEAR });
     expect(screen.getByTestId('tap-mark')).toBeInTheDocument();
-    vi.restoreAllMocks();
   });
 
   it('says so when a tap is still unclear, through the live region too', async () => {

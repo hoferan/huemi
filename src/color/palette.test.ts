@@ -5,6 +5,7 @@ import {
   colorName,
   describeColor,
   NAME_MAX_DISTANCE,
+  NEARBY_LIGHTNESS_WEIGHT,
   nearestColor,
   nearbyColors,
   PALETTE,
@@ -190,8 +191,11 @@ describe('nearbyColors', () => {
     expect(names('#4a6285')).not.toContain('Denim');
   });
 
-  it('offers blues for a blue, before anything neutral', () => {
+  it('offers Navy and Forest first for denim, and every color before a neutral', () => {
     expect(names('#4a6285', 2)).toEqual(expect.arrayContaining(['Navy', 'Forest']));
+    const neutrals = ['Black', 'Charcoal', 'Grey', 'Light grey', 'White'];
+    const all = names('#4a6285', PALETTE.length - 1);
+    expect(all.slice(-neutrals.length)).toEqual(expect.arrayContaining(neutrals));
   });
 
   it('includes Navy and Pale blue for a denim reading', () => {
@@ -212,7 +216,6 @@ describe('nearbyColors', () => {
   });
 
   it('returns them nearest first by weighted distance', () => {
-    const NEARBY_LIGHTNESS_WEIGHT = 0.35;
     const weightedDistance = (a: string, b: string): number => {
       const [l1, a1, b1] = hexToOklab(parseHex(a));
       const [l2, a2, b2] = hexToOklab(parseHex(b));

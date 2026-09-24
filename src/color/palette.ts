@@ -177,7 +177,7 @@ export function blockLabel(slot: Slot, hex: Hex): string {
  * Weighting lightness at 0.35 prioritizes hue while still respecting
  * perceptual lightness differences.
  */
-const NEARBY_LIGHTNESS_WEIGHT = 0.35;
+export const NEARBY_LIGHTNESS_WEIGHT = 0.35;
 
 const nearbyDistance = (a: Hex, b: Hex): number => {
   const [l1, a1, b1] = hexToOklab(a);

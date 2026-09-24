@@ -74,7 +74,7 @@ const styles = stylex.create({
   choices: { display: 'flex', gap: '8px' },
   // Each choice is a button of its own, swatch above and name below, rather
   // than reusing `Swatch`: that component's name is screen-reader-only, and
-  // here the name has to be the visible label the spec asks for, with the
+  // here the name has to be the visible label under each swatch, with the
   // share folded into the accessible name instead (see `ColorChoice`).
   choice: {
     flex: '1',

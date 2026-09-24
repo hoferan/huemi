@@ -24,7 +24,7 @@ describe('framePoint', () => {
     expect(p.y).toBeCloseTo(140, 0);
   });
 
-  // Review focus 4.
+  // Either would read a region the user never pointed at.
   it('ignores points outside the element and an element with no size yet', () => {
     expect(framePoint(5, 220, rect, 640, 480)).toBeNull();
     expect(framePoint(0, 0, { left: 0, top: 0, width: 0, height: 0 }, 640, 480)).toBeNull();
@@ -87,7 +87,7 @@ describe('elementPoint', () => {
     ).toBeNull();
   });
 
-  it('round-trips with framePoint under contain, including through a letterbox bar', () => {
+  it('round-trips with framePoint under contain, for a point inside the drawn frame', () => {
     const tall = { left: 10, top: 20, width: 358, height: 646 };
     const clientX = 10 + 40;
     const clientY = 20 + 300;

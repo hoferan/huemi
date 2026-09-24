@@ -1,6 +1,7 @@
 // The confirm screen's words, apart from its components so that tests can
 // match on them and react-refresh still sees a module that exports no
-// component. Strings are verbatim from the confirm-and-correct spec.
+// component. Change one only on purpose: the e2e scenarios spell the same
+// words out, and fail when the two drift apart.
 
 export const TITLE_SINGLE = 'Is this the color?';
 export const TITLE_SEVERAL = 'Which color is it?';
