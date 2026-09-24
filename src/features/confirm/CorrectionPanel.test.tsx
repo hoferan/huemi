@@ -1,13 +1,14 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { colorName } from '../../color/palette';
 import { rgbToHex } from '../../color/convert';
 import { withLightness } from '../../color/oklab';
 import { NAVY } from '../../color/testing';
 import { parseHex } from '../../model/hex';
+import { DISMISS_FRACTION } from '../../ui/useDragDismiss';
 import { CorrectionPanel } from './CorrectionPanel';
-import { CLOSER, LIGHTER_DARKER } from './copy';
+import { CLOSER, LIGHTER_DARKER, NOT_QUITE } from './copy';
 
 function renderPanel(overrides = {}) {
   const props = {
@@ -73,5 +74,54 @@ describe('CorrectionPanel', () => {
     const props = renderPanel();
     await userEvent.click(screen.getByRole('button', { name: 'Close' }));
     expect(props.onClose).toHaveBeenCalled();
+  });
+
+  describe('dragged by its handle', () => {
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    // jsdom lays nothing out, so the panel's height is stated here. The drag
+    // is slow, a second from press to release, so that only distance can
+    // close it and a short drag is not mistaken for a flick.
+    const height = 400;
+
+    function drag(to: number) {
+      vi.useFakeTimers();
+      const props = renderPanel();
+      Object.defineProperty(screen.getByRole('region', { name: NOT_QUITE }), 'offsetHeight', {
+        value: height,
+      });
+      // bubbles: true, because React listens for pointerdown at its root; see
+      // useDragDismiss.test.tsx.
+      act(() => {
+        screen.getByRole('button', { name: 'Close' }).dispatchEvent(
+          new PointerEvent('pointerdown', {
+            pointerId: 1,
+            clientX: 0,
+            clientY: 0,
+            bubbles: true,
+          }),
+        );
+      });
+      vi.advanceTimersByTime(1000);
+      act(() => {
+        window.dispatchEvent(
+          new PointerEvent('pointermove', { pointerId: 1, clientX: 0, clientY: to }),
+        );
+        window.dispatchEvent(new PointerEvent('pointerup', { pointerId: 1 }));
+      });
+      return props;
+    }
+
+    it('closes past the dismiss fraction of its height', () => {
+      expect(drag(height * DISMISS_FRACTION + 20).onClose).toHaveBeenCalledOnce();
+    });
+
+    // What makes the test above depend on the panel's own height: with none
+    // measured, any downward drag would count as far enough.
+    it('stays open short of it', () => {
+      expect(drag(height * DISMISS_FRACTION - 20).onClose).not.toHaveBeenCalled();
+    });
   });
 });
