@@ -37,11 +37,23 @@ const styles = stylex.create({
  * here more than anywhere: the name is the only channel a colour-vision-
  * deficient user has, and a confident wrong name reads as information.
  */
-export function Swatch({ hex, onSelect }: { hex: Hex; onSelect: (hex: Hex) => void }) {
+export function Swatch({
+  hex,
+  onSelect,
+  pressed,
+}: {
+  hex: Hex;
+  onSelect: (hex: Hex) => void;
+  // Undefined rather than defaulted to false: `aria-pressed` marks a toggle
+  // button, and most callers of this component are not one. Only the
+  // correction panel's selection grid passes it.
+  pressed?: boolean;
+}) {
   return (
     <button
       type="button"
       onClick={() => onSelect(hex)}
+      aria-pressed={pressed}
       {...stylex.props(styles.swatch, styles.fill(hex), needsBorder(hex) && styles.hairline)}
     >
       <span style={SR_ONLY}>{colorName(hex)}</span>
