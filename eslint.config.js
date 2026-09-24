@@ -186,5 +186,33 @@ export default tseslint.config(
       ],
     },
   },
+  {
+    // User data stays on the device (ADR 0013). This catches the ordinary ways
+    // of sending something off it. A script tag, an image URL or an import from
+    // a CDN would still get past. The service worker in milestone six has to
+    // fetch, and will need an exemption scoped to its own file.
+    files: ['src/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-globals': [
+        'error',
+        ...['fetch', 'XMLHttpRequest', 'WebSocket', 'EventSource'].map((name) => ({
+          name,
+          message: 'User data stays on the device (ADR 0013).',
+        })),
+      ],
+      'no-restricted-properties': [
+        'error',
+        ...[
+          ['navigator', 'sendBeacon'],
+          ['window', 'fetch'],
+          ['globalThis', 'fetch'],
+        ].map(([object, property]) => ({
+          object,
+          property,
+          message: 'User data stays on the device (ADR 0013).',
+        })),
+      ],
+    },
+  },
   prettier,
 );

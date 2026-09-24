@@ -9,6 +9,7 @@ import type { Pixels } from '../../model/frame';
 import type { Hex } from '../../model/hex';
 import type { Slot } from '../../model/types';
 import { useSession } from '../../session/useSession';
+import { localCorrections } from '../../storage/localCorrections';
 import { tokens } from '../../styles/tokens.stylex';
 import { blockText } from '../../ui/blockText';
 import { Button } from '../../ui/Button';
@@ -228,9 +229,17 @@ function ConfirmForCapture({ slot, pixels }: { slot: Slot; pixels: Pixels }) {
   const shown = selected && shift !== 0 ? withLightness(selected, shift) : selected;
   const corrected = reading.kind === 'single' && shown !== reading.color;
 
-  // The reading and the hex the user settled on are both in scope here, so
-  // this is where #22 records how far apart they were.
+  // A correction is a single reading the user changed. Choosing among
+  // `several` corrects nothing, since the reader offered every choice.
   function confirm(hex: Hex) {
+    if (reading.kind === 'single' && hex !== reading.color) {
+      void localCorrections.record({
+        slot,
+        read: reading.color,
+        corrected: hex,
+        at: new Date().toISOString(),
+      });
+    }
     // `baseChosen` clears the capture. React Router 8 applies a navigation
     // inside a transition, so a plain dispatch would render on its own first,
     // and the guard in `Confirm` would send the user to the camera before

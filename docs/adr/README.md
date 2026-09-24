@@ -35,3 +35,4 @@ supersedes it, in which case both say so.
 | [0010](0010-fitting-the-engine-to-outfit-data.md)           | Fit the lightness term against real outfit data           |
 | [0011](0011-routing-and-screen-transitions.md)              | Route with React Router, and move focus from the screen   |
 | [0012](0012-composing-an-outfit-above-a-pairwise-engine.md) | Compose an outfit above a pairwise engine                 |
+| [0013](0013-user-data-stays-on-the-device.md)               | Keep user data on the device                              |

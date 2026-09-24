@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { colorName } from '../../color/palette';
 import { readColor } from '../../color/read';
 import { NAVY, WHITE, busy, paint, solid } from '../../color/testing';
@@ -11,6 +11,7 @@ import { parseHex } from '../../model/hex';
 import type { Slot } from '../../model/types';
 import { SessionProvider } from '../../session/SessionProvider';
 import { useSession } from '../../session/useSession';
+import { CORRECTIONS_KEY } from '../../storage/localCorrections';
 import { Announcer } from '../../ui/Announcer';
 import { InitialLocationContext } from '../../ui/InitialLocationContext';
 import { Confirm } from './Confirm';
@@ -64,6 +65,14 @@ function GoBack() {
     </button>
   );
 }
+
+function corrections(): unknown {
+  return JSON.parse(localStorage.getItem(CORRECTIONS_KEY) ?? '[]');
+}
+
+beforeEach(() => {
+  localStorage.clear();
+});
 
 function renderWith(pixels: Pixels | null, slot: Slot = 'top', path?: string) {
   render(
@@ -212,6 +221,33 @@ describe('Confirm', () => {
     expect(base).not.toBe(reading.color);
   });
 
+  it('records a correction, with the reading it corrected', async () => {
+    const user = userEvent.setup();
+    const reading = readColor(solid(NAVY));
+    if (reading.kind !== 'single') throw new Error('expected a single reading of navy');
+    renderWith(solid(NAVY));
+    await user.click(await screen.findByRole('button', { name: NOT_QUITE }));
+    await user.click(
+      within(screen.getByRole('group', { name: CLOSER })).getAllByRole('button')[1]!,
+    );
+    await user.click(screen.getByRole('button', { name: USE_THIS }));
+    const where = await screen.findByText(/^\/suggest/);
+    const base = /base=top:(#[0-9a-f]{6})/.exec(where.textContent)![1]!;
+    const list = corrections() as { at: string }[];
+    expect(list).toHaveLength(1);
+    const [{ at }] = list as [{ at: string }];
+    expect(list[0]).toEqual({ slot: 'top', read: reading.color, corrected: base, at });
+    expect(Number.isNaN(Date.parse(at))).toBe(false);
+  });
+
+  it('records nothing when the reading was right', async () => {
+    const user = userEvent.setup();
+    renderWith(solid(NAVY));
+    await user.click(await screen.findByRole('button', { name: LOOKS_RIGHT }));
+    await screen.findByText(/^\/suggest/);
+    expect(corrections()).toEqual([]);
+  });
+
   it('offers picking by hand', async () => {
     renderWith(solid(NAVY));
     expect(await screen.findByRole('link', { name: PICK_BY_HAND })).toHaveAttribute(
@@ -264,6 +300,19 @@ describe('Confirm, several', () => {
     expect(use).not.toHaveAccessibleName(colorAction('Navy'));
     await user.click(use);
     expect(await screen.findByText(/^\/suggest/)).toBeInTheDocument();
+  });
+
+  // The reader offered every choice here, so picking one corrects nothing.
+  it('records no correction for the choice made', async () => {
+    const user = userEvent.setup();
+    renderWith(stripes());
+    const choices = within(await screen.findByRole('group', { name: TITLE_SEVERAL })).getAllByRole(
+      'button',
+    );
+    await user.click(choices[1]!);
+    await user.click(screen.getByRole('button', { name: /^Use / }));
+    await screen.findByText(/^\/suggest/);
+    expect(corrections()).toEqual([]);
   });
 
   it('lets the user pick by hand instead', async () => {
