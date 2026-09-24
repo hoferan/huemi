@@ -14,6 +14,10 @@ export const ROUTES: readonly string[] = [
   '/color?slot=top',
   '/color/custom?slot=top',
   '/camera?slot=top',
+  // Without a capture this redirects to the camera, so the sweep sees the
+  // camera again. `e2e/features/confirm.feature` carries the same checks into
+  // the confirm screen's three states.
+  '/confirm?slot=top',
   '/suggest?slot=top&hex=%23c39a3a',
   '/saved',
   '/this-route-does-not-exist',

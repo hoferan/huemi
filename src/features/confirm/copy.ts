@@ -24,4 +24,4 @@ export const LIGHTER_DARKER = 'Lighter or darker';
 export const UNCLEAR_BODY = "We couldn't tell which color is the garment. Tap it on your photo.";
 export const STILL_UNCLEAR = 'Still not clear. Try tapping the middle of the garment.';
 
-export const useColor = (name: string): string => `Use ${name}`;
+export const colorAction = (name: string): string => `Use ${name}`;
