@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { parseHex } from '../model/hex';
-import { hexToOklab, hexToOklch, oklabDistance, rgbToOklab } from './oklab';
+import { hexToRgb } from './convert';
+import { hexToOklab, hexToOklch, oklabDistance, oklabToRgb, rgbToOklab } from './oklab';
+import { PALETTE } from './palette';
 
 describe('hexToOklab', () => {
   it('puts white at L=1 with no chroma', () => {
@@ -72,5 +74,24 @@ describe('rgbToOklab', () => {
   it('puts white at lightness 1 and black at 0', () => {
     expect(rgbToOklab([255, 255, 255])[0]).toBeCloseTo(1, 4);
     expect(rgbToOklab([0, 0, 0])[0]).toBeCloseTo(0, 4);
+  });
+});
+
+describe('oklabToRgb', () => {
+  it('round-trips every palette color to within one step per channel', () => {
+    for (const { name, hex } of PALETTE) {
+      const rgb = hexToRgb(hex);
+      const back = oklabToRgb(rgbToOklab(rgb));
+      back.forEach((v, i) => expect(Math.abs(v - rgb[i]!), name).toBeLessThanOrEqual(1));
+    }
+  });
+
+  it('clamps a color outside sRGB instead of returning NaN', () => {
+    const rgb = oklabToRgb([0.5, 0.4, -0.4]);
+    for (const v of rgb) {
+      expect(Number.isNaN(v)).toBe(false);
+      expect(v).toBeGreaterThanOrEqual(0);
+      expect(v).toBeLessThanOrEqual(255);
+    }
   });
 });
