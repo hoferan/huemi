@@ -275,15 +275,16 @@ function ConfirmForCapture({ slot, pixels }: { slot: Slot; pixels: Pixels }) {
         <div {...stylex.props(styles.pair)}>
           <FramePhoto
             pixels={pixels}
-            // The whole frame, not just the crop `cover` draws elsewhere on
-            // this screen: unclear is what a photo nobody framed with the
-            // capture guide gets, so the garment can be anywhere in the shot,
-            // including the part `cover` would cut away and leave untappable.
-            {...(reading.kind === 'unclear' && {
-              fit: 'contain' as const,
-              onTap,
-              ...(tap && { mark: tap }),
-            })}
+            // The whole frame while asking for a tap, and on any reading a tap
+            // produced. Unclear is what a photo nobody framed with the capture
+            // guide gets, so the garment can be anywhere in the shot, including
+            // the part `cover` would cut away and leave untappable. After a
+            // tap near the edge, `cover` would then show a centre strip beside
+            // the reading that leaves out the garment the user just tapped.
+            // A reading from the default region comes from the middle of the
+            // frame, which `cover` keeps, so that photo fills the box.
+            {...((reading.kind === 'unclear' || fromTap) && { fit: 'contain' as const })}
+            {...(reading.kind === 'unclear' && { onTap, ...(tap && { mark: tap }) })}
           />
           {(reading.kind === 'single' || reading.kind === 'several') && shown && (
             <div

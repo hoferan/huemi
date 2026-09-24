@@ -59,8 +59,12 @@ const zeroRect: Rect = { left: 0, top: 0, width: 0, height: 0 };
  * `fit` picks how the frame is drawn, `cover` or `contain` (see
  * framePoint.ts), and is passed straight through to the tap and mark math so
  * they read the same box the canvas is actually drawn into. It defaults to
- * `cover`, which is right for a photo shown next to its reading: there is
- * nothing to tap, so filling the box looks better than bars around it.
+ * `cover`, which suits a photo shown next to a reading of its centre: filling
+ * the box looks better than bars around it, and the crop keeps the part that
+ * was read. The confirm screen asks for `contain` while it wants a tap, and
+ * keeps it for the reading the tap produced, because that reading can come
+ * from a part of the frame `cover` crops away. The canvas carries the fit as
+ * `data-fit`, since the style that applies it is not rendered under Vitest.
  */
 export function FramePhoto({
   pixels,
@@ -109,6 +113,7 @@ export function FramePhoto({
         ref={canvas}
         role="img"
         aria-label="Your photo"
+        data-fit={fit}
         width={pixels.width}
         height={pixels.height}
         onClick={

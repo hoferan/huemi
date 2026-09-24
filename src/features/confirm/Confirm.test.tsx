@@ -361,4 +361,26 @@ describe('Confirm, unclear', () => {
     fireEvent.click(photo, { clientX: 10, clientY: 60 });
     expect(await screen.findByRole('heading', { level: 1, name: TITLE_SINGLE })).toHaveFocus();
   });
+
+  // The same tap near the edge. Once it reads, the photo beside "We read Navy"
+  // must still show the whole frame: under cover it would be the centre strip,
+  // which leaves out the garment the user just tapped. Styles are not
+  // rendered under Vitest (ADR 0002), so the fit is read from the attribute
+  // FramePhoto exposes for it.
+  it('keeps the whole photo beside a reading that came from a tap', async () => {
+    const patchNearEdge = () => paint(100, 100, (x, y) => (x < 20 && y < 20 ? NAVY : busy(x, y)));
+    renderWith(patchNearEdge());
+    await screen.findByRole('heading', { level: 1, name: TITLE_UNCLEAR });
+    const photo = screen.getByRole('img', { name: 'Your photo' });
+    photo.getBoundingClientRect = () => ({ left: 0, top: 0, width: 100, height: 200 }) as DOMRect;
+    fireEvent.click(photo, { clientX: 10, clientY: 60 });
+    await screen.findByRole('heading', { level: 1, name: TITLE_SINGLE });
+    expect(screen.getByRole('img', { name: 'Your photo' })).toHaveAttribute('data-fit', 'contain');
+  });
+
+  it('fills the box with the photo when the reading was not tapped', async () => {
+    renderWith(solid(NAVY));
+    await screen.findByRole('heading', { level: 1, name: TITLE_SINGLE });
+    expect(screen.getByRole('img', { name: 'Your photo' })).toHaveAttribute('data-fit', 'cover');
+  });
 });
