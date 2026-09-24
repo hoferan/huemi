@@ -9,7 +9,7 @@ import {
   nearbyColors,
   PALETTE,
 } from './palette';
-import { oklabDistance } from './oklab';
+import { hexToOklab } from './oklab';
 
 describe('PALETTE', () => {
   it('has 18 colors with unique names and hexes', () => {
@@ -191,7 +191,13 @@ describe('nearbyColors', () => {
   });
 
   it('offers blues for a blue, before anything neutral', () => {
-    expect(names('#4a6285', 2)).toEqual(expect.arrayContaining(['Olive', 'Forest']));
+    expect(names('#4a6285', 2)).toEqual(expect.arrayContaining(['Navy', 'Forest']));
+  });
+
+  it('includes Navy and Pale blue for a denim reading', () => {
+    const result = names('#4a6285', 4);
+    expect(result).toContain('Navy');
+    expect(result).toContain('Pale blue');
   });
 
   // The same split colorName makes: a grey shirt should not be offered Pale blue.
@@ -205,9 +211,15 @@ describe('nearbyColors', () => {
     expect(nearbyColors(parseHex('#8f8f8f'), 7)).toHaveLength(7);
   });
 
-  it('returns them nearest first', () => {
-    const hex = parseHex('#4a6285');
-    const found = nearbyColors(hex, 4).map((c) => oklabDistance(c.hex, hex));
+  it('returns them nearest first by weighted distance', () => {
+    const NEARBY_LIGHTNESS_WEIGHT = 0.35;
+    const weightedDistance = (a: string, b: string): number => {
+      const [l1, a1, b1] = hexToOklab(parseHex(a));
+      const [l2, a2, b2] = hexToOklab(parseHex(b));
+      return Math.hypot(NEARBY_LIGHTNESS_WEIGHT * (l1 - l2), a1 - a2, b1 - b2);
+    };
+    const hex = '#4a6285';
+    const found = nearbyColors(parseHex(hex), 4).map((c) => weightedDistance(c.hex, hex));
     expect([...found].sort((a, b) => a - b)).toEqual(found);
   });
 });
