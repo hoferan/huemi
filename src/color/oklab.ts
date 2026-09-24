@@ -27,6 +27,34 @@ export function rgbToOklab(rgb: Rgb): Oklab {
   ];
 }
 
+const toSrgb = (v: number): number => {
+  const c = Math.max(0, Math.min(1, v));
+  return 255 * (c <= 0.0031308 ? 12.92 * c : 1.055 * Math.pow(c, 1 / 2.4) - 0.055);
+};
+
+/**
+ * Back to 8-bit sRGB channels, unrounded.
+ *
+ * A median taken one channel at a time can land outside sRGB, so linear
+ * values are clamped before the transfer curve. A negative value raised to
+ * 1/2.4 would otherwise be NaN.
+ */
+export function oklabToRgb([l, a, b]: Oklab): Rgb {
+  const l_ = l + 0.3963377774 * a + 0.2158037573 * b;
+  const m_ = l - 0.1055613458 * a - 0.0638541728 * b;
+  const s_ = l - 0.0894841775 * a - 1.291485548 * b;
+
+  const lc = l_ ** 3;
+  const mc = m_ ** 3;
+  const sc = s_ ** 3;
+
+  return [
+    toSrgb(4.0767416621 * lc - 3.3077115913 * mc + 0.2309699292 * sc),
+    toSrgb(-1.2684380046 * lc + 2.6097574011 * mc - 0.3413193965 * sc),
+    toSrgb(-0.0041960863 * lc - 0.7034186147 * mc + 1.707614701 * sc),
+  ];
+}
+
 export function hexToOklab(hex: Hex): Oklab {
   return rgbToOklab(hexToRgb(hex));
 }
