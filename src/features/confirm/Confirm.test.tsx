@@ -336,4 +336,19 @@ describe('Confirm, unclear', () => {
     await screen.findByRole('heading', { level: 1, name: TITLE_SINGLE });
     expect(screen.queryByRole('button', { name: TAP_ELSEWHERE })).not.toBeInTheDocument();
   });
+
+  // A portrait box (the shape the real confirm screen measures) holding a
+  // square frame: cover would crop 50px off each side to fill it, contain
+  // does not. The patch sits where only contain's view reaches: at frame
+  // (10, 10) it is on the patch, but the same tap under cover would land at
+  // frame (30, 30), still plain busy background.
+  it('reads the part of the frame cover would have cropped away', async () => {
+    const patchNearEdge = () => paint(100, 100, (x, y) => (x < 20 && y < 20 ? NAVY : busy(x, y)));
+    renderWith(patchNearEdge());
+    await screen.findByRole('heading', { level: 1, name: TITLE_UNCLEAR });
+    const photo = screen.getByRole('img', { name: 'Your photo' });
+    photo.getBoundingClientRect = () => ({ left: 0, top: 0, width: 100, height: 200 }) as DOMRect;
+    fireEvent.click(photo, { clientX: 10, clientY: 60 });
+    expect(await screen.findByRole('heading', { level: 1, name: TITLE_SINGLE })).toHaveFocus();
+  });
 });

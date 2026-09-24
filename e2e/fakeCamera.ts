@@ -61,13 +61,14 @@ export async function fakeCamera(
           }
           // A patch the tap scenario aims at: solid, and a single palette
           // colour, so a tap that lands on it reads as a clean single colour
-          // rather than another mix of the grid around it. Centred on the
-          // frame's own horizontal midpoint, which object-fit: cover always
-          // keeps in view no matter how the viewport crops the sides, and far
-          // enough below the default read circle's centre (48px radius around
-          // 160, 120) that the first, untapped read never touches it.
+          // rather than another mix of the grid around it. The unclear state
+          // now draws the whole frame with object-fit: contain instead of
+          // cropping into it with cover, so the patch sits back near the
+          // frame's own left edge; it only has to clear the default read
+          // circle (48px radius around 160, 120), which it does with room to
+          // spare.
           context.fillStyle = '#1f2a44';
-          context.fillRect(120, 170, 80, 70);
+          context.fillRect(8, 80, 80, 80);
           return;
         }
         context.fillStyle = scene === 'dark' ? '#101010' : '#c0c0c0';

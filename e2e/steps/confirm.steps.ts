@@ -49,20 +49,19 @@ Then('the base block is named {string}', async ({ page }, name: string) => {
   await expect(page.getByRole('group', { name, exact: true })).toBeVisible();
 });
 
-// The busy scene's tappable patch is centred at frame pixel (160, 205), but
-// the photo is drawn with object-fit: cover, so a client coordinate is not a
-// frame coordinate. This runs framePoint.ts's conversion in reverse against
-// the element's own bounding box, rather than a fixed pixel offset that would
-// go stale if the layout changed. On the phone-height viewports both projects
-// use, the frame's full height fits the box and only its sides are cropped,
-// which is why the patch sits on the frame's horizontal midline: any other x
-// would land outside what the box actually shows.
+// The busy scene's tappable patch is centred at frame pixel (48, 120), but
+// the photo is drawn with object-fit: contain in this state, so a client
+// coordinate is not a frame coordinate. This runs framePoint.ts's contain
+// conversion in reverse against the element's own bounding box, rather than
+// a fixed pixel offset that would go stale if the layout changed: scale is
+// the smaller of the two axis ratios, and each axis is centred in whatever
+// the other leaves spare.
 When('I tap the garment on the photo', async ({ page }) => {
   const photo = page.getByRole('img', { name: 'Your photo' });
   const box = await photo.boundingBox();
   if (!box) throw new Error('the photo has not been laid out');
-  const scale = Math.max(box.width / 320, box.height / 240);
-  const x = 160 * scale - (320 * scale - box.width) / 2;
-  const y = 205 * scale - (240 * scale - box.height) / 2;
+  const scale = Math.min(box.width / 320, box.height / 240);
+  const x = 48 * scale + (box.width - 320 * scale) / 2;
+  const y = 120 * scale + (box.height - 240 * scale) / 2;
   await photo.click({ position: { x, y } });
 });
