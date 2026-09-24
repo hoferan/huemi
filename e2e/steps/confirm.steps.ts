@@ -83,3 +83,22 @@ Then('only the pressed button in {string} is outlined', async ({ page }, group: 
     await expect(button).toHaveCSS('outline-style', 'none');
   }
 });
+
+// A phone turned on its side. The photo's canvas once set the row's height
+// from its own aspect ratio, which pushed the buttons below the fold.
+Given('my screen is {int} by {int}', async ({ page }, width: number, height: number) => {
+  await page.setViewportSize({ width, height });
+});
+
+// The whole element inside the viewport, measured without scrolling to it.
+// Playwright's own visibility checks would scroll it into view first.
+Then('{string} is on screen without scrolling', async ({ page }, text: string) => {
+  const target = page.getByText(text, { exact: true });
+  await expect(target).toBeVisible();
+  const box = await target.boundingBox();
+  const viewport = page.viewportSize();
+  if (!box || !viewport) throw new Error(`"${text}" has not been laid out`);
+  expect(await page.evaluate(() => window.scrollY)).toBe(0);
+  expect(box.y).toBeGreaterThanOrEqual(0);
+  expect(box.y + box.height).toBeLessThanOrEqual(viewport.height);
+});

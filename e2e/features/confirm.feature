@@ -57,6 +57,21 @@ Feature: Confirming the color
     When I tap the garment on the photo
     Then I see the heading "Is this the color?"
 
+  Scenario: A landscape phone keeps the reading's buttons on screen
+    Given my screen is 844 by 390
+    And my camera shows a plain garment
+    When I open the camera for the top
+    And I take a photo
+    Then "Looks right" is on screen without scrolling
+
+  Scenario: A landscape phone keeps the way out of a busy photo on screen
+    Given my screen is 844 by 390
+    And my camera shows a busy scene
+    When I open the camera for the top
+    And I take a photo
+    Then "We couldn't tell which color is the garment. Tap it on your photo." is on screen without scrolling
+    And "Pick by hand" is on screen without scrolling
+
   Scenario: Reloading has nothing to confirm
     Given my camera shows a plain garment
     When I open the camera for the top

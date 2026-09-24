@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import * as stylex from '@stylexjs/stylex';
 import type { Pixels } from '../../model/frame';
 import { tokens } from '../../styles/tokens.stylex';
@@ -8,12 +8,21 @@ const styles = stylex.create({
   // No overflow clipping here either, for the same reason as Camera.tsx's
   // viewfinder: the 200% text-size check in e2e/invariants.spec.ts fails any
   // element that hides its own overflow.
-  wrap: { position: 'relative', flex: '1', minHeight: 0, display: 'flex' },
+  //
+  // The wrap takes whatever height the screen leaves it, down to a floor that
+  // keeps the photo worth looking at. It cannot get that height from the
+  // canvas: `main` has a minimum height and no definite one, so an in-flow
+  // canvas's aspect ratio set the row's height, and on a phone held
+  // landscape that pushed "Looks right" below the fold.
+  wrap: { position: 'relative', flex: '1', minHeight: '160px' },
+  // Out of flow for the reason above: positioned against the wrap, the canvas
+  // contributes no intrinsic size and fills whatever box the layout gave it.
   photo: {
+    position: 'absolute',
+    inset: 0,
     display: 'block',
     width: '100%',
     height: '100%',
-    minHeight: 0,
     borderRadius: tokens.radius,
     // Kept dark rather than left to the page background: under `contain`
     // this is what makes the letterbox bars read as part of the photo's own
@@ -80,7 +89,10 @@ export function FramePhoto({
   const canvas = useRef<HTMLCanvasElement>(null);
   const [rect, setRect] = useState<Rect>(zeroRect);
 
-  useEffect(() => {
+  // A layout effect, so the pixels are on the canvas before the browser
+  // paints. The confirm screen remounts this component on every change of
+  // state, and a passive effect would show one blank frame each time.
+  useLayoutEffect(() => {
     const context = canvas.current?.getContext('2d');
     if (!context || typeof ImageData === 'undefined') return;
     // `Uint8ClampedArray`'s type covers any `ArrayBufferLike`, but
