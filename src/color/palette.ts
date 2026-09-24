@@ -166,3 +166,24 @@ export function colorName(hex: Hex): string {
 export function blockLabel(slot: Slot, hex: Hex): string {
   return `${SLOT_LABELS[slot]}: ${colorName(hex)}`;
 }
+
+/**
+ * The palette entries nearest a color, for "Closer to one of these?" on the
+ * confirm screen.
+ *
+ * Split the way `colorName` splits: a neutral is offered neutrals first and a
+ * color colors first, so the choices never put back the hue the name was
+ * careful to leave out. When one side has fewer than `count`, the rest come
+ * from the other side, still by distance. An entry equal to `hex` is left out,
+ * because the screen already shows the reading itself as the first choice.
+ */
+export function nearbyColors(hex: Hex, count: number): NamedColor[] {
+  const neutral = namesAsNeutral(hex);
+  const byDistance = PALETTE.filter((c) => c.hex !== hex)
+    .map((color) => ({ color, distance: oklabDistance(color.hex, hex) }))
+    .sort((a, b) => a.distance - b.distance)
+    .map(({ color }) => color);
+  const same = byDistance.filter((c) => namesAsNeutral(c.hex) === neutral);
+  const other = byDistance.filter((c) => namesAsNeutral(c.hex) !== neutral);
+  return [...same, ...other].slice(0, count);
+}
