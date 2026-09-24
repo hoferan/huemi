@@ -17,18 +17,44 @@ const styles = stylex.create({
     width: '100%',
     cursor: 'pointer',
   },
+  secondary: {
+    backgroundColor: 'transparent',
+    color: tokens.ink,
+    borderWidth: '1px',
+    borderStyle: 'solid',
+    borderColor: tokens.line,
+  },
 });
 
 /**
- * The one call to action on a screen.
+ * A call to action. A screen has one primary, and may have secondaries beside
+ * it: the confirm screen's "Not quite", the entry screen's "Pick a color".
  *
  * `type="button"` explicitly: the default inside a form is `submit`, and a
  * screen that later grows a form would start navigating on Enter with no
  * change to this file.
  */
-export function Button({ label, onClick }: { label: string; onClick: () => void }) {
+export function Button({
+  label,
+  onClick,
+  variant = 'primary',
+  expanded,
+  controls,
+}: {
+  label: string;
+  onClick: () => void;
+  variant?: 'primary' | 'secondary';
+  expanded?: boolean;
+  controls?: string;
+}) {
   return (
-    <button type="button" onClick={onClick} {...stylex.props(styles.button)}>
+    <button
+      type="button"
+      onClick={onClick}
+      aria-expanded={expanded}
+      aria-controls={controls}
+      {...stylex.props(styles.button, variant === 'secondary' && styles.secondary)}
+    >
       {label}
     </button>
   );

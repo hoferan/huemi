@@ -16,4 +16,24 @@ describe('Button', () => {
     await user.click(screen.getByRole('button', { name: 'Start' }));
     expect(onClick).toHaveBeenCalledTimes(1);
   });
+
+  it('is a primary button unless told otherwise', () => {
+    render(<Button label="Go" onClick={() => {}} />);
+    expect(screen.getByRole('button', { name: 'Go' })).not.toHaveAttribute('aria-expanded');
+  });
+
+  it('can say it controls a region and whether that region is open', () => {
+    render(
+      <Button
+        label="Not quite"
+        variant="secondary"
+        expanded={false}
+        controls="panel"
+        onClick={() => {}}
+      />,
+    );
+    const button = screen.getByRole('button', { name: 'Not quite' });
+    expect(button).toHaveAttribute('aria-expanded', 'false');
+    expect(button).toHaveAttribute('aria-controls', 'panel');
+  });
 });

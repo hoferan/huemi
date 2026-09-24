@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import * as stylex from '@stylexjs/stylex';
 import { Dialog } from 'radix-ui';
 import { tokens } from '../styles/tokens.stylex';
+import { SheetHandle } from './SheetHandle';
 import { useDragDismiss } from './useDragDismiss';
 
 const styles = stylex.create({
@@ -32,18 +33,6 @@ const styles = stylex.create({
     transform: `translateY(${offset}px)`,
     transitionDuration: offset === 0 ? tokens.sheet : '0ms',
   }),
-  handle: {
-    alignSelf: 'center',
-    width: '56px',
-    minHeight: tokens.touchTarget,
-    display: 'grid',
-    placeItems: 'center',
-    borderStyle: 'none',
-    backgroundColor: 'transparent',
-    cursor: 'grab',
-    touchAction: 'none',
-  },
-  grip: { width: '44px', height: '5px', borderRadius: '999px', backgroundColor: tokens.ink2 },
   title: { fontFamily: tokens.fontHeading, fontSize: '1.25rem', margin: 0 },
   body: { flexGrow: 1, minHeight: 0, overflowY: 'auto', touchAction: 'pan-y' },
 });
@@ -56,10 +45,8 @@ const styles = stylex.create({
  * drag-to-dismiss and no spring. Both are written here, which is the cost the
  * issue said to budget for rather than discover late.
  *
- * The handle is a real `<button>`, not a decorative bar. Drag and the scrim
- * are pointer affordances; escape works; but a touch user who cannot drag
- * needs a target that closes the sheet by tap, and a screen reader needs
- * something to announce. The drag hangs off it, and the body keeps
+ * The close control is the shared `SheetHandle`; see its doc comment for why
+ * it is a real button. The drag hangs off it here, and the body keeps
  * `touch-action: pan-y` so a list inside can still scroll under the same
  * finger.
  */
@@ -117,30 +104,12 @@ export function Sheet({
           }}
           {...stylex.props(styles.sheet, styles.drag(offset))}
         >
-          <button
-            type="button"
-            aria-label="Close"
+          <SheetHandle
+            label="Close"
+            onClose={() => onOpenChange(false)}
             onPointerDown={onPointerDown}
-            // A keyboard activation cannot be what a drag meant to suppress,
-            // so it clears the flag on the way past. The same shape
-            // SuggestionBlock uses, for the same reason: a drag released off
-            // the handle never produces the click that would have cleared it.
-            onKeyDown={() => {
-              dragged();
-            }}
-            // The handle is the drag target and the tap-to-close control at
-            // once, and a press and release inside it produces a click
-            // whatever the drag decided. Without this, grabbing the handle,
-            // pulling down, changing your mind and pulling back up closes the
-            // sheet the spring just put back.
-            onClick={() => {
-              if (dragged()) return;
-              onOpenChange(false);
-            }}
-            {...stylex.props(styles.handle)}
-          >
-            <span {...stylex.props(styles.grip)} />
-          </button>
+            dragged={dragged}
+          />
           <Dialog.Title {...stylex.props(styles.title)}>{title}</Dialog.Title>
           {description ? (
             <Dialog.Description>{description}</Dialog.Description>
