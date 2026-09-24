@@ -2,7 +2,9 @@ import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { colorName } from '../../color/palette';
+import { rgbToHex } from '../../color/convert';
 import { withLightness } from '../../color/oklab';
+import { NAVY } from '../../color/testing';
 import { parseHex } from '../../model/hex';
 import { CorrectionPanel } from './CorrectionPanel';
 import { CLOSER, LIGHTER_DARKER } from './copy';
@@ -30,6 +32,18 @@ describe('CorrectionPanel', () => {
     expect(swatches).toHaveLength(5);
     expect(swatches[0]).toHaveAccessibleName('Denim');
     expect(swatches[0]).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  // NAVY reads as #2b3a5c, which is named Navy but is not palette Navy, so
+  // palette Navy is its nearest neighbour.
+  it('never offers two swatches with the same name', () => {
+    const navy = rgbToHex(NAVY);
+    renderPanel({ reading: navy, selected: navy });
+    const names = within(screen.getByRole('group', { name: CLOSER }))
+      .getAllByRole('button')
+      .map((swatch) => swatch.textContent);
+    expect(names).toHaveLength(5);
+    expect(new Set(names).size).toBe(5);
   });
 
   it('picks a swatch', async () => {

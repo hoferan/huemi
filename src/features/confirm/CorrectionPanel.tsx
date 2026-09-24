@@ -65,7 +65,18 @@ export function CorrectionPanel({
     height: () => panel.current?.offsetHeight ?? 0,
   });
 
-  const choices = [reading, ...nearbyColors(reading, 4).map((color) => color.hex)];
+  // A neighbour named like the reading is left out. Two swatches with one name
+  // are ambiguous to a screen reader, and choosing it would show "Your
+  // correction: Navy" after "We read Navy", which reads as no change. Asking
+  // for five and keeping four still leaves five swatches in the grid.
+  const readName = colorName(reading);
+  const choices = [
+    reading,
+    ...nearbyColors(reading, 5)
+      .filter((color) => color.name !== readName)
+      .slice(0, 4)
+      .map((color) => color.hex),
+  ];
 
   return (
     <section

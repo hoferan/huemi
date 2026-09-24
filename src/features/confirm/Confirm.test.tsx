@@ -3,10 +3,11 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router';
 import { describe, expect, it } from 'vitest';
-import { nearbyColors } from '../../color/palette';
+import { colorName } from '../../color/palette';
 import { readColor } from '../../color/read';
 import { NAVY, solid } from '../../color/testing';
 import type { Pixels } from '../../model/frame';
+import { parseHex } from '../../model/hex';
 import type { Slot } from '../../model/types';
 import { SessionProvider } from '../../session/SessionProvider';
 import { useSession } from '../../session/useSession';
@@ -158,17 +159,17 @@ describe('Confirm', () => {
     const user = userEvent.setup();
     const reading = readColor(solid(NAVY));
     if (reading.kind !== 'single') throw new Error('expected a single reading of navy');
-    const nearest = nearbyColors(reading.color, 4)[0]!.hex;
     renderWith(solid(NAVY));
     await user.click(await screen.findByRole('button', { name: NOT_QUITE }));
     const swatches = within(screen.getByRole('group', { name: CLOSER })).getAllByRole('button');
+    const chosen = swatches[1]!.textContent;
     await user.click(swatches[1]!);
     await user.click(screen.getByRole('button', { name: USE_THIS }));
-    expect(
-      await screen.findByText(
-        `/suggest?slot=top&hex=${encodeURIComponent(nearest)} base=top:${nearest}`,
-      ),
-    ).toBeInTheDocument();
+    const where = await screen.findByText(/^\/suggest\?slot=top&hex=%23/);
+    const base = /base=top:(#[0-9a-f]{6})/.exec(where.textContent)![1]!;
+    expect(base).not.toBe(reading.color);
+    expect(colorName(parseHex(base))).toBe(chosen);
+    expect(where).toHaveTextContent(`hex=${encodeURIComponent(base)}`);
   });
 
   it('offers picking by hand', async () => {
