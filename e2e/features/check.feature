@@ -68,3 +68,11 @@ Feature: Capturing an outfit to check
     And I tap piece 4 on the photo
     Then the screen has no detectable accessibility violations
     And every link and button is at least 44 by 44
+
+  Scenario: The open palette sheet passes the accessibility checks
+    Given my camera shows an outfit
+    When I open the outfit check
+    And I follow the link "Enter the colors"
+    And I press "Top: not set"
+    Then the screen has no detectable accessibility violations
+    And every link and button is at least 44 by 44
