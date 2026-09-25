@@ -21,3 +21,12 @@ export const PANELS: Readonly<Record<CameraFailure, { heading: string; body: str
     body: 'Try again, pick the color by hand, or choose a photo you already have.',
   },
 };
+
+/** The words that differ between the garment camera and the outfit camera. */
+export type CaptureCopy = {
+  panels: Readonly<Record<CameraFailure, { heading: string; body: string }>>;
+  /** The label of the link to entering colors without the camera. */
+  handEntry: string;
+};
+
+export const GARMENT_CAPTURE: CaptureCopy = { panels: PANELS, handEntry: 'Pick by hand' };
