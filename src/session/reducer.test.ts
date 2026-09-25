@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import type { Frame } from '../model/frame';
 import type { Outfit } from '../model/types';
 import { parseHex } from '../model/hex';
 import { initialSession, sessionReducer } from './reducer';
@@ -243,5 +244,91 @@ describe('sessionReducer', () => {
 
   it('starts with no capture', () => {
     expect(initialSession.capture).toBeNull();
+  });
+
+  describe('check', () => {
+    const rust = parseHex('#a4522d');
+    const frame: Frame = {
+      pixels: { width: 1, height: 1, data: new Uint8ClampedArray(4) },
+      source: 'camera',
+    };
+
+    it('starts empty and is cleared by reset', () => {
+      expect(initialSession.check).toBeNull();
+      const started = sessionReducer(initialSession, { type: 'checkStarted' });
+      expect(started.check).toEqual({ photo: null, pieces: {} });
+      expect(sessionReducer(started, { type: 'reset' }).check).toBeNull();
+    });
+
+    it('starts over when a check is started again', () => {
+      const withPiece = sessionReducer(sessionReducer(initialSession, { type: 'checkStarted' }), {
+        type: 'checkPieceSet',
+        slot: 'top',
+        hex: cream,
+      });
+      expect(sessionReducer(withPiece, { type: 'checkStarted' }).check).toEqual({
+        photo: null,
+        pieces: {},
+      });
+    });
+
+    it('keeps the photo and empties the pieces when a photo is taken', () => {
+      const withPiece = sessionReducer(initialSession, {
+        type: 'checkPieceSet',
+        slot: 'top',
+        hex: cream,
+      });
+      const next = sessionReducer(withPiece, { type: 'checkPhotoTaken', frame });
+      expect(next.check).toEqual({ photo: frame, pieces: {} });
+    });
+
+    it('creates the record when a piece is set with none there', () => {
+      const next = sessionReducer(initialSession, {
+        type: 'checkPieceSet',
+        slot: 'shoes',
+        hex: navy,
+      });
+      expect(next.check).toEqual({ photo: null, pieces: { shoes: { hex: navy } } });
+    });
+
+    it('keeps what the photo read when the piece is changed by hand', () => {
+      const read = sessionReducer(initialSession, {
+        type: 'checkPieceSet',
+        slot: 'bottom',
+        hex: rust,
+        read: rust,
+      });
+      const changed = sessionReducer(read, { type: 'checkPieceSet', slot: 'bottom', hex: navy });
+      expect(changed.check?.pieces.bottom).toEqual({ hex: navy, read: rust });
+    });
+
+    it('clears a piece, and ignores a clear with no check', () => {
+      const withPiece = sessionReducer(initialSession, {
+        type: 'checkPieceSet',
+        slot: 'top',
+        hex: cream,
+      });
+      expect(
+        sessionReducer(withPiece, { type: 'checkPieceCleared', slot: 'top' }).check?.pieces,
+      ).toEqual({});
+      expect(sessionReducer(initialSession, { type: 'checkPieceCleared', slot: 'top' })).toBe(
+        initialSession,
+      );
+    });
+
+    // Checking an outfit and building suggestions are separate sessions.
+    it('survives a new base, and leaves the base alone', () => {
+      const checked = sessionReducer(initialSession, {
+        type: 'checkPieceSet',
+        slot: 'top',
+        hex: cream,
+      });
+      const based = sessionReducer(checked, { type: 'baseChosen', slot: 'bottom', hex: navy });
+      expect(based.check).toEqual(checked.check);
+      expect(sessionReducer(based, { type: 'checkStarted' }).base).toEqual({
+        slot: 'bottom',
+        hex: navy,
+      });
+    });
   });
 });

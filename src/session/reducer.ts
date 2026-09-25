@@ -12,6 +12,7 @@ export type { SlotPick, SessionAction, SessionState } from './types';
 export const initialSession: SessionState = {
   base: null,
   capture: null,
+  check: null,
   // Frozen because these two objects are shared by reference into every state
   // derived from the initial one, here and through `reset` and `baseChosen`.
   // Every case below replaces them rather than writing into them, and a lapse
@@ -28,10 +29,12 @@ export function sessionReducer(state: SessionState, action: SessionAction): Sess
     case 'baseChosen':
       // A new base invalidates every suggestion made against the old one, so
       // picks and locks all go. The toast sequence survives, because
-      // reusing an id would let a stale dismissal close a live toast.
+      // reusing an id would let a stale dismissal close a live toast. An
+      // outfit check in progress survives too; it is not built on the base.
       return {
         ...initialSession,
         base: { slot: action.slot, hex: action.hex },
+        check: state.check,
         toastSeq: state.toastSeq,
       };
 
@@ -90,6 +93,32 @@ export function sessionReducer(state: SessionState, action: SessionAction): Sess
     case 'frameCaptured':
       // One capture at a time: a new shot means the last one was not wanted.
       return { ...state, capture: { slot: action.slot, frame: action.frame } };
+
+    case 'checkStarted':
+      return { ...state, check: { photo: null, pieces: {} } };
+
+    case 'checkPhotoTaken':
+      // A new photo is a different outfit, or the same one framed again:
+      // either way, readings from the last photo no longer describe it.
+      return { ...state, check: { photo: action.frame, pieces: {} } };
+
+    case 'checkPieceSet': {
+      // Created here if missing, since the list can be reached by hand after
+      // a refresh has emptied the session.
+      const check = state.check ?? { photo: null, pieces: {} };
+      // A hand change keeps the photo's reading, so the correction log can
+      // compare every later choice with what the camera said.
+      const read = action.read ?? check.pieces[action.slot]?.read;
+      const piece = read === undefined ? { hex: action.hex } : { hex: action.hex, read };
+      return { ...state, check: { ...check, pieces: { ...check.pieces, [action.slot]: piece } } };
+    }
+
+    case 'checkPieceCleared': {
+      if (!state.check) return state;
+      const pieces = { ...state.check.pieces };
+      delete pieces[action.slot];
+      return { ...state, check: { ...state.check, pieces } };
+    }
 
     case 'reset':
       return { ...initialSession, toastSeq: state.toastSeq };
