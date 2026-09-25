@@ -4,6 +4,11 @@ export type Slot = 'outerwear' | 'top' | 'bottom' | 'shoes' | 'accessory';
 
 export const SLOTS: readonly Slot[] = ['outerwear', 'top', 'bottom', 'shoes', 'accessory'];
 
+/** The slots an outfit check reads, head to toe. Rating leaves out accessories (#23). */
+export type CheckSlot = Exclude<Slot, 'accessory'>;
+
+export const CHECK_SLOTS: readonly CheckSlot[] = ['outerwear', 'top', 'bottom', 'shoes'];
+
 export const SLOT_LABELS: Readonly<Record<Slot, string>> = {
   outerwear: 'Outerwear',
   top: 'Top',

@@ -108,6 +108,10 @@ describe('AppRoutes', () => {
     '/camera?slot=top': 'Frame the garment',
     // Nothing is captured here, so the confirm screen hands over to the camera.
     '/confirm?slot=top': 'Frame the garment',
+    '/check': 'Frame the outfit',
+    // Without a photo the tap screen hands over to the outfit camera.
+    '/check/tap': 'Frame the outfit',
+    '/check/pieces': 'What are you wearing?',
     '/suggest?slot=top&hex=%23c39a3a': 'Goes with it',
     '/saved': 'Saved outfits',
   };

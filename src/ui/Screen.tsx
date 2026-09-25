@@ -55,16 +55,22 @@ const styles = stylex.create({
  * shows no app chrome at all and later screens need different chrome. It
  * renders inside the landmark and above the heading, so the heading stays
  * the first thing focus lands on.
+ *
+ * `headingNote` becomes part of the heading's accessible name and is never
+ * shown, for progress that is drawn rather than written, such as the outfit
+ * check's four chips.
  */
 export function Screen({
   title,
   documentTitle,
   header,
+  headingNote,
   children,
 }: {
   title: string;
   documentTitle?: string;
   header?: ReactNode;
+  headingNote?: string;
   children: ReactNode;
 }) {
   const heading = useRef<HTMLHeadingElement>(null);
@@ -85,7 +91,18 @@ export function Screen({
       {header}
       {/* Headings carry no terminal punctuation; a heading that is itself a
           sentence pair, like onboarding's, keeps the stops between them. */}
-      <h1 tabIndex={-1} ref={heading} {...stylex.props(styles.heading)}>
+      <h1
+        tabIndex={-1}
+        ref={heading}
+        // Named directly on the heading instead of put in a hidden span:
+        // Chromium adds a space before a comma that opens a block-level
+        // child, and jsdom does not, so the accessible name and the
+        // rendered text disagreed under test. This still gives a screen
+        // reader the same progress a sighted user gets from something
+        // drawn; the document title leaves it out.
+        aria-label={headingNote ? `${title}, ${headingNote}` : undefined}
+        {...stylex.props(styles.heading)}
+      >
         {title}
       </h1>
       {children}

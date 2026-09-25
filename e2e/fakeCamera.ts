@@ -5,16 +5,16 @@ import type { Page } from '@playwright/test';
  *
  * A canvas streamed through `captureStream`, rather than Chromium's fake
  * device flags: the flags give every test the same bright test pattern, and
- * the confirm screen's scenarios need a plain garment, a striped one and a
- * busy background too. There is no binary video fixture either; each scene is
- * painted from the hex values below, written out here so a scenario states
- * what the camera sees rather than pointing at an image file. As with
- * `seedOnboarded`, the callback runs in the browser and cannot close over
- * anything in this module.
+ * the confirm screen's scenarios need a plain garment, a striped one, a busy
+ * background and an outfit in four bands too. There is no binary video
+ * fixture either; each scene is painted from the hex values below, written
+ * out here so a scenario states what the camera sees rather than pointing at
+ * an image file. As with `seedOnboarded`, the callback runs in the browser
+ * and cannot close over anything in this module.
  */
 export async function fakeCamera(
   page: Page,
-  scene: 'bright' | 'dark' | 'denied' | 'garment' | 'striped' | 'busy',
+  scene: 'bright' | 'dark' | 'denied' | 'garment' | 'striped' | 'busy' | 'outfit',
 ): Promise<void> {
   await page.addInitScript((scene) => {
     function getUserMedia(): Promise<MediaStream> {
@@ -69,6 +69,17 @@ export async function fakeCamera(
           // spare.
           context.fillStyle = '#1f2a44';
           context.fillRect(8, 80, 80, 80);
+          return;
+        }
+        if (scene === 'outfit') {
+          // Four 60px bands, head to toe: a charcoal jacket, a cream top,
+          // rust trousers and burgundy shoes, all palette colors so each
+          // reads back under its own name.
+          const bands = ['#3d3d3f', '#e9dfc9', '#a4522d', '#6b2733'];
+          bands.forEach((color, i) => {
+            context.fillStyle = color;
+            context.fillRect(0, i * 60, canvas.width, 60);
+          });
           return;
         }
         context.fillStyle = scene === 'dark' ? '#101010' : '#c0c0c0';
