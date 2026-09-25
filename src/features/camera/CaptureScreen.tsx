@@ -112,9 +112,10 @@ function stopTracks(stream: MediaStream) {
  * Denied, unavailable and too dark are designed states rather than errors,
  * because all three are ordinary: people refuse permissions, and wardrobes are
  * dim. The shutter still works in the dark. The warning says why a read may
- * be poor and puts the two alternatives in reach, and the confirm step (#21)
- * is where a poor read gets corrected. Blocking the shutter would punish the
- * common case on a threshold nobody has tuned yet.
+ * be poor and puts the two alternatives in reach: the confirm step (#21)
+ * corrects a poor read for a garment, and the outfit check's list (#23) does
+ * the same for an outfit. Blocking the shutter would punish the common case
+ * on a threshold nobody has tuned yet.
  */
 export function CaptureScreen({
   title,
@@ -147,7 +148,7 @@ export function CaptureScreen({
   const [photoFailed, setPhotoFailed] = useState(false);
   // False once the screen has gone. A large photo can take a second to
   // decode, and by then the user may have picked by hand or gone back. Acting
-  // on it then would pull them to /confirm from wherever they went.
+  // on it then would pull them to the next step from wherever they went.
   const here = useRef(true);
 
   useEffect(() => {
