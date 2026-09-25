@@ -61,7 +61,9 @@ const styles = stylex.create({
  *
  * A change to a row the photo read is a correction, logged against what the
  * photo said, as the confirm screen logs one. Emptying a row is not: not
- * wearing a jacket says nothing about how well the camera reads color.
+ * wearing a jacket says nothing about how well the camera reads color. A
+ * patterned piece carries no reading to correct either, the same rule the
+ * confirm screen applies to its own several-color state.
  */
 export function CheckPieces() {
   const { state, dispatch } = useSession();

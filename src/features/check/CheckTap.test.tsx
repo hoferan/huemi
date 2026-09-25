@@ -47,12 +47,16 @@ function Seed({ pixels }: { pixels: Pixels }) {
   return null;
 }
 
+// A patterned piece carries no `read` (#23), so the suffix below marks that:
+// invisible on every other piece here, since a plain band's reading and its
+// stored hex are the same color.
 function Where() {
   const { pathname } = useLocation();
   const { state } = useSession();
   const pieces = CHECK_SLOTS.map((slot) => {
     const piece = state.check?.pieces[slot];
-    return `${slot}=${piece ? colorName(piece.hex) : '-'}`;
+    if (!piece) return `${slot}=-`;
+    return `${slot}=${colorName(piece.hex)}${piece.read ? '' : '(no read)'}`;
   }).join(' ');
   return (
     <p>
@@ -150,7 +154,7 @@ describe('CheckTap', () => {
     tapBand(2);
     await screen.findByRole('heading', { level: 1, name: `${TAP_PROMPTS.shoes}, 4 of 4` });
     tapBand(3);
-    expect(await screen.findByText(/top=Navy/)).toBeInTheDocument();
+    expect(await screen.findByText(/top=Navy\(no read\)/)).toBeInTheDocument();
   });
 
   it('stays on the piece and says so when a tap reads nothing clear', async () => {

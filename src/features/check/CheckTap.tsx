@@ -4,8 +4,9 @@ import * as stylex from '@stylexjs/stylex';
 import { needsBorder } from '../../color/contrast';
 import { readColor, tapRegion } from '../../color/read';
 import type { Pixels } from '../../model/frame';
-import { CHECK_SLOTS } from '../../model/types';
+import { CHECK_SLOTS, type CheckSlot } from '../../model/types';
 import { useSession } from '../../session/useSession';
+import type { CheckPiece } from '../../session/types';
 import { tokens } from '../../styles/tokens.stylex';
 import { Button } from '../../ui/Button';
 import { Screen } from '../../ui/Screen';
@@ -56,23 +57,26 @@ const styles = stylex.create({
  */
 export function CheckTap() {
   const { state } = useSession();
-  const photo = state.check?.photo;
+  const check = state.check;
   // The photo lives only in the in-memory session, so a refresh lands here
   // with nothing to tap.
-  if (!photo) return <Navigate to="/check" replace />;
-  return <TapPieces pixels={photo.pixels} />;
+  if (!check?.photo) return <Navigate to="/check" replace />;
+  return <TapPieces pixels={check.photo.pixels} pieces={check.pieces} />;
 }
 
-function TapPieces({ pixels }: { pixels: Pixels }) {
-  const { state, dispatch } = useSession();
+function TapPieces({
+  pixels,
+  pieces,
+}: {
+  pixels: Pixels;
+  pieces: Partial<Record<CheckSlot, CheckPiece>>;
+}) {
+  const { dispatch } = useSession();
   const navigate = useNavigate();
   const announce = useAnnounce();
   const [index, setIndex] = useState(0);
   const [miss, setMiss] = useState<{ x: number; y: number } | null>(null);
   const slot = CHECK_SLOTS[index]!;
-  // CheckTap already sent a visit with no photo back to /check, so by the
-  // time this renders, state.check is always the one that photo came from.
-  const pieces = state.check!.pieces;
 
   function advance() {
     setMiss(null);
@@ -91,7 +95,12 @@ function TapPieces({ pixels }: { pixels: Pixels }) {
       announce(TAP_UNCLEAR);
       return;
     }
-    dispatch({ type: 'checkPieceSet', slot, hex: outcome.hex, read: outcome.hex });
+    dispatch({
+      type: 'checkPieceSet',
+      slot,
+      hex: outcome.hex,
+      ...(outcome.read && { read: outcome.read }),
+    });
     advance();
   }
 
