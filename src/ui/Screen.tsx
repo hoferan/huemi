@@ -4,7 +4,6 @@ import { useLocation } from 'react-router';
 import * as stylex from '@stylexjs/stylex';
 import { tokens } from '../styles/tokens.stylex';
 import { InitialLocationContext } from './InitialLocationContext';
-import { SR_ONLY } from './srOnly';
 
 const styles = stylex.create({
   main: {
@@ -57,8 +56,9 @@ const styles = stylex.create({
  * renders inside the landmark and above the heading, so the heading stays
  * the first thing focus lands on.
  *
- * `headingNote` is read with the heading and never shown, for progress that
- * is drawn rather than written, such as the outfit check's four chips.
+ * `headingNote` becomes part of the heading's accessible name and is never
+ * shown, for progress that is drawn rather than written, such as the outfit
+ * check's four chips.
  */
 export function Screen({
   title,
@@ -91,11 +91,19 @@ export function Screen({
       {header}
       {/* Headings carry no terminal punctuation; a heading that is itself a
           sentence pair, like onboarding's, keeps the stops between them. */}
-      <h1 tabIndex={-1} ref={heading} {...stylex.props(styles.heading)}>
+      <h1
+        tabIndex={-1}
+        ref={heading}
+        // Named directly on the heading instead of put in a hidden span:
+        // Chromium adds a space before a comma that opens a block-level
+        // child, and jsdom does not, so the accessible name and the
+        // rendered text disagreed under test. This still gives a screen
+        // reader the same progress a sighted user gets from something
+        // drawn; the document title leaves it out.
+        aria-label={headingNote ? `${title}, ${headingNote}` : undefined}
+        {...stylex.props(styles.heading)}
+      >
         {title}
-        {/* Read as part of the heading, for progress a sighted user gets
-            from something drawn instead. The document title leaves it out. */}
-        {headingNote && <span style={SR_ONLY}>, {headingNote}</span>}
       </h1>
       {children}
     </main>

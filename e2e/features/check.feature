@@ -11,7 +11,7 @@ Feature: Capturing an outfit to check
     Given my camera shows an outfit
     When I open the outfit check
     And I take a photo of the outfit
-    Then I see the heading "Tap your jacket or coat , 1 of 4"
+    Then I see the heading "Tap your jacket or coat, 1 of 4"
     When I tap piece 1 on the photo
     And I tap piece 2 on the photo
     And I tap piece 3 on the photo

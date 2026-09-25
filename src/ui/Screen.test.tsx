@@ -128,9 +128,10 @@ describe('Screen', () => {
         </InitialLocationContext>
       </MemoryRouter>,
     );
-    expect(
-      screen.getByRole('heading', { level: 1, name: 'Tap your top, 2 of 4' }),
-    ).toBeInTheDocument();
+    const heading = screen.getByRole('heading', { level: 1, name: 'Tap your top, 2 of 4' });
+    expect(heading).toBeInTheDocument();
+    // The note names the heading but is never part of what is printed.
+    expect(heading.textContent).toBe('Tap your top');
     expect(document.title).toBe('Tap your top — huemi');
   });
 });
