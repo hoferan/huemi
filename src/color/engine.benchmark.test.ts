@@ -8,7 +8,10 @@ import { existsSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { parseHex, type Hex } from '../model/hex';
 import type { Slot } from '../model/types';
-import { rate } from './engine';
+import { TUNING, rate } from './engine';
+import type { WornPieces } from './check';
+import { chromaLoad } from './score';
+import { temperature } from './classify';
 
 /**
  * The engine measured against the Polyvore benchmarks (ADR 0010).
@@ -190,7 +193,68 @@ function against(context: Piece[], candidate: Piece): number | null {
   return total / usable.length;
 }
 
+/** The human-labelled outfits: 1 compatible, 0 not, each with the pieces the color words gave. */
+function compatibility(items: Map<string, Piece>): { label: number; pieces: Piece[] }[] {
+  return readFileSync(`${DIR}/fashion_compatibility_prediction.txt`, 'utf8')
+    .split(/\r?\n/)
+    .filter(Boolean)
+    .map((line) => {
+      const parts = line.trim().split(/\s+/);
+      const pieces = parts
+        .slice(1)
+        .map((id) => items.get(id))
+        .filter((p): p is Piece => !!p);
+      return { label: Number(parts[0]), pieces };
+    });
+}
+
+/**
+ * The outfit as the check sees it: the first piece in each checked slot,
+ * accessories dropped. Null under two pieces, where the check has nothing to say.
+ */
+function worn(pieces: Piece[]): WornPieces | null {
+  const out: WornPieces = {};
+  for (const piece of pieces) {
+    const slot = piece.slot;
+    if (slot === 'accessory') continue;
+    out[slot] ??= piece.hex;
+  }
+  return Object.keys(out).length >= 2 ? out : null;
+}
+
 describe.skipIf(!present)('the engine against Polyvore', () => {
+  // Why the outfit check describes and never flags (ADR 0014). In the
+  // compatibility set, the outfits people rated as working carry more color
+  // than the ones they rated as not, and mix warm and cool more often: 29.5%
+  // of compatible outfits are over the composer's chroma budget against 23.7%
+  // of incompatible ones, and 22.0% mix warm and cool against 17.0%, on 332
+  // and 317 outfits when this was written. A "too much color" or "warm against
+  // cool" flag would point at good outfits more often than bad ones. If a
+  // better reading of color ever reverses this, the test fails and the
+  // describe-only decision is worth revisiting.
+  it('finds no sign that color or warm against cool marks a bad outfit', () => {
+    const rows = compatibility(index()).flatMap(({ label, pieces }) => {
+      const outfit = worn(pieces);
+      if (!outfit) return [];
+      const temperatures = Object.values(outfit).map((hex) => temperature(hex));
+      return [
+        {
+          label,
+          colorful: chromaLoad(outfit) > TUNING.chromaBudget,
+          mixes: temperatures.includes('warm') && temperatures.includes('cool'),
+        },
+      ];
+    });
+    const share = (label: number, key: 'colorful' | 'mixes') => {
+      const group = rows.filter((r) => r.label === label);
+      return group.filter((r) => r[key]).length / group.length;
+    };
+
+    expect(rows.length).toBeGreaterThan(500);
+    expect(share(1, 'colorful')).toBeGreaterThanOrEqual(share(0, 'colorful'));
+    expect(share(1, 'mixes')).toBeGreaterThanOrEqual(share(0, 'mixes'));
+  });
+
   it('picks the real item over the benchmark decoys more often than chance', () => {
     const items = index();
     const questions = JSON.parse(readFileSync(`${DIR}/fill_in_blank_test.json`, 'utf8')) as {
@@ -231,14 +295,7 @@ describe.skipIf(!present)('the engine against Polyvore', () => {
     const items = index();
     const rows: { label: number; score: number }[] = [];
 
-    for (const line of readFileSync(`${DIR}/fashion_compatibility_prediction.txt`, 'utf8')
-      .split(/\r?\n/)
-      .filter(Boolean)) {
-      const parts = line.trim().split(/\s+/);
-      const pieces = parts
-        .slice(1)
-        .map((id) => items.get(id))
-        .filter((p): p is Piece => !!p);
+    for (const { label, pieces } of compatibility(items)) {
       let total = 0;
       let n = 0;
       for (const a of pieces) {
@@ -248,7 +305,7 @@ describe.skipIf(!present)('the engine against Polyvore', () => {
           n += 1;
         }
       }
-      if (n > 0) rows.push({ label: Number(parts[0]), score: total / n });
+      if (n > 0) rows.push({ label, score: total / n });
     }
 
     // AUC by rank: the chance a random compatible outfit outscores a random
