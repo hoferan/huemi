@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, Link, useNavigate } from 'react-router';
 import { describe, expect, it } from 'vitest';
 import { InitialLocation } from './InitialLocation';
+import { InitialLocationContext } from './InitialLocationContext';
 import { Screen } from './Screen';
 
 function Back() {
@@ -115,5 +116,21 @@ describe('Screen', () => {
       wordmark.compareDocumentPosition(screen.getByRole('heading', { level: 1 })) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
+  });
+
+  it('reads a heading note as part of the heading without showing it', () => {
+    render(
+      <MemoryRouter>
+        <InitialLocationContext value={true}>
+          <Screen title="Tap your top" headingNote="2 of 4">
+            <p>body</p>
+          </Screen>
+        </InitialLocationContext>
+      </MemoryRouter>,
+    );
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Tap your top, 2 of 4' }),
+    ).toBeInTheDocument();
+    expect(document.title).toBe('Tap your top — huemi');
   });
 });

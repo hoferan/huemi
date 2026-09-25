@@ -4,6 +4,7 @@ import { useLocation } from 'react-router';
 import * as stylex from '@stylexjs/stylex';
 import { tokens } from '../styles/tokens.stylex';
 import { InitialLocationContext } from './InitialLocationContext';
+import { SR_ONLY } from './srOnly';
 
 const styles = stylex.create({
   main: {
@@ -55,16 +56,21 @@ const styles = stylex.create({
  * shows no app chrome at all and later screens need different chrome. It
  * renders inside the landmark and above the heading, so the heading stays
  * the first thing focus lands on.
+ *
+ * `headingNote` is read with the heading and never shown, for progress that
+ * is drawn rather than written, such as the outfit check's four chips.
  */
 export function Screen({
   title,
   documentTitle,
   header,
+  headingNote,
   children,
 }: {
   title: string;
   documentTitle?: string;
   header?: ReactNode;
+  headingNote?: string;
   children: ReactNode;
 }) {
   const heading = useRef<HTMLHeadingElement>(null);
@@ -87,6 +93,9 @@ export function Screen({
           sentence pair, like onboarding's, keeps the stops between them. */}
       <h1 tabIndex={-1} ref={heading} {...stylex.props(styles.heading)}>
         {title}
+        {/* Read as part of the heading, for progress a sighted user gets
+            from something drawn instead. The document title leaves it out. */}
+        {headingNote && <span style={SR_ONLY}>, {headingNote}</span>}
       </h1>
       {children}
     </main>

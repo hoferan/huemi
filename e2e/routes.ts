@@ -19,6 +19,10 @@ export const ROUTES: readonly string[] = [
   // the confirm screen's three states.
   '/confirm?slot=top',
   '/check',
+  // Without a photo this redirects to /check, so the sweep sees the outfit
+  // camera again. `e2e/features/check.feature` carries the checks into the
+  // tap screen with a photo.
+  '/check/tap',
   '/suggest?slot=top&hex=%23c39a3a',
   '/saved',
   '/this-route-does-not-exist',
