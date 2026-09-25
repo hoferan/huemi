@@ -21,18 +21,19 @@ supersedes it, in which case both say so.
 
 ## Records
 
-|                                                             | Decision                                                  |
-| ----------------------------------------------------------- | --------------------------------------------------------- |
-| [0001](0001-client-side-spa-on-vite.md)                     | Build huemi as a client-side single-page app on Vite      |
-| [0002](0002-stylex-over-tailwind.md)                        | Style with StyleX rather than Tailwind                    |
-| [0003](0003-radix-over-shadcn.md)                           | Use Radix primitives rather than shadcn/ui                |
-| [0004](0004-black-and-white-foreground.md)                  | Put black or white text on color, not a softened pair     |
-| [0005](0005-outfits-store-hexes.md)                         | Store outfit pieces as hexes, never as suggestion indices |
-| [0006](0006-color-engine-before-screens.md)                 | Build the color engine before any screen                  |
-| [0007](0007-transient-plans-durable-decisions.md)           | Keep working documents transient and decisions durable    |
-| [0008](0008-gherkin-feature-files-for-e2e.md)               | Write end-to-end tests as Gherkin feature files           |
-| [0009](0009-how-the-matching-engine-reasons.md)             | Reason about color in OKLab, with no harmony geometry     |
-| [0010](0010-fitting-the-engine-to-outfit-data.md)           | Fit the lightness term against real outfit data           |
-| [0011](0011-routing-and-screen-transitions.md)              | Route with React Router, and move focus from the screen   |
-| [0012](0012-composing-an-outfit-above-a-pairwise-engine.md) | Compose an outfit above a pairwise engine                 |
-| [0013](0013-user-data-stays-on-the-device.md)               | Keep user data on the device                              |
+|                                                               | Decision                                                  |
+| ------------------------------------------------------------- | --------------------------------------------------------- |
+| [0001](0001-client-side-spa-on-vite.md)                       | Build huemi as a client-side single-page app on Vite      |
+| [0002](0002-stylex-over-tailwind.md)                          | Style with StyleX rather than Tailwind                    |
+| [0003](0003-radix-over-shadcn.md)                             | Use Radix primitives rather than shadcn/ui                |
+| [0004](0004-black-and-white-foreground.md)                    | Put black or white text on color, not a softened pair     |
+| [0005](0005-outfits-store-hexes.md)                           | Store outfit pieces as hexes, never as suggestion indices |
+| [0006](0006-color-engine-before-screens.md)                   | Build the color engine before any screen                  |
+| [0007](0007-transient-plans-durable-decisions.md)             | Keep working documents transient and decisions durable    |
+| [0008](0008-gherkin-feature-files-for-e2e.md)                 | Write end-to-end tests as Gherkin feature files           |
+| [0009](0009-how-the-matching-engine-reasons.md)               | Reason about color in OKLab, with no harmony geometry     |
+| [0010](0010-fitting-the-engine-to-outfit-data.md)             | Fit the lightness term against real outfit data           |
+| [0011](0011-routing-and-screen-transitions.md)                | Route with React Router, and move focus from the screen   |
+| [0012](0012-composing-an-outfit-above-a-pairwise-engine.md)   | Compose an outfit above a pairwise engine                 |
+| [0013](0013-user-data-stays-on-the-device.md)                 | Keep user data on the device                              |
+| [0014](0014-checking-an-outfit-describes-and-never-judges.md) | Check an outfit by describing it, never by judging it     |
