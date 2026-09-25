@@ -31,7 +31,8 @@ shoes, which at a slot area of 0.15 carry almost nothing.
 
 ### What Polyvore says
 
-Of the 3,076 outfits in the compatibility set, 649 have at least two checked pieces with
+Of the 7,076 outfits in the compatibility set (3,076 compatible and 4,000 incompatible),
+649 have at least two checked pieces with
 a color word the benchmark can read: 332 compatible and 317 incompatible. Flag rates at
 a sample of lines, compatible then incompatible:
 
@@ -67,7 +68,7 @@ the engine's model regardless of the data, and over pausing for better data.
 `checkOutfit` in `src/color/check.ts` returns up to three observations, each naming the
 pieces it is about with their colors:
 
-- How much color there is and which piece carries most of it. An outfit of neutrals is
+- How much color there is and which piece carries the most. An outfit of neutrals is
   called that. Otherwise the composer's budget divides quiet from colorful, as a
   description of how much color there is.
 - Whether the colored pieces sit warm, cool or both, by `temperature()` alone. The engine
@@ -75,6 +76,10 @@ pieces it is about with their colors:
   description has nothing to penalize, so Cream counts as warm.
 - Whether the pieces are close in lightness or far apart, split at the fitted lightness
   curve's width, `tonalLightness + spreadLightness`.
+
+A piece counts as colored by the cutoff `colorName` uses (chroma 0.025), not the engine's
+0.02, because every sentence names its pieces with `colorName`. A piece the sentence calls
+Grey is never the warm one or the one carrying the color.
 
 Hue is left out. It has the smallest weight in `rate()`, depends on which piece is figure
 and which ground, and does not reduce to a plain sentence.

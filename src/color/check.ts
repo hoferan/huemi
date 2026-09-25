@@ -1,8 +1,9 @@
 import type { Hex } from '../model/hex';
 import { CHECK_SLOTS, SLOT_AREA, type CheckSlot } from '../model/types';
-import { chroma, isNeutral, temperature } from './classify';
+import { chroma, temperature } from './classify';
 import { TUNING } from './engine';
 import { hexToOklch } from './oklab';
+import { namesAsNeutral } from './palette';
 import { chromaLoad, lightnessContrast } from './score';
 
 /** The pieces of an outfit being checked. Accessories are left out (#23). */
@@ -42,17 +43,26 @@ function heaviest(pieces: WornPiece[]): WornPiece {
 }
 
 /**
+ * The pieces with a color to talk about, by the same cutoff `colorName` uses
+ * rather than the engine's narrower `NEUTRAL_CHROMA`. Every sentence names its
+ * pieces with `colorName`, and a piece it calls Grey cannot be the warm one or
+ * the one carrying the color. A big grey jacket read at chroma 0.019 outweighs
+ * burgundy shoes by area, and it is still grey.
+ */
+const coloredPieces = (present: WornPiece[]): WornPiece[] =>
+  present.filter((piece) => !namesAsNeutral(piece.hex));
+
+/**
  * The composer's chroma budget is the line between quiet and colorful here,
  * as a description only. It is where the composer stops adding color to a
  * suggestion (ADR 0012), which makes it a fair word for "a lot", and it says
  * nothing about whether a lot is wrong.
  */
 function colorObservation(present: WornPiece[], pieces: WornPieces): Observation {
-  if (present.every((piece) => isNeutral(piece.hex))) {
-    return { term: 'color', kind: 'neutral', pieces: [] };
-  }
+  const colored = coloredPieces(present);
+  if (colored.length === 0) return { term: 'color', kind: 'neutral', pieces: [] };
   const kind = chromaLoad(pieces) > TUNING.chromaBudget ? 'colorful' : 'quiet';
-  return { term: 'color', kind, pieces: [heaviest(present)] };
+  return { term: 'color', kind, pieces: [heaviest(colored)] };
 }
 
 /**
@@ -61,7 +71,7 @@ function colorObservation(present: WornPiece[], pieces: WornPieces): Observation
  * penalize, so Cream counts as the warm color it is.
  */
 function temperatureObservation(present: WornPiece[]): Observation | null {
-  const colored = present.filter((piece) => !isNeutral(piece.hex));
+  const colored = coloredPieces(present);
   if (colored.length < 2) return null;
   const warm = colored.filter((piece) => temperature(piece.hex) === 'warm');
   const cool = colored.filter((piece) => temperature(piece.hex) === 'cool');
@@ -71,8 +81,9 @@ function temperatureObservation(present: WornPiece[]): Observation | null {
 }
 
 /**
- * The boundary is the fitted lightness curve's own width. This only
- * describes, and ADR 0010 found real outfits run tonal and spread alike.
+ * The boundary is the fitted lightness curve's own width. ADR 0010 found
+ * tonal outfits over-represented in real data and the rest of the range
+ * roughly flat, so neither side is worth more than a description.
  */
 function lightnessObservation(present: WornPiece[]): Observation {
   const l = (piece: WornPiece) => hexToOklch(piece.hex).l;

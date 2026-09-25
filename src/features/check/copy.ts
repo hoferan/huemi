@@ -83,12 +83,17 @@ export function observationText(observation: Observation): string {
   switch (observation.kind) {
     case 'neutral':
       return 'All neutrals, so nothing competes.';
+    // Both say which piece carries the most color and no more: the observation
+    // does not know how the rest compare, and two pieces can carry nearly the
+    // same amount.
     case 'quiet': {
       const [piece] = observation.pieces;
-      return `The ${named(piece)} ${carries(piece)} the color, and the rest stay quiet.`;
+      return `Quiet overall, and the ${named(piece)} ${carries(piece)} the most color.`;
     }
-    case 'colorful':
-      return `Plenty of color, most of it in the ${named(observation.pieces[0])}.`;
+    case 'colorful': {
+      const [piece] = observation.pieces;
+      return `Plenty of color, and the ${named(piece)} ${carries(piece)} the most.`;
+    }
     case 'warm':
       return 'The colors all sit on the warm side.';
     case 'cool':

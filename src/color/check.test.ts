@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { Hex } from '../model/hex';
+import { parseHex, type Hex } from '../model/hex';
 import type { CheckSlot } from '../model/types';
 import { TUNING } from './engine';
 import { PALETTE } from './palette';
@@ -146,6 +146,28 @@ describe('checkOutfit', () => {
     const observations = check(TWIN_BLACK);
     expect(find(observations, 'color')).toMatchObject({ kind: 'neutral' });
     expect(find(observations, 'lightness')).toMatchObject({ kind: 'tonal' });
+    expect(find(observations, 'temperature')).toBeUndefined();
+  });
+
+  // A camera read of a grey jacket at chroma 0.019 carries more area-weighted
+  // chroma than burgundy shoes, because the jacket is so much bigger. It is
+  // still grey, and the shoes are the only color in the outfit.
+  it('never names a neutral piece as the one carrying the color', () => {
+    const observations = check({
+      outerwear: parseHex('#968c82'),
+      top: hex('Black'),
+      bottom: hex('Black'),
+      shoes: hex('Burgundy'),
+    });
+    expect(slots(find(observations, 'color'))).toEqual(['shoes']);
+  });
+
+  // Between chroma 0.02 and 0.025 the engine calls a color colored and
+  // colorName calls it a neutral. The check speaks in names, so a piece
+  // named Grey is not a warm color here.
+  it('treats a piece named as a neutral as a neutral', () => {
+    const observations = check({ top: parseHex('#988c80'), bottom: parseHex('#3a3d4a') });
+    expect(find(observations, 'color')).toMatchObject({ kind: 'neutral' });
     expect(find(observations, 'temperature')).toBeUndefined();
   });
 
