@@ -18,6 +18,7 @@ export const ROUTES: readonly string[] = [
   // camera again. `e2e/features/confirm.feature` carries the same checks into
   // the confirm screen's three states.
   '/confirm?slot=top',
+  '/check',
   '/suggest?slot=top&hex=%23c39a3a',
   '/saved',
   '/this-route-does-not-exist',
