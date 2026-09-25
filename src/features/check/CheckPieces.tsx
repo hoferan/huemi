@@ -72,6 +72,7 @@ export function CheckPieces() {
   const [open, setOpen] = useState<CheckSlot | null>(null);
   const [tooFew, setTooFew] = useState(false);
   const pieces = state.check?.pieces ?? {};
+  const filled = CHECK_SLOTS.filter((slot) => pieces[slot]).length;
 
   function choose(slot: CheckSlot, hex: Hex) {
     const piece = pieces[slot];
@@ -84,7 +85,6 @@ export function CheckPieces() {
       });
     }
     dispatch({ type: 'checkPieceSet', slot, hex });
-    setTooFew(false);
     setOpen(null);
   }
 
@@ -94,7 +94,6 @@ export function CheckPieces() {
   }
 
   function check() {
-    const filled = CHECK_SLOTS.filter((slot) => pieces[slot]).length;
     if (filled >= 2) {
       void navigate('/check/result');
       return;
@@ -127,7 +126,7 @@ export function CheckPieces() {
           );
         })}
       </div>
-      {tooFew && <p {...stylex.props(styles.body)}>{NEED_TWO}</p>}
+      {tooFew && filled < 2 && <p {...stylex.props(styles.body)}>{NEED_TWO}</p>}
       <Button label={CHECK_IT} onClick={check} />
       {open && (
         <Sheet

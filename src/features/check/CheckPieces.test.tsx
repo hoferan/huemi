@@ -125,6 +125,38 @@ describe('CheckPieces', () => {
     expect(screen.getByRole('heading', { level: 1, name: PIECES_TITLE })).toBeInTheDocument();
   });
 
+  it('keeps the too-few message after the shown piece changes color, and hides it once a second is set', async () => {
+    const user = userEvent.setup();
+    renderWith([{ slot: 'top', hex: cream }]);
+    const main = screen.getByRole('main');
+    await user.click(await screen.findByRole('button', { name: CHECK_IT }));
+    expect(await within(main).findByText(NEED_TWO)).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Top: Cream' }));
+    await user.click(
+      within(await screen.findByRole('dialog')).getByRole('button', { name: 'Rust' }),
+    );
+    expect(within(main).getByText(NEED_TWO)).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Outerwear: not set' }));
+    await user.click(
+      within(await screen.findByRole('dialog')).getByRole('button', { name: 'Charcoal' }),
+    );
+    expect(within(main).queryByText(NEED_TWO)).not.toBeInTheDocument();
+  });
+
+  it('leaves a filled row unchanged when its sheet is dismissed without choosing', async () => {
+    const user = userEvent.setup();
+    renderWith([{ slot: 'bottom', hex: rust, read: rust }]);
+    const row = await screen.findByRole('button', { name: 'Bottom: Rust' });
+    await user.click(row);
+    await screen.findByRole('dialog', { name: 'Bottom' });
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Bottom: Rust' })).toHaveFocus();
+    expect(corrections()).toEqual([]);
+  });
+
   it('moves on to the result with two pieces', async () => {
     const user = userEvent.setup();
     renderWith([
