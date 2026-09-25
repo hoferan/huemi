@@ -67,11 +67,8 @@ const within = (value: number, budget: number, spread: number): number =>
  * 0.031 against a cutoff of 0.02, and a step function calls it a warm color
  * clashing with a cool one, which is how navy and cream came out below navy on
  * navy. The same cliff at the same boundary is what #38 fixed in `isNeutral`.
- *
- * Exported for the outfit check (`check.ts`), which has to agree with `rate()`
- * about what counts as a real color when it looks for warm against cool.
  */
-export function chromaticStrength(base: Hex, candidate: Hex): number {
+function chromaticStrength(base: Hex, candidate: Hex): number {
   const weakest = Math.min(chroma(base), chroma(candidate));
   const ramp = (weakest - NEUTRAL_CHROMA) / (TUNING.fullChroma - NEUTRAL_CHROMA);
   return Math.min(1, Math.max(0, ramp));
