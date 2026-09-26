@@ -3,6 +3,7 @@ import * as stylex from '@stylexjs/stylex';
 import { tokens } from '../../styles/tokens.stylex';
 import { Button } from '../../ui/Button';
 import { Screen } from '../../ui/Screen';
+import { CHECK_ENTRY } from '../check/copy';
 
 const styles = stylex.create({
   wordmark: {
@@ -69,6 +70,13 @@ export function Entry() {
       <div {...stylex.props(styles.actions)}>
         <Button label="Take a photo" onClick={() => void navigate('/slot?next=camera')} />
         <Button variant="secondary" label="Pick a color" onClick={() => void navigate('/slot')} />
+        {/*
+          The check is huemi's second job, for someone already dressed rather
+          than starting from one garment, so it sits below the two ways into
+          suggestions as a quiet button: it names when to use it and does not
+          compete with them (PO, 2026-09-26).
+        */}
+        <Button variant="quiet" label={CHECK_ENTRY} onClick={() => void navigate('/check')} />
       </div>
     </Screen>
   );

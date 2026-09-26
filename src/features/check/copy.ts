@@ -110,3 +110,5 @@ export function observationText(observation: Observation): string {
     }
   }
 }
+
+export const CHECK_ENTRY = 'Already dressed? Check your outfit';
