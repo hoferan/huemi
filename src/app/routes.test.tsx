@@ -112,6 +112,8 @@ describe('AppRoutes', () => {
     // Without a photo the tap screen hands over to the outfit camera.
     '/check/tap': 'Frame the outfit',
     '/check/pieces': 'What are you wearing?',
+    // Without a check the result hands over to the outfit camera.
+    '/check/result': 'Frame the outfit',
     '/suggest?slot=top&hex=%23c39a3a': 'Goes with it',
     '/saved': 'Saved outfits',
   };

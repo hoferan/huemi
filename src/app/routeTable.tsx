@@ -2,6 +2,7 @@ import type { ReactElement } from 'react';
 import { Camera } from '../features/camera/Camera';
 import { CheckCamera } from '../features/check/CheckCamera';
 import { CheckPieces } from '../features/check/CheckPieces';
+import { CheckResult } from '../features/check/CheckResult';
 import { CheckTap } from '../features/check/CheckTap';
 import { Confirm } from '../features/confirm/Confirm';
 import { Entry } from '../features/entry/Entry';
@@ -43,6 +44,7 @@ export const APP_ROUTES: readonly AppRoute[] = [
   { path: '/check', element: <CheckCamera /> },
   { path: '/check/tap', element: <CheckTap /> },
   { path: '/check/pieces', element: <CheckPieces /> },
+  { path: '/check/result', element: <CheckResult /> },
   { path: '/suggest', element: <Suggestions /> },
   { path: '/saved', element: <Saved /> },
 ];

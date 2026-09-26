@@ -1,8 +1,8 @@
 Feature: Capturing an outfit to check
 
   The user photographs what they are wearing and taps each piece, or enters
-  each piece's color by hand. Both routes end on one list. Nothing links
-  here until the result screen lands (#25), so these scenarios open it by URL.
+  each piece's color by hand. Both routes end on one list, and the list
+  leads to the result. The start screen links here for someone already dressed.
 
   Background:
     Given I have seen the welcome screen
