@@ -1,9 +1,9 @@
 import type { Hex } from '../model/hex';
-import { CHECK_SLOTS, SLOT_AREA, type CheckSlot } from '../model/types';
+import { CHECK_SLOTS, SLOT_AREA, type CheckSlot, type Suggestion } from '../model/types';
 import { chroma, temperature } from './classify';
-import { TUNING } from './engine';
+import { TUNING, byScoreThenName, rate } from './engine';
 import { hexToOklch } from './oklab';
-import { namesAsNeutral } from './palette';
+import { PALETTE, namesAsNeutral } from './palette';
 import { chromaLoad, lightnessContrast } from './score';
 
 /** The pieces of an outfit being checked. Accessories are left out (#23). */
@@ -119,4 +119,30 @@ export function checkOutfit(pieces: WornPieces): Observation[] | null {
     ...(warmth ? [warmth] : []),
     lightnessObservation(present),
   ];
+}
+
+/**
+ * Every palette color for one slot, best fit with the rest of the outfit
+ * first: each color's `rate()` against every other piece worn, averaged.
+ *
+ * This is the scoring the Polyvore fill-in-the-blank benchmark runs, where it
+ * picks the real item 57.8% of the time against a 47.5% chance line (ADR
+ * 0010). It is the one thing the engine has shown it does better than chance
+ * on real outfits, which is why the result can rank swaps while it declines
+ * to flag anything (ADR 0014). The whole palette comes back, like
+ * `suggest()`, so the sheet's position labels count the list it shows.
+ */
+export function alternativesFor(pieces: WornPieces, slot: CheckSlot): Suggestion[] {
+  const others = worn(pieces).filter((piece) => piece.slot !== slot);
+  const fit = (hex: Hex) =>
+    others.length === 0
+      ? 0
+      : others.reduce((sum, other) => sum + rate(other.hex, hex, slot, other.slot), 0) /
+        others.length;
+  return PALETTE.map((color) => ({
+    suggestion: { hex: color.hex, name: color.name, slot },
+    score: fit(color.hex),
+  }))
+    .sort(byScoreThenName)
+    .map((ranked) => ranked.suggestion);
 }
