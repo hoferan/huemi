@@ -353,6 +353,16 @@ describe('sessionReducer', () => {
         );
       });
 
+      it('keeps a swap when the list sets the same color again', () => {
+        const swapped = sessionReducer(withPieces, {
+          type: 'checkSwapped',
+          slot: 'top',
+          hex: rust,
+        });
+        const same = sessionReducer(swapped, { type: 'checkPieceSet', slot: 'top', hex: navy });
+        expect(same.check?.swaps).toEqual({ top: rust });
+      });
+
       it("drops a slot's swap when its piece changes or is cleared", () => {
         const swapped = [
           { type: 'checkSwapped', slot: 'top', hex: rust } as const,

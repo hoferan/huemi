@@ -130,9 +130,3 @@ export const swapSheetTitle = (slot: CheckSlot): string => `Other options for ${
 
 /** The tile that offers back what is worn. */
 export const yoursLabel = (hex: Hex): string => `Yours, ${colorName(hex)}`;
-
-export const swappedTo = (slot: CheckSlot, hex: Hex): string =>
-  `${SLOT_LABELS[slot]} swapped to ${colorName(hex)}`;
-
-export const backTo = (slot: CheckSlot, hex: Hex): string =>
-  `${SLOT_LABELS[slot]} back to ${colorName(hex)}`;

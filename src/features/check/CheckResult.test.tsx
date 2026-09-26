@@ -122,7 +122,7 @@ describe('CheckResult', () => {
     expect(tiles[1]).toHaveAccessibleName('Brown, 1 of 18');
   });
 
-  it('swaps a piece as a what-if, and says so', async () => {
+  it('swaps a piece as a what-if, and its block says so', async () => {
     const user = userEvent.setup();
     renderWith();
     await user.click(await screen.findByRole('button', { name: 'Bottom: Rust, swap' }));
@@ -130,7 +130,9 @@ describe('CheckResult', () => {
     await user.click(within(sheet).getByRole('button', { name: /^Navy, / }));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Bottom: Navy, swapped, swap' })).toBeInTheDocument();
-    expect(screen.getByText('Bottom swapped to Navy')).toBeInTheDocument();
+    // Focus lands on the block, whose new name says what changed, so the live
+    // region stays quiet rather than saying it twice (ADR 0011).
+    expect(screen.getByRole('status')).toBeEmptyDOMElement();
     expect(screen.getByRole('list', { name: 'How it works together' })).toHaveTextContent(
       'Warm and cool together',
     );
@@ -158,7 +160,8 @@ describe('CheckResult', () => {
       within(await screen.findByRole('dialog')).getByRole('button', { name: 'Yours, Rust' }),
     );
     expect(screen.getByRole('button', { name: 'Bottom: Rust, swap' })).toBeInTheDocument();
-    expect(screen.getByText('Bottom back to Rust')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Bottom: Rust, swap' })).toHaveFocus();
+    expect(screen.getByRole('status')).toBeEmptyDOMElement();
   });
 
   it('offers an off-palette piece back as yours', async () => {

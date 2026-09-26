@@ -9,7 +9,6 @@ import { tokens } from '../../styles/tokens.stylex';
 import { Button } from '../../ui/Button';
 import { Screen } from '../../ui/Screen';
 import { Sheet } from '../../ui/Sheet';
-import { useAnnounce } from '../../ui/useAnnounce';
 import { Alternatives } from '../suggest/Alternatives';
 import { CheckBlock } from './CheckBlock';
 import {
@@ -17,10 +16,8 @@ import {
   CHECK_ANOTHER,
   CHECK_TITLE,
   SWAP_HINT,
-  backTo,
   observationText,
   swapSheetTitle,
-  swappedTo,
   yoursLabel,
 } from './copy';
 
@@ -83,19 +80,23 @@ function Swatches({ observation }: { observation: Observation }) {
  * list still shows the real outfit and a swap never reaches the correction
  * log. The photo is not shown: the blocks carry the corrected colors, and a
  * hand-entered check has none (PO, 2026-09-25).
+ *
+ * A swap is not announced. The sheet gives focus back to the block, and the
+ * block's new name ("Bottom: Navy, swapped, swap") says what changed, so a
+ * live-region message would say it twice (ADR 0011).
  */
 export function CheckResult() {
   const { state, dispatch } = useSession();
   const navigate = useNavigate();
-  const announce = useAnnounce();
   const [openFor, setOpenFor] = useState<CheckSlot | null>(null);
 
+  // A refresh keeps the route and loses the session, which lands here.
   const check = state.check;
   if (!check) return <Navigate to="/check" replace />;
   const pieces = checkedPieces(check);
   const observations = checkOutfit(pieces);
-  // A refresh keeps the route and loses the session: never describe an
-  // outfit that is not there.
+  // A check with fewer than two pieces, such as a new one reached with Back
+  // after "Check another": never describe an outfit that is not there.
   if (!observations) return <Navigate to="/check/pieces" replace />;
 
   const openPiece = openFor === null ? undefined : check.pieces[openFor];
@@ -155,13 +156,11 @@ export function CheckResult() {
               current: check.swaps[openFor] === undefined,
               onChoose: () => {
                 dispatch({ type: 'checkSwapCleared', slot: openFor });
-                announce(backTo(openFor, openPiece.hex));
                 setOpenFor(null);
               },
             }}
             onChoose={(hex) => {
               dispatch({ type: 'checkSwapped', slot: openFor, hex });
-              announce(hex === openPiece.hex ? backTo(openFor, hex) : swappedTo(openFor, hex));
               setOpenFor(null);
             }}
           />

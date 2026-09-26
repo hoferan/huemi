@@ -110,9 +110,10 @@ export function sessionReducer(state: SessionState, action: SessionAction): Sess
       // compare every later choice with what the camera said.
       const read = action.read ?? check.pieces[action.slot]?.read;
       const piece = read === undefined ? { hex: action.hex } : { hex: action.hex, read };
-      // A what-if about the old piece says nothing about the new one.
+      // A what-if about the old piece says nothing about a new one. Setting
+      // the same color again, from the list, is not a new piece.
       const swaps = { ...check.swaps };
-      delete swaps[action.slot];
+      if (action.hex !== check.pieces[action.slot]?.hex) delete swaps[action.slot];
       return {
         ...state,
         check: { ...check, pieces: { ...check.pieces, [action.slot]: piece }, swaps },
