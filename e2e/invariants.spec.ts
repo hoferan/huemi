@@ -36,6 +36,12 @@ const READY: Readonly<Record<string, (page: Page) => Promise<void>>> = {
   // camera screen before checking.
   '/confirm?slot=top': (page) =>
     expect(page.getByRole('button', { name: 'Take photo' })).toBeVisible(),
+  // The outfit camera settles the same way, and the tap screen and the result
+  // both redirect to it without a check in the session. Without these a check
+  // could run between the redirect and the shutter, and find no controls.
+  '/check': (page) => expect(page.getByRole('button', { name: 'Take photo' })).toBeVisible(),
+  '/check/tap': (page) => expect(page.getByRole('button', { name: 'Take photo' })).toBeVisible(),
+  '/check/result': (page) => expect(page.getByRole('button', { name: 'Take photo' })).toBeVisible(),
 };
 
 async function visit(page: Page, route: string): Promise<void> {

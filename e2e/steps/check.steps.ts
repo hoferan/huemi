@@ -51,7 +51,32 @@ Then('the row {string} is filled with {string}', async ({ page }, row: string, h
   );
 });
 
-// The result screen is #25's. The URL is the proof the list handed on.
 Then('I am taken to the result', async ({ page }) => {
   await expect(page).toHaveURL(/\/check\/result$/);
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'How it works together' }),
+  ).toBeVisible();
+});
+
+Then('the check says {string}', async ({ page }, sentence: string) => {
+  await expect(
+    page
+      .getByRole('list', { name: 'How it works together' })
+      .getByRole('listitem')
+      .filter({ hasText: sentence }),
+  ).toBeVisible();
+});
+
+// Scoped to the open sheet, by name up to its position label, so the test does
+// not hard-code where a color ranks.
+When('I choose {string} in the sheet', async ({ page }, name: string) => {
+  await page
+    .getByRole('dialog')
+    .getByRole('button', { name: new RegExp(`^${name}(, \\d+ of \\d+)?$`) })
+    .click();
+});
+
+Then('the block {string} is filled with {string}', async ({ page }, name: string, hex: string) => {
+  const block = page.getByRole('group', { name, exact: true });
+  await expect(block).toHaveCSS('background-color', hexToRgb(hex));
 });

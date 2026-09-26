@@ -76,3 +76,79 @@ Feature: Capturing an outfit to check
     And I press "Top: not set"
     Then the screen has no detectable accessibility violations
     And every link and button is at least 44 by 44
+
+  Scenario: The result describes the outfit
+    Given my camera shows an outfit
+    When I open the outfit check
+    And I follow the link "Enter the colors"
+    And I set "Top: not set" to "Cream"
+    And I set "Bottom: not set" to "Navy"
+    And I press "How does it work together?"
+    Then I am taken to the result
+    And the check says "Warm and cool together: the cream top and the navy trousers."
+    And I see the button "Top: Cream, swap"
+    And I see the button "Bottom: Navy, swap"
+
+  Scenario: Swapping a piece and putting it back
+    Given my camera shows an outfit
+    When I open the outfit check
+    And I follow the link "Enter the colors"
+    And I set "Top: not set" to "Cream"
+    And I set "Bottom: not set" to "Navy"
+    And I press "How does it work together?"
+    And I press "Bottom: Navy, swap"
+    And I choose "Charcoal" in the sheet
+    Then I see the button "Bottom: Charcoal, swapped, swap"
+    When I press "Bottom: Charcoal, swapped, swap"
+    And I choose "Yours, Navy" in the sheet
+    Then I see the button "Bottom: Navy, swap"
+
+  Scenario: A swap is a what-if, not a change to the list
+    Given my camera shows an outfit
+    When I open the outfit check
+    And I follow the link "Enter the colors"
+    And I set "Top: not set" to "Cream"
+    And I set "Bottom: not set" to "Navy"
+    And I press "How does it work together?"
+    And I press "Bottom: Navy, swap"
+    And I choose "Charcoal" in the sheet
+    And I press "Change pieces"
+    Then I see the button "Bottom: Navy"
+
+  Scenario: Checking another outfit
+    Given my camera shows an outfit
+    When I open the outfit check
+    And I follow the link "Enter the colors"
+    And I set "Top: not set" to "Cream"
+    And I set "Bottom: not set" to "Navy"
+    And I press "How does it work together?"
+    And I press "Check another"
+    Then I see the heading "Frame the outfit"
+
+  Scenario: The start screen links to the check
+    Given my camera shows an outfit
+    And I open huemi
+    When I press "Already dressed? Check your outfit"
+    Then I see the heading "Frame the outfit"
+
+  Scenario: The result and its swap sheet pass the accessibility checks
+    Given my camera shows an outfit
+    When I open the outfit check
+    And I follow the link "Enter the colors"
+    And I set "Top: not set" to "Cream"
+    And I set "Bottom: not set" to "Navy"
+    And I press "How does it work together?"
+    Then the screen has no detectable accessibility violations
+    And every link and button is at least 44 by 44
+    When I press "Bottom: Navy, swap"
+    Then the screen has no detectable accessibility violations
+    And every link and button is at least 44 by 44
+
+  Scenario: A block is drawn in its color
+    Given my camera shows an outfit
+    When I open the outfit check
+    And I follow the link "Enter the colors"
+    And I set "Top: not set" to "Cream"
+    And I set "Bottom: not set" to "Rust"
+    And I press "How does it work together?"
+    Then the block "Bottom: Rust" is filled with "#a4522d"
