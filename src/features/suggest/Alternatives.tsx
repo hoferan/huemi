@@ -1,9 +1,7 @@
 import * as stylex from '@stylexjs/stylex';
 import { needsBorder, readableForeground } from '../../color/contrast';
-import { suggest } from '../../color/engine';
 import type { Hex } from '../../model/hex';
-import type { Slot } from '../../model/types';
-import type { Base } from '../../session/types';
+import type { Suggestion } from '../../model/types';
 import { tokens } from '../../styles/tokens.stylex';
 
 const styles = stylex.create({
@@ -34,45 +32,67 @@ const styles = stylex.create({
   current: { boxShadow: `inset 0 0 0 3px currentColor` },
 });
 
+export type LeadTile = { hex: Hex; label: string; current: boolean; onChoose: () => void };
+
 /**
- * Every colour the engine ranks for one slot.
+ * Colours for one slot, best first, as a grid of tiles.
  *
- * Deliberately not filtered by the composer's chroma budget. The block's Next
- * button walks this same list, and its position label says "3 of 18" against
- * its length, so a sheet showing fewer entries would make that label false.
- * Choosing a colour that takes the outfit over budget is the user's call; the
- * composer only decides what to offer first.
+ * The caller ranks the list: the suggestions screen passes `suggest()` against
+ * its base, the check result passes `alternativesFor()` against the rest of
+ * the outfit. Each tile's name carries its position in `options`, so a caller
+ * showing a position label elsewhere must pass the list that label counts.
+ *
+ * `lead` is a tile before the list and outside its count: the check result's
+ * "Yours", which offers back what is actually worn even when no palette entry
+ * matches it.
+ *
+ * Deliberately not filtered by the composer's chroma budget. On the
+ * suggestions screen the block's Next button walks this same list, and its
+ * position label says "3 of 18" against its length, so a sheet showing fewer
+ * entries would make that label false. Choosing a colour that takes the
+ * outfit over budget is the user's call; the composer only decides what to
+ * offer first.
  */
 export function Alternatives({
-  base,
-  slot,
+  options,
   current,
   onChoose,
+  lead,
 }: {
-  base: Base;
-  slot: Slot;
-  current: Hex;
+  options: readonly Suggestion[];
+  current: Hex | null;
   onChoose: (hex: Hex, cursor: number) => void;
+  lead?: LeadTile;
 }) {
-  const list = suggest(base.hex, slot, base.slot);
+  const tile = (hex: Hex, showing: boolean) =>
+    stylex.props(
+      styles.option,
+      styles.fill(hex, readableForeground(hex).color),
+      needsBorder(hex) && styles.hairline,
+      showing && styles.current,
+    );
   return (
     <div {...stylex.props(styles.grid)}>
-      {list.map((entry, cursor) => {
-        const foreground = readableForeground(entry.hex);
+      {lead && (
+        <button
+          type="button"
+          aria-current={lead.current ? 'true' : undefined}
+          onClick={lead.onChoose}
+          {...tile(lead.hex, lead.current)}
+        >
+          {lead.label}
+        </button>
+      )}
+      {options.map((entry, cursor) => {
         const showing = entry.hex === current;
         return (
           <button
             key={entry.hex}
             type="button"
-            aria-label={`${entry.name}, ${cursor + 1} of ${list.length}`}
+            aria-label={`${entry.name}, ${cursor + 1} of ${options.length}`}
             aria-current={showing ? 'true' : undefined}
             onClick={() => onChoose(entry.hex, cursor)}
-            {...stylex.props(
-              styles.option,
-              styles.fill(entry.hex, foreground.color),
-              needsBorder(entry.hex) && styles.hairline,
-              showing && styles.current,
-            )}
+            {...tile(entry.hex, showing)}
           >
             {entry.name}
           </button>

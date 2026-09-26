@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Navigate } from 'react-router';
 import * as stylex from '@stylexjs/stylex';
 import { Shuffle as ShuffleIcon } from 'lucide-react';
+import { suggest } from '../../color/engine';
 import { colorName } from '../../color/palette';
 import { SLOTS, SLOT_LABELS, type Slot } from '../../model/types';
 import { advance, composeOutfit, positionLabel } from '../../session/select';
@@ -212,8 +213,7 @@ export function Suggestions() {
           title={`Other options for ${SLOT_LABELS[openFor]}`}
         >
           <Alternatives
-            base={base}
-            slot={openFor}
+            options={suggest(base.hex, openFor, base.slot)}
             current={picks[openFor].hex}
             onChoose={(hex, cursor) => {
               // The reducer drops a pickChanged for a locked slot, so a
