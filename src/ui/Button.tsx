@@ -25,11 +25,21 @@ const styles = stylex.create({
     borderStyle: 'solid',
     borderColor: tokens.line,
   },
+  // For a way in that is not the screen's main job: no fill and no border, so
+  // it reads as secondary to the buttons above it, with the same touch target.
+  quiet: {
+    backgroundColor: 'transparent',
+    color: tokens.ink,
+    textDecorationLine: 'underline',
+    textUnderlineOffset: '3px',
+  },
 });
 
 /**
  * A call to action. A screen has one primary, and may have secondaries beside
- * it: the confirm screen's "Not quite", the entry screen's "Pick a color".
+ * it: the confirm screen's "Not quite", the entry screen's "Pick a color". A
+ * quiet one is a way in that is not the screen's main job, like the entry
+ * screen's link to the outfit check.
  *
  * `type="button"` explicitly: the default inside a form is `submit`, and a
  * screen that later grows a form would start navigating on Enter with no
@@ -45,7 +55,7 @@ export function Button({
 }: {
   label: string;
   onClick: () => void;
-  variant?: 'primary' | 'secondary';
+  variant?: 'primary' | 'secondary' | 'quiet';
   expanded?: boolean;
   controls?: string;
   ref?: Ref<HTMLButtonElement>;
@@ -57,7 +67,11 @@ export function Button({
       onClick={onClick}
       aria-expanded={expanded}
       aria-controls={controls}
-      {...stylex.props(styles.button, variant === 'secondary' && styles.secondary)}
+      {...stylex.props(
+        styles.button,
+        variant === 'secondary' && styles.secondary,
+        variant === 'quiet' && styles.quiet,
+      )}
     >
       {label}
     </button>

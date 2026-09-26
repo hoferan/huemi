@@ -17,6 +17,7 @@ function renderAt() {
           <Route path="/" element={<Entry />} />
           <Route path="/slot" element={<SlotProbe />} />
           <Route path="/saved" element={<p>saved screen</p>} />
+          <Route path="/check" element={<p>outfit camera</p>} />
         </Routes>
       </InitialLocationContext>
     </MemoryRouter>,
@@ -41,7 +42,11 @@ describe('Entry', () => {
   it('leads with the camera', () => {
     renderAt();
     const buttons = screen.getAllByRole('button');
-    expect(buttons.map((b) => b.textContent)).toEqual(['Take a photo', 'Pick a color']);
+    expect(buttons.map((b) => b.textContent)).toEqual([
+      'Take a photo',
+      'Pick a color',
+      'Already dressed? Check your outfit',
+    ]);
   });
 
   it('takes the camera route through slot choice', async () => {
@@ -63,5 +68,11 @@ describe('Entry', () => {
     renderAt();
     await user.click(screen.getByRole('link', { name: 'Saved' }));
     expect(await screen.findByText('saved screen')).toBeInTheDocument();
+  });
+  it('offers the outfit check to someone already dressed', async () => {
+    const user = userEvent.setup();
+    renderAt();
+    await user.click(screen.getByRole('button', { name: 'Already dressed? Check your outfit' }));
+    expect(await screen.findByText('outfit camera')).toBeInTheDocument();
   });
 });

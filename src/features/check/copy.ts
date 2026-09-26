@@ -1,7 +1,8 @@
 import type { CaptureCopy } from '../camera/copy';
 import type { Observation, WornPiece } from '../../color/check';
-import { colorName } from '../../color/palette';
-import type { CheckSlot } from '../../model/types';
+import { blockLabel, colorName } from '../../color/palette';
+import type { Hex } from '../../model/hex';
+import { SLOT_LABELS, type CheckSlot } from '../../model/types';
 
 // The outfit check's words, apart from its components for the reason
 // camera/copy.ts gives: tests match on them, and react-refresh still sees
@@ -110,3 +111,22 @@ export function observationText(observation: Observation): string {
     }
   }
 }
+
+export const CHECK_ENTRY = 'Already dressed? Check your outfit';
+
+export const SWAP_HINT = 'Tap a piece to swap it.';
+
+export const SWAPPED = 'Swapped';
+
+export const CHANGE_PIECES = 'Change pieces';
+
+export const CHECK_ANOTHER = 'Check another';
+
+/** "Bottom: Rust, swap", or "Bottom: Navy, swapped, swap" while a what-if is applied. */
+export const swapBlockLabel = (slot: CheckSlot, hex: Hex, swapped: boolean): string =>
+  `${blockLabel(slot, hex)}${swapped ? ', swapped' : ''}, swap`;
+
+export const swapSheetTitle = (slot: CheckSlot): string => `Other options for ${SLOT_LABELS[slot]}`;
+
+/** The tile that offers back what is worn. */
+export const yoursLabel = (hex: Hex): string => `Yours, ${colorName(hex)}`;

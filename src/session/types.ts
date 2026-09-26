@@ -49,9 +49,15 @@ export type CheckPiece = { hex: Hex; read?: Hex };
  * building a suggestion are two sessions that should not clear each other.
  */
 export type Check = {
-  /** The whole-outfit photo, for the tap screen and the result screen (#25). */
+  /** The whole-outfit photo, for the tap screen. The result shows blocks, not the photo (#25). */
   photo: Frame | null;
   pieces: Partial<Record<CheckSlot, CheckPiece>>;
+  /**
+   * What-ifs from the result screen, laid over `pieces` and never written
+   * into them: the list keeps showing what is actually worn, and a swap is
+   * not a correction of what the camera read.
+   */
+  swaps: Partial<Record<CheckSlot, Hex>>;
 };
 
 export type SessionState = {
@@ -83,4 +89,6 @@ export type SessionAction =
   | { type: 'checkPhotoTaken'; frame: Frame }
   | { type: 'checkPieceSet'; slot: CheckSlot; hex: Hex; read?: Hex }
   | { type: 'checkPieceCleared'; slot: CheckSlot }
+  | { type: 'checkSwapped'; slot: CheckSlot; hex: Hex }
+  | { type: 'checkSwapCleared'; slot: CheckSlot }
   | { type: 'reset' };

@@ -24,6 +24,10 @@ export const ROUTES: readonly string[] = [
   // tap screen with a photo.
   '/check/tap',
   '/check/pieces',
+  // Without a check this redirects to /check, so the sweep sees the outfit
+  // camera again. `e2e/features/check.feature` carries the checks onto the
+  // result with an outfit and with the swap sheet open.
+  '/check/result',
   '/suggest?slot=top&hex=%23c39a3a',
   '/saved',
   '/this-route-does-not-exist',

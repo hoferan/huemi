@@ -4,7 +4,7 @@ import type { CheckSlot } from '../model/types';
 import { TUNING } from './engine';
 import { PALETTE } from './palette';
 import { chromaLoad } from './score';
-import { checkOutfit, type Observation, type WornPieces } from './check';
+import { alternativesFor, checkOutfit, type Observation, type WornPieces } from './check';
 
 /** A palette color by name, so every fixture has a name `colorName` returns exactly. */
 const hex = (name: string): Hex => {
@@ -180,5 +180,41 @@ describe('checkOutfit', () => {
         }
       }
     }
+  });
+});
+
+describe('alternativesFor', () => {
+  const MOCK = outfit({ outerwear: 'Charcoal', top: 'Cream', shoes: 'Burgundy' });
+
+  it('offers every palette color once, for the slot asked about', () => {
+    const options = alternativesFor(MOCK, 'bottom');
+    expect(options).toHaveLength(PALETTE.length);
+    expect(new Set(options.map((o) => o.hex)).size).toBe(PALETTE.length);
+    expect(options.every((o) => o.slot === 'bottom')).toBe(true);
+  });
+
+  // Measured 2026-09-26. The ranking is the fill-in-the-blank scoring that
+  // beats chance on Polyvore (ADR 0010), so a TUNING change that reorders
+  // this is worth looking at in the harness before accepting.
+  it('ranks trousers against the jacket, top and shoes together', () => {
+    expect(
+      alternativesFor(MOCK, 'bottom')
+        .slice(0, 3)
+        .map((o) => o.name),
+    ).toEqual(['Brown', 'Charcoal', 'Burgundy']);
+  });
+
+  it('ignores the piece being swapped', () => {
+    const withTrousers = { ...MOCK, bottom: hex('Rust') };
+    expect(alternativesFor(withTrousers, 'bottom')).toEqual(alternativesFor(MOCK, 'bottom'));
+  });
+
+  it('changes with what else is worn', () => {
+    expect(alternativesFor(outfit({ outerwear: 'Navy' }), 'bottom')[0]?.name).toBe('Black');
+  });
+
+  it('falls back to name order with nothing else worn', () => {
+    const names = alternativesFor({}, 'top').map((o) => o.name);
+    expect(names).toEqual([...names].sort((a, b) => a.localeCompare(b)));
   });
 });

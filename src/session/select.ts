@@ -1,10 +1,11 @@
+import type { WornPieces } from '../color/check';
 import { suggest, TUNING } from '../color/engine';
 import { chroma } from '../color/classify';
 import { colorName } from '../color/palette';
 import { chromaLoad } from '../color/score';
 import type { Hex } from '../model/hex';
-import { SLOTS, type Slot } from '../model/types';
-import type { Base, SlotPick } from './types';
+import { CHECK_SLOTS, SLOTS, type Slot } from '../model/types';
+import type { Base, Check, SlotPick } from './types';
 import type { Suggestion } from '../model/types';
 
 export type Position = { hex: Hex; cursor: number; count: number };
@@ -146,4 +147,18 @@ export function composeOutfit(
   }
 
   return picks;
+}
+
+/**
+ * The outfit the result screen describes: what is worn, with each what-if
+ * swap laid over its slot. Here because this file is the session's one join
+ * with the engine, and the screen hands the result to `checkOutfit`.
+ */
+export function checkedPieces(check: Check): WornPieces {
+  const pieces: WornPieces = {};
+  for (const slot of CHECK_SLOTS) {
+    const hex = check.swaps[slot] ?? check.pieces[slot]?.hex;
+    if (hex) pieces[slot] = hex;
+  }
+  return pieces;
 }

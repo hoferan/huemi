@@ -256,7 +256,7 @@ describe('sessionReducer', () => {
     it('starts empty and is cleared by reset', () => {
       expect(initialSession.check).toBeNull();
       const started = sessionReducer(initialSession, { type: 'checkStarted' });
-      expect(started.check).toEqual({ photo: null, pieces: {} });
+      expect(started.check).toEqual({ photo: null, pieces: {}, swaps: {} });
       expect(sessionReducer(started, { type: 'reset' }).check).toBeNull();
     });
 
@@ -269,6 +269,7 @@ describe('sessionReducer', () => {
       expect(sessionReducer(withPiece, { type: 'checkStarted' }).check).toEqual({
         photo: null,
         pieces: {},
+        swaps: {},
       });
     });
 
@@ -279,7 +280,7 @@ describe('sessionReducer', () => {
         hex: cream,
       });
       const next = sessionReducer(withPiece, { type: 'checkPhotoTaken', frame });
-      expect(next.check).toEqual({ photo: frame, pieces: {} });
+      expect(next.check).toEqual({ photo: frame, pieces: {}, swaps: {} });
     });
 
     it('creates the record when a piece is set with none there', () => {
@@ -288,7 +289,7 @@ describe('sessionReducer', () => {
         slot: 'shoes',
         hex: navy,
       });
-      expect(next.check).toEqual({ photo: null, pieces: { shoes: { hex: navy } } });
+      expect(next.check).toEqual({ photo: null, pieces: { shoes: { hex: navy } }, swaps: {} });
     });
 
     it('keeps what the photo read when the piece is changed by hand', () => {
@@ -300,6 +301,90 @@ describe('sessionReducer', () => {
       });
       const changed = sessionReducer(read, { type: 'checkPieceSet', slot: 'bottom', hex: navy });
       expect(changed.check?.pieces.bottom).toEqual({ hex: navy, read: rust });
+    });
+
+    describe('swaps', () => {
+      const withPieces = [
+        { type: 'checkStarted' } as const,
+        { type: 'checkPieceSet', slot: 'top', hex: navy, read: navy } as const,
+        { type: 'checkPieceSet', slot: 'bottom', hex: rust } as const,
+      ].reduce(sessionReducer, initialSession);
+
+      it('lays a swap over a piece without changing the piece or its read', () => {
+        const swapped = sessionReducer(withPieces, {
+          type: 'checkSwapped',
+          slot: 'top',
+          hex: rust,
+        });
+        expect(swapped.check?.swaps).toEqual({ top: rust });
+        expect(swapped.check?.pieces.top).toEqual({ hex: navy, read: navy });
+      });
+
+      it('clears a swap', () => {
+        const swapped = sessionReducer(withPieces, {
+          type: 'checkSwapped',
+          slot: 'top',
+          hex: rust,
+        });
+        const cleared = sessionReducer(swapped, { type: 'checkSwapCleared', slot: 'top' });
+        expect(cleared.check?.swaps).toEqual({});
+      });
+
+      it('a swap to the worn color is no swap', () => {
+        const swapped = sessionReducer(withPieces, {
+          type: 'checkSwapped',
+          slot: 'top',
+          hex: rust,
+        });
+        const back = sessionReducer(swapped, { type: 'checkSwapped', slot: 'top', hex: navy });
+        expect(back.check?.swaps).toEqual({});
+      });
+
+      it('ignores a swap for a slot with no piece, or with no check', () => {
+        expect(
+          sessionReducer(withPieces, { type: 'checkSwapped', slot: 'shoes', hex: rust }).check
+            ?.swaps,
+        ).toEqual({});
+        expect(
+          sessionReducer(initialSession, { type: 'checkSwapped', slot: 'top', hex: rust }),
+        ).toBe(initialSession);
+        expect(sessionReducer(initialSession, { type: 'checkSwapCleared', slot: 'top' })).toBe(
+          initialSession,
+        );
+      });
+
+      it('keeps a swap when the list sets the same color again', () => {
+        const swapped = sessionReducer(withPieces, {
+          type: 'checkSwapped',
+          slot: 'top',
+          hex: rust,
+        });
+        const same = sessionReducer(swapped, { type: 'checkPieceSet', slot: 'top', hex: navy });
+        expect(same.check?.swaps).toEqual({ top: rust });
+      });
+
+      it("drops a slot's swap when its piece changes or is cleared", () => {
+        const swapped = [
+          { type: 'checkSwapped', slot: 'top', hex: rust } as const,
+          { type: 'checkSwapped', slot: 'bottom', hex: navy } as const,
+        ].reduce(sessionReducer, withPieces);
+        const changed = sessionReducer(swapped, { type: 'checkPieceSet', slot: 'top', hex: rust });
+        expect(changed.check?.swaps).toEqual({ bottom: navy });
+        const cleared = sessionReducer(swapped, { type: 'checkPieceCleared', slot: 'bottom' });
+        expect(cleared.check?.swaps).toEqual({ top: rust });
+      });
+
+      it('starts a new check, or a new photo, with no swaps', () => {
+        const swapped = sessionReducer(withPieces, {
+          type: 'checkSwapped',
+          slot: 'top',
+          hex: rust,
+        });
+        expect(sessionReducer(swapped, { type: 'checkStarted' }).check?.swaps).toEqual({});
+        expect(sessionReducer(swapped, { type: 'checkPhotoTaken', frame }).check?.swaps).toEqual(
+          {},
+        );
+      });
     });
 
     it('clears a piece, and ignores a clear with no check', () => {
