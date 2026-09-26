@@ -5,7 +5,7 @@ import { colorName } from '../color/palette';
 import { chromaLoad } from '../color/score';
 import { parseHex, type Hex } from '../model/hex';
 import { SLOTS, type Slot } from '../model/types';
-import { advance, composeOutfit, locate, positionLabel } from './select';
+import { advance, checkedPieces, composeOutfit, locate, positionLabel } from './select';
 import type { Base, SlotPick } from './types';
 
 const base = { slot: 'bottom', hex: parseHex('#1f2a44') } as const;
@@ -169,5 +169,26 @@ describe('composeOutfit', () => {
     for (const slot of named) expect(picks[slot]).toBeDefined();
     const names = named.map((slot) => colorName(picks[slot]!.hex));
     expect(new Set(names).size).toBe(names.length);
+  });
+});
+
+describe('checkedPieces', () => {
+  const navy = parseHex('#1f2a44');
+  const rust = parseHex('#a4522d');
+
+  it('is the worn pieces with each swap laid over its slot', () => {
+    expect(
+      checkedPieces({
+        photo: null,
+        pieces: { top: { hex: navy, read: navy }, bottom: { hex: rust } },
+        swaps: { bottom: navy },
+      }),
+    ).toEqual({ top: navy, bottom: navy });
+  });
+
+  it('leaves out slots with no piece', () => {
+    expect(checkedPieces({ photo: null, pieces: { top: { hex: navy } }, swaps: {} })).toEqual({
+      top: navy,
+    });
   });
 });

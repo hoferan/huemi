@@ -95,29 +95,54 @@ export function sessionReducer(state: SessionState, action: SessionAction): Sess
       return { ...state, capture: { slot: action.slot, frame: action.frame } };
 
     case 'checkStarted':
-      return { ...state, check: { photo: null, pieces: {} } };
+      return { ...state, check: { photo: null, pieces: {}, swaps: {} } };
 
     case 'checkPhotoTaken':
       // A new photo is a different outfit, or the same one framed again:
       // either way, readings from the last photo no longer describe it.
-      return { ...state, check: { photo: action.frame, pieces: {} } };
+      return { ...state, check: { photo: action.frame, pieces: {}, swaps: {} } };
 
     case 'checkPieceSet': {
       // Created here if missing, since the list can be reached by hand after
       // a refresh has emptied the session.
-      const check = state.check ?? { photo: null, pieces: {} };
+      const check = state.check ?? { photo: null, pieces: {}, swaps: {} };
       // A hand change keeps the photo's reading, so the correction log can
       // compare every later choice with what the camera said.
       const read = action.read ?? check.pieces[action.slot]?.read;
       const piece = read === undefined ? { hex: action.hex } : { hex: action.hex, read };
-      return { ...state, check: { ...check, pieces: { ...check.pieces, [action.slot]: piece } } };
+      // A what-if about the old piece says nothing about the new one.
+      const swaps = { ...check.swaps };
+      delete swaps[action.slot];
+      return {
+        ...state,
+        check: { ...check, pieces: { ...check.pieces, [action.slot]: piece }, swaps },
+      };
     }
 
     case 'checkPieceCleared': {
       if (!state.check) return state;
       const pieces = { ...state.check.pieces };
       delete pieces[action.slot];
-      return { ...state, check: { ...state.check, pieces } };
+      const swaps = { ...state.check.swaps };
+      delete swaps[action.slot];
+      return { ...state, check: { ...state.check, pieces, swaps } };
+    }
+
+    case 'checkSwapped': {
+      const piece = state.check?.pieces[action.slot];
+      if (!state.check || !piece) return state;
+      const swaps = { ...state.check.swaps };
+      // Choosing what is worn, from the ranked list, is choosing no swap.
+      if (action.hex === piece.hex) delete swaps[action.slot];
+      else swaps[action.slot] = action.hex;
+      return { ...state, check: { ...state.check, swaps } };
+    }
+
+    case 'checkSwapCleared': {
+      if (!state.check) return state;
+      const swaps = { ...state.check.swaps };
+      delete swaps[action.slot];
+      return { ...state, check: { ...state.check, swaps } };
     }
 
     case 'reset':
