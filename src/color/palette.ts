@@ -123,7 +123,12 @@ export const NAME_MAX_DISTANCE = 0.125;
  */
 const NAME_NEUTRAL_CHROMA = 0.025;
 
-const namesAsNeutral = (hex: Hex): boolean => hexToOklch(hex).c < NAME_NEUTRAL_CHROMA;
+/**
+ * Whether `colorName` calls this color a neutral. Exported for the outfit
+ * check, whose sentences name pieces with `colorName` and so have to agree
+ * with it about which pieces have a color to talk about.
+ */
+export const namesAsNeutral = (hex: Hex): boolean => hexToOklch(hex).c < NAME_NEUTRAL_CHROMA;
 
 /**
  * What to call a color, in a word a user can act on.
