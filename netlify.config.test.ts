@@ -59,6 +59,14 @@ describe('netlify.toml', () => {
     expect(block).not.toContain('immutable');
   });
 
+  it('serves the manifest as a manifest, since the host guesses octet-stream for .webmanifest', () => {
+    const block = toml
+      .split('[[headers]]')
+      .find((part) => part.includes('for = "/manifest.webmanifest"'));
+    expect(block).toBeDefined();
+    expect(block).toContain('Content-Type = "application/manifest+json"');
+  });
+
   it('sets no content security policy', () => {
     expect(toml).not.toMatch(/Content-Security-Policy/i);
   });
