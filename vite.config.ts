@@ -4,6 +4,7 @@ import { defaultExclude, defineConfig } from 'vitest/config';
 import type { Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import stylex from '@stylexjs/unplugin';
+import { serviceWorker } from './pwa/vite-plugin';
 
 // @stylexjs/unplugin ships its Vite factory typed as `(options) => any`. The
 // cast below asserts the actual return type; the value really is a Vite
@@ -34,6 +35,9 @@ export default defineConfig({
     // MUST precede @vitejs/plugin-react, or React Fast Refresh breaks.
     stylexPlugin,
     react(),
+    // Last, because it lists the finished build: the bundle and the copy of
+    // public/ both have to be on disk before it writes dist/sw.js.
+    serviceWorker(),
   ],
   server: {
     // The preview harness assigns a free port and passes it in PORT, which
