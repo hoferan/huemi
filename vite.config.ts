@@ -4,7 +4,7 @@ import { defaultExclude, defineConfig } from 'vitest/config';
 import type { Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import stylex from '@stylexjs/unplugin';
-import { serviceWorker } from './pwa/vite-plugin';
+import { serviceWorker } from './pwa/vite-plugin.ts';
 
 // @stylexjs/unplugin ships its Vite factory typed as `(options) => any`. The
 // cast below asserts the actual return type; the value really is a Vite

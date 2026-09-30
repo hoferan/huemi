@@ -55,6 +55,19 @@ describe('service worker', () => {
     expect(scope.cacheNames().sort()).toEqual(['huemi-test', 'other']);
   });
 
+  it('matches cached files whatever their Vary header says', async () => {
+    // Vite's preview server sends `Vary: Origin`, and a page's module script and
+    // stylesheet are CORS-mode requests that carry an Origin. Without ignoreVary
+    // the entry stored at install misses them and the app never loads offline.
+    const scope = await installed();
+    await scope.fetchEvent('/assets/a.js');
+    await scope.fetchEvent({ url: 'https://app.test/suggest', mode: 'navigate' });
+    expect(scope.matchOptions).toHaveLength(3);
+    expect(
+      scope.matchOptions.every((options) => (options as { ignoreVary?: boolean }).ignoreVary),
+    ).toBe(true);
+  });
+
   it('never skips waiting or claims clients', async () => {
     const scope = await installed();
     await scope.activate();

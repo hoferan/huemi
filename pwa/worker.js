@@ -30,13 +30,18 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(respond(request));
 });
 
+// ignoreVary: the files are static, and a host that sends `Vary: Origin` would
+// otherwise make every CORS-mode request for a script or stylesheet miss the
+// entry stored at install, which has no Origin. Offline, that is a blank page.
+const MATCH = { ignoreVary: true };
+
 async function respond(request) {
-  const cached = await caches.match(request);
+  const cached = await caches.match(request, MATCH);
   if (cached) return cached;
   // Any path the router serves is the same page, so a reload of /suggest offline
   // gets the shell and the router takes it from there.
   if (request.mode === 'navigate') {
-    const shell = await caches.match('/index.html');
+    const shell = await caches.match('/index.html', MATCH);
     if (shell) return shell;
   }
   // Everything else, a removed /assets file included, goes to the network so the

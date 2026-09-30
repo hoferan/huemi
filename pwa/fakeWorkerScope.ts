@@ -28,6 +28,8 @@ export interface FakeScope {
   cachedUrls(name: string): string[];
   seedCache(name: string): void;
   fetched: string[];
+  /** The options every `caches.match` call was given. */
+  matchOptions: (object | undefined)[];
   skipWaitingCalled: boolean;
   claimCalled: boolean;
 }
@@ -41,6 +43,7 @@ export function loadWorker({
   const listeners = new Map<string, Listener>();
   const scope: FakeScope = {
     fetched: [],
+    matchOptions: [],
     skipWaitingCalled: false,
     claimCalled: false,
     cacheNames: () => [...stores.keys()],
@@ -88,7 +91,8 @@ export function loadWorker({
     },
     keys: () => Promise.resolve([...stores.keys()]),
     delete: (name: string) => Promise.resolve(stores.delete(name)),
-    match(input: string | FakeRequest) {
+    match(input: string | FakeRequest, options?: object) {
+      scope.matchOptions.push(options);
       const key = keyOf(input);
       for (const store of stores.values()) {
         const hit = store.get(key);

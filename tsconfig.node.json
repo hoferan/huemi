@@ -12,6 +12,12 @@
     // a stray vite.config.js can never shadow the real vite.config.ts.
     "composite": true,
     "outDir": "./.tsbuild/node",
+    // vite.config.ts imports ./pwa/vite-plugin.ts with its extension, because
+    // Vite's native config loader (the future default) does not resolve an
+    // extensionless relative import. TypeScript only allows that when nothing
+    // is emitted but declarations, which is all this project ever did.
+    "allowImportingTsExtensions": true,
+    "emitDeclarationOnly": true,
     "skipLibCheck": true,
     "types": ["node"]
   },
