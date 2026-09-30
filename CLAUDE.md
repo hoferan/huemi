@@ -136,6 +136,12 @@ the asset cache rule and the single-page fallback, since a Netlify build cannot
 run in CI; the preview deploy is the first real check of anything else in that
 file. See [ADR 0015](docs/adr/0015-deploy-with-netlifys-git-integration.md).
 
+The app works offline through a service worker that `pwa/vite-plugin.ts` writes to
+`dist/sw.js` at the end of a build; it precaches the build and nothing else. It is
+registered in production builds only, so `npm run dev` never serves a cached copy.
+Test it against `npm run preview`, or the browser suite, which does. See
+[ADR 0016](docs/adr/0016-precache-the-build-with-a-hand-written-service-worker.md).
+
 CodeQL runs through GitHub's default setup, so its configuration lives in
 repository settings rather than in a committed workflow. Default setup has no path
 filter, so the prototypes under `docs/design/` are scanned along with the
