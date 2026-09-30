@@ -1,8 +1,9 @@
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router';
 import { describe, expect, it } from 'vitest';
 import { InitialLocationContext } from '../../ui/InitialLocationContext';
+import { installOffer } from '../install/installOffer.testing';
 import { Entry } from './Entry';
 
 function SlotProbe() {
@@ -74,5 +75,18 @@ describe('Entry', () => {
     renderAt();
     await user.click(screen.getByRole('button', { name: 'Already dressed? Check your outfit' }));
     expect(await screen.findByText('outfit camera')).toBeInTheDocument();
+  });
+
+  it('shows no install link until the browser offers one', () => {
+    renderAt();
+    expect(screen.queryByRole('button', { name: 'Install huemi' })).not.toBeInTheDocument();
+  });
+
+  it('shows the install link below the other buttons once offered', () => {
+    renderAt();
+    act(() => void window.dispatchEvent(installOffer()));
+    const buttons = screen.getAllByRole('button');
+    expect(buttons.at(-1)).toHaveAccessibleName('Install huemi');
+    expect(buttons).toHaveLength(4);
   });
 });

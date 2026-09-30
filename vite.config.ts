@@ -74,6 +74,8 @@ export default defineConfig({
       include: ['src/**/*.{ts,tsx}'],
       exclude: [
         'src/**/*.test.{ts,tsx}',
+        // Helpers only tests import.
+        'src/**/*.testing.ts',
         'src/**/*.stylex.ts',
         'src/**/*.d.ts',
         'src/app/main.tsx',
