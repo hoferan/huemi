@@ -1,9 +1,12 @@
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { installOffer } from './installOffer.testing';
-import { useInstallPrompt } from './useInstallPrompt';
+import { clearInstallOffer, useInstallPrompt } from './useInstallPrompt';
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  vi.unstubAllGlobals();
+  clearInstallOffer();
+});
 
 describe('useInstallPrompt', () => {
   it('cannot install until the browser offers it', () => {
@@ -52,11 +55,20 @@ describe('useInstallPrompt', () => {
     expect(result.current.canInstall).toBe(true);
   });
 
-  it('stops listening on unmount', () => {
-    const { unmount } = renderHook(() => useInstallPrompt());
-    unmount();
+  it('still offers what arrived before the screen was mounted', () => {
+    // Chrome fires the event once per page load, wherever the person is by then.
     const offer = installOffer();
     window.dispatchEvent(offer);
-    expect(offer.defaultPrevented).toBe(false);
+    const { result } = renderHook(() => useInstallPrompt());
+    expect(result.current.canInstall).toBe(true);
+    expect(offer.defaultPrevented).toBe(true);
+  });
+
+  it('keeps the offer when the screen unmounts and comes back', () => {
+    const first = renderHook(() => useInstallPrompt());
+    act(() => void window.dispatchEvent(installOffer()));
+    first.unmount();
+    const second = renderHook(() => useInstallPrompt());
+    expect(second.result.current.canInstall).toBe(true);
   });
 });

@@ -39,9 +39,11 @@ async function respond(request) {
   const cached = await caches.match(request, MATCH);
   if (cached) return cached;
   // Any path the router serves is the same page, so a reload of /suggest offline
-  // gets the shell and the router takes it from there.
+  // gets the shell and the router takes it from there. The shell is the root,
+  // not /index.html: a host that redirects /index.html to / would have left a
+  // redirected response in the cache, and a navigation cannot be given one.
   if (request.mode === 'navigate') {
-    const shell = await caches.match('/index.html', MATCH);
+    const shell = await caches.match('/', MATCH);
     if (shell) return shell;
   }
   // Everything else, a removed /assets file included, goes to the network so the

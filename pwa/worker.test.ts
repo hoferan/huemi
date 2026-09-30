@@ -24,13 +24,15 @@ describe('service worker', () => {
     expect(scope.fetched).toEqual([]);
   });
 
-  it('answers a navigation to any other path with the cached index.html', async () => {
+  it('answers a navigation to any other path with the cached app shell at /', async () => {
     const scope = await installed();
     const response = await scope.fetchEvent({
       url: 'https://app.test/suggest?slot=top',
       mode: 'navigate',
     });
-    expect(response?.body).toBe('/index.html');
+    // The root, not /index.html: a host that redirects /index.html to / would leave
+    // a redirected response in the cache, and a navigation cannot be answered with one.
+    expect(response?.body).toBe('/');
     expect(scope.fetched).toEqual([]);
   });
 
