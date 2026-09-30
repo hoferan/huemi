@@ -21,6 +21,21 @@
     Referrer-Policy = "strict-origin-when-cross-origin"
     X-Frame-Options = "DENY"
 
+# Netlify sends application/octet-stream for .webmanifest. Browsers usually read
+# the manifest anyway, but the right type is the one the spec names.
+[[headers]]
+  for = "/manifest.webmanifest"
+  [headers.values]
+    Content-Type = "application/manifest+json"
+
+# The worker is what tells an installed app a new version exists, so the browser
+# has to ask for it on every load. It sits at the root, outside /assets/, and this
+# rule keeps a later edit to the asset cache from ever reaching it.
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
 # Vite puts a content hash in every file name under /assets/, so these never change
 # in place. index.html is left out on purpose: a long cache there would keep
 # returning visitors on an old deploy.

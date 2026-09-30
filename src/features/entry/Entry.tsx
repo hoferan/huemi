@@ -4,6 +4,7 @@ import { tokens } from '../../styles/tokens.stylex';
 import { Button } from '../../ui/Button';
 import { Screen } from '../../ui/Screen';
 import { CHECK_ENTRY } from '../check/copy';
+import { InstallButton } from '../install/InstallButton';
 
 const styles = stylex.create({
   wordmark: {
@@ -77,6 +78,7 @@ export function Entry() {
           compete with them (PO, 2026-09-26).
         */}
         <Button variant="quiet" label={CHECK_ENTRY} onClick={() => void navigate('/check')} />
+        <InstallButton />
       </div>
     </Screen>
   );
