@@ -1,0 +1,30 @@
+# Netlify builds main and every pull request through its GitHub integration, so
+# nothing here runs from a workflow. See docs/adr/0015-deploy-with-netlifys-git-integration.md.
+# netlify.config.test.ts pins the values below that a later edit could break quietly.
+
+# npm ci matches CI and keeps the pinned lockfile in charge. Node comes from .nvmrc.
+[build]
+  command = "npm ci && npm run build"
+  publish = "dist"
+
+# The prepare script installs husky hooks, which a build machine has no use for.
+[build.environment]
+  HUSKY = "0"
+
+# The camera is allowed for this origin only, since the app captures garments and
+# outfits with it. Microphone and location stay off because nothing asks for them.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Permissions-Policy = "camera=(self), microphone=(), geolocation=()"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    X-Frame-Options = "DENY"
+
+# Vite puts a content hash in every file name under /assets/, so these never change
+# in place. index.html is left out on purpose: a long cache there would keep
+# returning visitors on an old deploy.
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"

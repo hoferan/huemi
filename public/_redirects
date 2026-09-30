@@ -1,1 +1,4 @@
+# A removed bundle has to be a 404. Left to the fallback below it would come back
+# as index.html, and the immutable cache on /assets/ would keep that page for a year.
+/assets/*  /404.html  404
 /*  /index.html  200
