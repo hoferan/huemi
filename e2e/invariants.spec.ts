@@ -128,3 +128,28 @@ for (const route of ROUTES) {
     expect(clipPath).not.toBe('none');
   });
 }
+
+// Clipping hides the live region's text but does not stop it overflowing its
+// 1px box, and the region sits at the foot of the document, above the routes
+// and after every screen. Its overflow used to extend the page: one line of
+// scrollable blank below every screen once anything had been announced, and,
+// past the width of the screen, a layout viewport wider than the phone, which
+// cut the right-hand edge off every bottom sheet. Every route above is
+// visited with the region empty, which is how that went unseen.
+//
+// The message is written straight into the region rather than raised through
+// a screen, so the check does not depend on which screen can announce what.
+test('keeps an announcement from growing the page', async ({ page }) => {
+  await visit(page, '/');
+  const size = () =>
+    page.evaluate(() => ({
+      width: document.documentElement.scrollWidth,
+      height: document.documentElement.scrollHeight,
+    }));
+  const before = await size();
+  await page.getByRole('status').evaluate((region) => {
+    region.textContent =
+      'An announcement long enough to run well past the edge of any phone screen.';
+  });
+  expect(await size()).toEqual(before);
+});

@@ -12,6 +12,15 @@
 // `overflow`, so the computed `overflow-y` stays `visible` and the check
 // leaves it alone. The legacy `clip` property stays as a belt-and-braces
 // fallback; it does not affect the computed `overflow-y` either.
+//
+// Clipping the paint does not clip the layout, though: the text still
+// overflows the box, and that overflow still counts towards the scrollable
+// size of the page. The live region sits at the foot of the document, so
+// every announcement left a line of blank page to scroll to below the
+// screen, and a long one widened the layout viewport past the phone.
+// `contain: paint` confines the overflow to the box, for scrolling as well
+// as for painting, and it too leaves the computed `overflow-y` alone.
+// `e2e/invariants.spec.ts` checks the page stays the same size.
 export const SR_ONLY = {
   position: 'absolute',
   width: '1px',
@@ -22,4 +31,5 @@ export const SR_ONLY = {
   clipPath: 'inset(50%)',
   whiteSpace: 'nowrap',
   border: 0,
+  contain: 'paint',
 } as const;

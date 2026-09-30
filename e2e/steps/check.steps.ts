@@ -80,3 +80,11 @@ Then('the block {string} is filled with {string}', async ({ page }, name: string
   const block = page.getByRole('group', { name, exact: true });
   await expect(block).toHaveCSS('background-color', hexToRgb(hex));
 });
+
+// The sheet is portalled to the end of <body>, outside the screen's <main>
+// where the typeface is set, so it only has the typeface if it sets its own.
+// Checked here, not in a unit test: StyleX emits no CSS under Vitest (ADR 0002).
+Then("the sheet's options are set in {string}", async ({ page }, family: string) => {
+  const options = page.getByRole('dialog').getByRole('button', { name: /, \d+ of \d+$/ });
+  await expect(options.first()).toHaveCSS('font-family', new RegExp(`^"${family}"`));
+});

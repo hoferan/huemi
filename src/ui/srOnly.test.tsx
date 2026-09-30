@@ -20,6 +20,12 @@ describe('visually hidden screen-reader text', () => {
     expect(SR_ONLY.clip).toBe('rect(0 0 0 0)');
   });
 
+  // The clip hides the text; this keeps its overflow from extending the page.
+  // Whether the browser honours it is `e2e/invariants.spec.ts`'s check.
+  it('contains its overflow, so hidden text cannot grow the page', () => {
+    expect(SR_ONLY.contain).toBe('paint');
+  });
+
   it('renders the same hidden-text style in Announcer and Swatch', () => {
     render(
       <Announcer>
