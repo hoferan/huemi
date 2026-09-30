@@ -129,6 +129,13 @@ new job to `needs`, never to the ruleset.
 The ruleset also requires a branch to be current with `main`, so a pull request
 whose base has moved needs updating and a rerun before it merges.
 
+Netlify deploys `main` and previews every pull request through its GitHub
+integration, configured in `netlify.toml`. No workflow deploys, and the Netlify
+build is not part of `all-green`. `netlify.config.test.ts` pins the camera policy,
+the asset cache rule and the single-page fallback, since a Netlify build cannot
+run in CI; the preview deploy is the first real check of anything else in that
+file. See [ADR 0015](docs/adr/0015-deploy-with-netlifys-git-integration.md).
+
 CodeQL runs through GitHub's default setup, so its configuration lives in
 repository settings rather than in a committed workflow. Default setup has no path
 filter, so the prototypes under `docs/design/` are scanned along with the

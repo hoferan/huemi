@@ -37,3 +37,4 @@ supersedes it, in which case both say so.
 | [0012](0012-composing-an-outfit-above-a-pairwise-engine.md)   | Compose an outfit above a pairwise engine                 |
 | [0013](0013-user-data-stays-on-the-device.md)                 | Keep user data on the device                              |
 | [0014](0014-checking-an-outfit-describes-and-never-judges.md) | Check an outfit by describing it, never by judging it     |
+| [0015](0015-deploy-with-netlifys-git-integration.md)          | Deploy with Netlify's Git integration                     |
