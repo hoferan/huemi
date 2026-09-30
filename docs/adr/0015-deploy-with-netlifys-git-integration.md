@@ -38,6 +38,11 @@ bundle under `/assets/` therefore came back as `index.html` with status 200 and 
 one-year cache header, so a visitor holding an old page got HTML where the script should
 be, and their browser kept it. `public/_redirects` now answers `/assets/*` with a 404
 ahead of the fallback. Netlify tries real files first, so existing assets are unaffected.
+The 404 still carries the cache header, because headers match the path and not the
+status. A browser can keep that 404 for the URL, which only matters after a rollback to
+a build whose file it asked for while the file was missing. A visitor who hits it clears
+it with a hard reload, and the narrower rule the header would need is not available in
+Netlify's config.
 
 ## Consequences
 
