@@ -104,3 +104,13 @@ describe('CheckCamera', () => {
     );
   });
 });
+
+// The screen's parent in the flow, fixed whatever route led here.
+describe('CheckCamera back arrow', () => {
+  it('goes back to Start with a garment', async () => {
+    renderAt(port());
+    expect(
+      await screen.findByRole('link', { name: 'Back to Start with a garment' }),
+    ).toHaveAttribute('href', '/');
+  });
+});

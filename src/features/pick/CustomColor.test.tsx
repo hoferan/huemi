@@ -170,3 +170,14 @@ describe('CustomColor', () => {
     expect(await screen.findByText('before screen')).toBeInTheDocument();
   });
 });
+
+// The screen's parent in the flow, fixed whatever route led here.
+describe('CustomColor back arrow', () => {
+  it('goes back to Pick a color', () => {
+    renderAt('/color/custom?slot=top');
+    expect(screen.getByRole('link', { name: 'Back to Pick a color' })).toHaveAttribute(
+      'href',
+      '/color?slot=top',
+    );
+  });
+});

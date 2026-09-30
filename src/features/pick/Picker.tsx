@@ -6,6 +6,7 @@ import type { Slot } from '../../model/types';
 import { useSession } from '../../session/useSession';
 import { tokens } from '../../styles/tokens.stylex';
 import { Screen } from '../../ui/Screen';
+import { PICKER_TITLE, SLOT_TITLE } from './copy';
 import { Swatch } from '../../ui/Swatch';
 import { useSlotParam } from './useSlotParam';
 
@@ -64,7 +65,7 @@ function PickerForSlot({ slot }: { slot: Slot }) {
   }
 
   return (
-    <Screen title="Pick a color">
+    <Screen title={PICKER_TITLE} back={{ to: '/slot', title: SLOT_TITLE }}>
       <div {...stylex.props(styles.grid)}>
         {PALETTE.map((color) => (
           <Swatch key={color.hex} hex={color.hex} onSelect={choose} />

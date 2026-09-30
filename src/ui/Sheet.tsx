@@ -21,6 +21,9 @@ const styles = stylex.create({
     borderStartEndRadius: tokens.radius,
     backgroundColor: tokens.bg,
     color: tokens.ink,
+    // Portalled to the end of <body>, outside the screen's <main>, so it
+    // inherits nothing from `Screen` and has to name the typeface itself.
+    fontFamily: tokens.fontBody,
     boxShadow: tokens.shadowSheet,
     transitionProperty: 'transform',
     transitionTimingFunction: 'cubic-bezier(0.22, 1, 0.36, 1)',

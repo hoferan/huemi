@@ -16,6 +16,7 @@ import { Button } from '../../ui/Button';
 import { Screen } from '../../ui/Screen';
 import { selection } from '../../ui/selection';
 import { useAnnounce } from '../../ui/useAnnounce';
+import { GARMENT_CAPTURE_TITLE } from '../camera/copy';
 import { useSlotParam } from '../pick/useSlotParam';
 import { CorrectionPanel } from './CorrectionPanel';
 import { FramePhoto } from './FramePhoto';
@@ -297,7 +298,11 @@ function ConfirmForCapture({ slot, pixels }: { slot: Slot; pixels: Pixels }) {
     // The key remounts Screen when the reading changes kind, which re-runs
     // its focus effect: the new heading takes focus, and a screen reader
     // announces the change of state.
-    <Screen key={reading.kind} title={TITLES[reading.kind]}>
+    <Screen
+      key={reading.kind}
+      title={TITLES[reading.kind]}
+      back={{ to: `/camera?slot=${slot}`, title: GARMENT_CAPTURE_TITLE }}
+    >
       <div {...stylex.props(styles.body)}>
         <div {...stylex.props(styles.pair)}>
           <FramePhoto

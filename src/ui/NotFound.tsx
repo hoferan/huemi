@@ -1,6 +1,7 @@
 import { Link } from 'react-router';
 import * as stylex from '@stylexjs/stylex';
 import { tokens } from '../styles/tokens.stylex';
+import { HOME } from './home';
 import { Screen } from './Screen';
 
 const styles = stylex.create({
@@ -17,7 +18,7 @@ const styles = stylex.create({
 
 export function NotFound() {
   return (
-    <Screen title="Page not found">
+    <Screen title="Page not found" back={HOME}>
       <p>That address does not lead anywhere in huemi.</p>
       <Link to="/" {...stylex.props(styles.link)}>
         Start again

@@ -176,3 +176,13 @@ describe('Saved', () => {
     expect(screen.getByRole('button', { name: 'Navy bottom' })).toBeInTheDocument();
   });
 });
+
+// The screen's parent in the flow, fixed whatever route led here.
+describe('Saved back arrow', () => {
+  it('goes back to Start with a garment', async () => {
+    setup(fakeOutfitStore());
+    expect(
+      await screen.findByRole('link', { name: 'Back to Start with a garment' }),
+    ).toHaveAttribute('href', '/');
+  });
+});

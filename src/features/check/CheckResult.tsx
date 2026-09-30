@@ -15,6 +15,7 @@ import {
   CHANGE_PIECES,
   CHECK_ANOTHER,
   CHECK_TITLE,
+  PIECES_TITLE,
   SWAP_HINT,
   observationText,
   swapSheetTitle,
@@ -102,7 +103,7 @@ export function CheckResult() {
   const openPiece = openFor === null ? undefined : check.pieces[openFor];
 
   return (
-    <Screen title={CHECK_TITLE}>
+    <Screen title={CHECK_TITLE} back={{ to: '/check/pieces', title: PIECES_TITLE }}>
       <div {...stylex.props(styles.blocks)}>
         {CHECK_SLOTS.map((slot) => {
           const hex = pieces[slot];

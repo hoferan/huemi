@@ -1,6 +1,7 @@
 import { BrowserRouter } from 'react-router';
 import { OutfitsProvider } from '../features/saved/OutfitsProvider';
 import { Announcer } from '../ui/Announcer';
+import { HistoryTrail } from '../ui/HistoryTrail';
 import { InitialLocation } from '../ui/InitialLocation';
 import { AppRoutes } from './routes';
 import { ErrorBoundary } from './ErrorBoundary';
@@ -16,7 +17,9 @@ import { ToastHost } from './ToastHost';
  * screen will want the location, and outside the announcer, because nothing
  * in the announcer reads the session. `InitialLocation` goes directly under
  * the router and above the routes: it remembers the location the app arrived
- * on, which it can only do from somewhere that survives a route change. The
+ * on, which it can only do from somewhere that survives a route change.
+ * `HistoryTrail` sits beside it for the same reason: it remembers the entries
+ * walked, so a screen's back arrow can step back to one instead of pushing. The
  * outfits provider sits inside the session provider and above the routes, so
  * the bookmark, the saved screen and the toast's Undo share one list; the
  * toast host sits inside the announcer, beside the routes, so it outlives a
@@ -27,14 +30,16 @@ export function Root() {
     <ErrorBoundary>
       <BrowserRouter>
         <InitialLocation>
-          <SessionProvider>
-            <OutfitsProvider>
-              <Announcer>
-                <AppRoutes />
-                <ToastHost />
-              </Announcer>
-            </OutfitsProvider>
-          </SessionProvider>
+          <HistoryTrail>
+            <SessionProvider>
+              <OutfitsProvider>
+                <Announcer>
+                  <AppRoutes />
+                  <ToastHost />
+                </Announcer>
+              </OutfitsProvider>
+            </SessionProvider>
+          </HistoryTrail>
         </InitialLocation>
       </BrowserRouter>
     </ErrorBoundary>

@@ -12,7 +12,7 @@ import { Button } from '../../ui/Button';
 import { Screen } from '../../ui/Screen';
 import { useAnnounce } from '../../ui/useAnnounce';
 import { FramePhoto } from '../confirm/FramePhoto';
-import { ENTER_COLORS, SKIP, TAP_PROMPTS, TAP_UNCLEAR } from './copy';
+import { CAPTURE_TITLE, ENTER_COLORS, SKIP, TAP_PROMPTS, TAP_UNCLEAR } from './copy';
 import { tapOutcome } from './sequence';
 
 // `chipFill` is the only dynamic entry, and StyleX compiles it into a
@@ -110,6 +110,7 @@ function TapPieces({
     <Screen
       key={slot}
       title={TAP_PROMPTS[slot]}
+      back={{ to: '/check', title: CAPTURE_TITLE }}
       headingNote={`${index + 1} of ${CHECK_SLOTS.length}`}
     >
       <FramePhoto pixels={pixels} fit="contain" onTap={onTap} {...(miss && { mark: miss })} />

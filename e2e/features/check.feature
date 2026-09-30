@@ -103,6 +103,16 @@ Feature: Capturing an outfit to check
     And I choose "Yours, Navy" in the sheet
     Then I see the button "Bottom: Navy, swap"
 
+  Scenario: The swap sheet is set in the app's typeface
+    Given my camera shows an outfit
+    When I open the outfit check
+    And I follow the link "Enter the colors"
+    And I set "Top: not set" to "Cream"
+    And I set "Bottom: not set" to "Navy"
+    And I press "How does it work together?"
+    And I press "Bottom: Navy, swap"
+    Then the sheet's options are set in "Outfit Variable"
+
   Scenario: A swap is a what-if, not a change to the list
     Given my camera shows an outfit
     When I open the outfit check

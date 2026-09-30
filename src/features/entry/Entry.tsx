@@ -2,6 +2,7 @@ import { Link, useNavigate } from 'react-router';
 import * as stylex from '@stylexjs/stylex';
 import { tokens } from '../../styles/tokens.stylex';
 import { Button } from '../../ui/Button';
+import { HOME } from '../../ui/home';
 import { Screen } from '../../ui/Screen';
 import { CHECK_ENTRY } from '../check/copy';
 import { InstallButton } from '../install/InstallButton';
@@ -54,7 +55,7 @@ export function Entry() {
 
   return (
     <Screen
-      title="Start with a garment"
+      title={HOME.title}
       header={
         <div {...stylex.props(styles.header)}>
           <p {...stylex.props(styles.wordmark)}>huemi</p>

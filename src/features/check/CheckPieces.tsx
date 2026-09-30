@@ -13,7 +13,15 @@ import { Screen } from '../../ui/Screen';
 import { Sheet } from '../../ui/Sheet';
 import { Swatch } from '../../ui/Swatch';
 import { useAnnounce } from '../../ui/useAnnounce';
-import { CHECK_IT, NEED_TWO, NOT_SET, NOT_WEARING, PIECES_BODY, PIECES_TITLE } from './copy';
+import {
+  CAPTURE_TITLE,
+  CHECK_IT,
+  NEED_TWO,
+  NOT_SET,
+  NOT_WEARING,
+  PIECES_BODY,
+  PIECES_TITLE,
+} from './copy';
 
 // `fill` is the only dynamic entry; see Confirm.tsx for why the ignore has to
 // bracket the whole object.
@@ -103,7 +111,7 @@ export function CheckPieces() {
   }
 
   return (
-    <Screen title={PIECES_TITLE}>
+    <Screen title={PIECES_TITLE} back={{ to: '/check', title: CAPTURE_TITLE }}>
       <p {...stylex.props(styles.body)}>{PIECES_BODY}</p>
       <div {...stylex.props(styles.rows)}>
         {CHECK_SLOTS.map((slot) => {

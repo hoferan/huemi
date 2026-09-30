@@ -2,7 +2,9 @@ import { useNavigate, useSearchParams } from 'react-router';
 import * as stylex from '@stylexjs/stylex';
 import { SLOTS, SLOT_LABELS, type Slot } from '../../model/types';
 import { tokens } from '../../styles/tokens.stylex';
+import { HOME } from '../../ui/home';
 import { Screen } from '../../ui/Screen';
+import { SLOT_TITLE } from './copy';
 
 const styles = stylex.create({
   list: { display: 'flex', flexDirection: 'column', gap: '8px' },
@@ -40,7 +42,7 @@ export function SlotChoice() {
   }
 
   return (
-    <Screen title="Choose a garment">
+    <Screen title={SLOT_TITLE} back={HOME}>
       <div {...stylex.props(styles.list)}>
         {SLOTS.map((slot) => (
           <button

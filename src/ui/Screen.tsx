@@ -1,9 +1,11 @@
 import { use, useEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
-import { useLocation } from 'react-router';
+import { NavigationType, useLocation, useNavigationType } from 'react-router';
 import * as stylex from '@stylexjs/stylex';
+import { ArrowLeft } from 'lucide-react';
 import { tokens } from '../styles/tokens.stylex';
 import { InitialLocationContext } from './InitialLocationContext';
+import { TrailLink } from './TrailLink';
 
 const styles = stylex.create({
   main: {
@@ -30,7 +32,51 @@ const styles = stylex.create({
     // where focus went, which is the whole point of moving it.
     outlineOffset: '2px',
   },
+  // Three columns, the outer two equal, so the wordmark sits on the centre
+  // line whatever a screen puts at the end. Apart, the arrow and the home
+  // link cannot be mistaken for each other under a thumb.
+  //
+  // Only the 24px arrow shows; the rest of each 44px target is hit area. The
+  // bar lets that area run 10px into the padding above and the gap below, so
+  // the arrow sits where the heading used to, the heading sits the usual gap
+  // below the arrow, and the bar costs a landscape phone 20px less height,
+  // which is what keeps the confirm screen's buttons on screen there
+  // (`e2e/features/confirm.feature`).
+  bar: {
+    display: 'grid',
+    gridTemplateColumns: '1fr auto 1fr',
+    alignItems: 'center',
+    marginBlock: '-10px',
+  },
+  back: {
+    justifySelf: 'start',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: tokens.touchTarget,
+    minWidth: tokens.touchTarget,
+    // Pulls the arrow's stroke, not its hit area, onto the content edge.
+    marginInlineStart: '-10px',
+    borderRadius: tokens.radius,
+    color: tokens.ink,
+  },
+  home: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    minHeight: tokens.touchTarget,
+    minWidth: tokens.touchTarget,
+    justifyContent: 'center',
+    paddingInline: '8px',
+    color: tokens.ink,
+    fontFamily: tokens.fontHeading,
+    fontSize: tokens.textBody,
+    textUnderlineOffset: '3px',
+  },
+  end: { justifySelf: 'end', display: 'flex', alignItems: 'center' },
 });
+
+/** Where a screen's back arrow goes, and the title of the screen it opens. */
+export type BackTo = { to: string; title: string };
 
 /**
  * The screen-transition contract, on the receiving end of a navigation rather
@@ -59,36 +105,68 @@ const styles = stylex.create({
  * `headingNote` becomes part of the heading's accessible name and is never
  * shown, for progress that is drawn rather than written, such as the outfit
  * check's four chips.
+ *
+ * `back` gives the screen its bar: an arrow to a fixed destination on the
+ * left, the wordmark as a link home in the middle, and `header` at the end.
+ * The destination is the screen's parent in the flow, never "wherever the
+ * user came from", because an installed app opened on a deep link has no
+ * history to go back to. `TrailLink` steps back through history when the
+ * destination is already behind, so the system back button still makes
+ * sense afterwards. The start screen and onboarding pass no `back`.
  */
 export function Screen({
   title,
   documentTitle,
   header,
   headingNote,
+  back,
   children,
 }: {
   title: string;
   documentTitle?: string;
   header?: ReactNode;
   headingNote?: string;
+  back?: BackTo;
   children: ReactNode;
 }) {
   const heading = useRef<HTMLHeadingElement>(null);
   const location = useLocation();
+  const navigationType = useNavigationType();
   const isInitialLocation = use(InitialLocationContext);
 
   useEffect(() => {
     document.title = `${documentTitle ?? title} — huemi`;
   }, [title, documentTitle]);
 
+  // A single-page app keeps the scroll position across a navigation, so a
+  // screen reached from a scrolled one would open partway down. Forward
+  // navigations start at the top; a pop, including a back arrow that steps
+  // back, is left to the browser, which restores where that screen was.
   useEffect(() => {
     if (isInitialLocation) return;
+    if (navigationType !== NavigationType.Pop) window.scrollTo(0, 0);
     heading.current?.focus();
-  }, [location, isInitialLocation]);
+  }, [location, isInitialLocation, navigationType]);
 
   return (
     <main {...stylex.props(styles.main)}>
-      {header}
+      {back ? (
+        <div {...stylex.props(styles.bar)}>
+          <TrailLink
+            to={back.to}
+            aria-label={`Back to ${back.title}`}
+            {...stylex.props(styles.back)}
+          >
+            <ArrowLeft size={24} aria-hidden="true" />
+          </TrailLink>
+          <TrailLink to="/" aria-label="huemi, home" {...stylex.props(styles.home)}>
+            huemi
+          </TrailLink>
+          <div {...stylex.props(styles.end)}>{header}</div>
+        </div>
+      ) : (
+        header
+      )}
       {/* Headings carry no terminal punctuation; a heading that is itself a
           sentence pair, like onboarding's, keeps the stops between them. */}
       <h1

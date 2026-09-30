@@ -11,6 +11,7 @@ import { useSession } from '../../session/useSession';
 import { durations, tokens } from '../../styles/tokens.stylex';
 import { BaseBlock } from '../../ui/BaseBlock';
 import { Screen } from '../../ui/Screen';
+import { PICKER_TITLE } from '../pick/copy';
 import { Sheet } from '../../ui/Sheet';
 import { SuggestionBlock } from '../../ui/SuggestionBlock';
 import { useAnnounce } from '../../ui/useAnnounce';
@@ -157,6 +158,7 @@ export function Suggestions() {
   return (
     <Screen
       title="Goes with it"
+      back={{ to: `/color?slot=${base.slot}`, title: PICKER_TITLE }}
       header={
         <div {...stylex.props(styles.header)}>
           <SaveToggle base={base} picks={picks} />

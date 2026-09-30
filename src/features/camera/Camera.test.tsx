@@ -286,3 +286,14 @@ describe('Camera', () => {
     });
   });
 });
+
+// The screen's parent in the flow, fixed whatever route led here.
+describe('Camera back arrow', () => {
+  it('goes back to Choose a garment', async () => {
+    renderAt(fakeCamera().port);
+    expect(await screen.findByRole('link', { name: 'Back to Choose a garment' })).toHaveAttribute(
+      'href',
+      '/slot?next=camera',
+    );
+  });
+});
