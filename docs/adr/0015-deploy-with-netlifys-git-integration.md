@@ -32,6 +32,13 @@ everything under `/assets/` a one-year immutable cache. Vite hashes those file n
 `index.html` keeps Netlify's default revalidation, so a new deploy reaches returning
 visitors.
 
+The immutable cache has a catch that showed up on the first preview. Headers match the
+request path, and the single-page fallback answers for any path with no file. A removed
+bundle under `/assets/` therefore came back as `index.html` with status 200 and the
+one-year cache header, so a visitor holding an old page got HTML where the script should
+be, and their browser kept it. `public/_redirects` now answers `/assets/*` with a 404
+ahead of the fallback. Netlify tries real files first, so existing assets are unaffected.
+
 ## Consequences
 
 Production builds in parallel with CI, so a broken `main` could publish before its checks

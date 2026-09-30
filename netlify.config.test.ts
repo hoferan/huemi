@@ -62,4 +62,19 @@ describe('public/_redirects', () => {
     expect(redirects).toMatch(/^\/\*\s+\/index\.html\s+200\s*$/m);
     expect(redirects).not.toMatch(/200!|30[12]/);
   });
+
+  it('answers a missing asset with a 404 ahead of the fallback', () => {
+    // Without this rule the fallback serves index.html for a removed bundle, and
+    // the immutable cache header then pins that HTML to the URL for a year.
+    const rules = redirects
+      .split('\n')
+      .map((line) => line.trim())
+      .filter((line) => line !== '' && !line.startsWith('#'));
+    const missingAsset = rules.findIndex((rule) =>
+      new RegExp(`^/${build.assetsDir}/\\*\\s+/404\\.html\\s+404$`).test(rule),
+    );
+    const fallback = rules.findIndex((rule) => /^\/\*\s+\/index\.html\s+200$/.test(rule));
+    expect(missingAsset).toBeGreaterThanOrEqual(0);
+    expect(missingAsset).toBeLessThan(fallback);
+  });
 });
