@@ -320,3 +320,14 @@ describe('Suggestions: alternatives', () => {
     });
   });
 });
+
+// The screen's parent in the flow, fixed whatever route led here.
+describe('Suggestions back arrow', () => {
+  it('goes back to Pick a color', async () => {
+    await at(TOP);
+    expect(await screen.findByRole('link', { name: 'Back to Pick a color' })).toHaveAttribute(
+      'href',
+      '/color?slot=top',
+    );
+  });
+});

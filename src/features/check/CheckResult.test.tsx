@@ -190,3 +190,13 @@ describe('CheckResult', () => {
     expect(await screen.findByText('camera /check')).toBeInTheDocument();
   });
 });
+
+// The screen's parent in the flow, fixed whatever route led here.
+describe('CheckResult back arrow', () => {
+  it('goes back to What are you wearing?', async () => {
+    renderWith();
+    expect(
+      await screen.findByRole('link', { name: 'Back to What are you wearing?' }),
+    ).toHaveAttribute('href', '/check/pieces');
+  });
+});

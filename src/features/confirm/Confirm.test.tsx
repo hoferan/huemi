@@ -478,3 +478,14 @@ describe('Confirm, unclear', () => {
     expect(screen.getByRole('img', { name: 'Your photo' })).toHaveAttribute('data-fit', 'cover');
   });
 });
+
+// The screen's parent in the flow, fixed whatever route led here.
+describe('Confirm back arrow', () => {
+  it('goes back to Frame the garment', async () => {
+    renderWith(solid(NAVY), 'top');
+    expect(await screen.findByRole('link', { name: 'Back to Frame the garment' })).toHaveAttribute(
+      'href',
+      '/camera?slot=top',
+    );
+  });
+});

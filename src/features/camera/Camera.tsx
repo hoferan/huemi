@@ -4,7 +4,8 @@ import type { Slot } from '../../model/types';
 import { useSession } from '../../session/useSession';
 import { useSlotParam } from '../pick/useSlotParam';
 import { CaptureScreen } from './CaptureScreen';
-import { GARMENT_CAPTURE } from './copy';
+import { SLOT_TITLE } from '../pick/copy';
+import { GARMENT_CAPTURE, GARMENT_CAPTURE_TITLE } from './copy';
 
 /** The garment camera: `CaptureScreen` for one slot, handing its frame to the confirm step. */
 export function Camera() {
@@ -24,7 +25,8 @@ function CameraForSlot({ slot }: { slot: Slot }) {
 
   return (
     <CaptureScreen
-      title="Frame the garment"
+      title={GARMENT_CAPTURE_TITLE}
+      back={{ to: '/slot?next=camera', title: SLOT_TITLE }}
       guide="garment"
       copy={GARMENT_CAPTURE}
       handEntry={`/color?slot=${slot}`}

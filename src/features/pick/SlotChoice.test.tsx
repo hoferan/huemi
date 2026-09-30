@@ -54,3 +54,14 @@ describe('SlotChoice', () => {
     expect(await screen.findByText('/color?slot=top')).toBeInTheDocument();
   });
 });
+
+// The screen's parent in the flow, fixed whatever route led here.
+describe('SlotChoice back arrow', () => {
+  it('goes back to Start with a garment', () => {
+    renderAt('/slot?next=camera');
+    expect(screen.getByRole('link', { name: 'Back to Start with a garment' })).toHaveAttribute(
+      'href',
+      '/',
+    );
+  });
+});

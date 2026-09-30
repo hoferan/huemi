@@ -5,6 +5,7 @@ import type { Outfit } from '../../model/types';
 import { useSession } from '../../session/useSession';
 import { tokens } from '../../styles/tokens.stylex';
 import { Button } from '../../ui/Button';
+import { HOME } from '../../ui/home';
 import { Screen } from '../../ui/Screen';
 import { openOutfit } from './openOutfit';
 import { SavedCard } from './SavedCard';
@@ -70,7 +71,7 @@ export function Saved() {
   const { state } = outfits;
 
   return (
-    <Screen title="Saved outfits">
+    <Screen title="Saved outfits" back={HOME}>
       {state.status === 'error' && (
         <>
           <p {...stylex.props(styles.text)}>

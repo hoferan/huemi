@@ -167,3 +167,14 @@ describe('CheckPieces', () => {
     expect(await screen.findByText('/check/result')).toBeInTheDocument();
   });
 });
+
+// The screen's parent in the flow, fixed whatever route led here.
+describe('CheckPieces back arrow', () => {
+  it('goes back to Frame the outfit', async () => {
+    renderWith();
+    expect(await screen.findByRole('link', { name: 'Back to Frame the outfit' })).toHaveAttribute(
+      'href',
+      '/check',
+    );
+  });
+});

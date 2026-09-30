@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router';
 import type { Frame } from '../../model/frame';
 import { useSession } from '../../session/useSession';
 import { CaptureScreen } from '../camera/CaptureScreen';
+import { HOME } from '../../ui/home';
 import { CAPTURE_TITLE, OUTFIT_CAPTURE } from './copy';
 
 /**
@@ -29,6 +30,7 @@ export function CheckCamera() {
   return (
     <CaptureScreen
       title={CAPTURE_TITLE}
+      back={HOME}
       guide="outfit"
       copy={OUTFIT_CAPTURE}
       handEntry="/check/pieces"

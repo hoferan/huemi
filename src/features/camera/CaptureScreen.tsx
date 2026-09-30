@@ -5,7 +5,7 @@ import * as stylex from '@stylexjs/stylex';
 import type { Frame } from '../../model/frame';
 import { tokens } from '../../styles/tokens.stylex';
 import { Button } from '../../ui/Button';
-import { Screen } from '../../ui/Screen';
+import { Screen, type BackTo } from '../../ui/Screen';
 import { useAnnounce } from '../../ui/useAnnounce';
 import { CameraContext } from './CameraContext';
 import { DARK_MESSAGE, PHOTO_FAILED, type CaptureCopy } from './copy';
@@ -119,6 +119,7 @@ function stopTracks(stream: MediaStream) {
  */
 export function CaptureScreen({
   title,
+  back,
   guide,
   copy,
   handEntry,
@@ -126,6 +127,7 @@ export function CaptureScreen({
   onFrame,
 }: {
   title: string;
+  back: BackTo;
   guide: 'garment' | 'outfit';
   copy: CaptureCopy;
   /** Where the hand-entry link goes. */
@@ -273,7 +275,7 @@ export function CaptureScreen({
 
   if (panel) {
     return (
-      <Screen title={title}>
+      <Screen title={title} back={back}>
         <section aria-labelledby="camera-panel" {...stylex.props(styles.panel)}>
           <h2 id="camera-panel" {...stylex.props(styles.panelHeading)}>
             {panel.heading}
@@ -288,7 +290,7 @@ export function CaptureScreen({
   }
 
   return (
-    <Screen title={title}>
+    <Screen title={title} back={back}>
       {dark && <p {...stylex.props(styles.banner)}>{DARK_MESSAGE}</p>}
       {/* Hidden from assistive technology: the screen works without seeing
           the picture, and a video announced as "video" tells nobody

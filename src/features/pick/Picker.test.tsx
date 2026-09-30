@@ -108,3 +108,14 @@ describe('Picker', () => {
     expect(await screen.findByText('before screen')).toBeInTheDocument();
   });
 });
+
+// The screen's parent in the flow, fixed whatever route led here.
+describe('Picker back arrow', () => {
+  it('goes back to Choose a garment', () => {
+    renderAt('/color?slot=top');
+    expect(screen.getByRole('link', { name: 'Back to Choose a garment' })).toHaveAttribute(
+      'href',
+      '/slot',
+    );
+  });
+});

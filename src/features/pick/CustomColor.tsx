@@ -8,6 +8,7 @@ import { useSession } from '../../session/useSession';
 import { tokens } from '../../styles/tokens.stylex';
 import { Button } from '../../ui/Button';
 import { Screen } from '../../ui/Screen';
+import { PICKER_TITLE } from './copy';
 import { useAnnounce } from '../../ui/useAnnounce';
 import { useSlotParam } from './useSlotParam';
 
@@ -89,7 +90,7 @@ function CustomColorForSlot({ slot }: { slot: Slot }) {
   }
 
   return (
-    <Screen title="Mix your own">
+    <Screen title="Mix your own" back={{ to: `/color?slot=${slot}`, title: PICKER_TITLE }}>
       <div {...stylex.props(styles.preview(hex))} />
       <p data-testid="custom-name" {...stylex.props(styles.name)}>
         {name}

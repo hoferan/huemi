@@ -43,6 +43,7 @@ function renderWith(camera: CameraPort, onFrame = vi.fn()) {
           <CameraContext value={camera}>
             <CaptureScreen
               title="A title"
+              back={{ to: '/before', title: 'Before' }}
               guide="outfit"
               copy={copy}
               handEntry="/by-hand"
@@ -92,6 +93,7 @@ describe('CaptureScreen', () => {
             <CameraContext value={port()}>
               <CaptureScreen
                 title="A title"
+                back={{ to: '/before', title: 'Before' }}
                 guide="outfit"
                 copy={copy}
                 handEntry="/by-hand"

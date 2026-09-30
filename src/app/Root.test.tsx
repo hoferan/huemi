@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { ONBOARDED_KEY } from '../storage/localPreferences';
 import { Root } from './Root';
@@ -66,6 +67,26 @@ describe('Root', () => {
     render(<Root />);
     expect(
       await screen.findByRole('heading', { level: 1, name: 'Mix your own' }),
+    ).toBeInTheDocument();
+  });
+
+  // Without HistoryTrail in Root, the arrow still works but pushes a new
+  // entry, and the phone's own back button then returns to the screen just
+  // left. Only a test through Root's own wiring sees the difference.
+  it('steps the back arrow back through history when its destination is behind', async () => {
+    const user = userEvent.setup();
+    render(<Root />);
+    await user.click(await screen.findByRole('button', { name: 'Pick a color' }));
+    await screen.findByRole('heading', { level: 1, name: 'Choose a garment' });
+    const before = window.history.length;
+    await user.click(screen.getByRole('link', { name: 'Back to Start with a garment' }));
+    await screen.findByRole('heading', { level: 1, name: 'Start with a garment' });
+    // A push would have added an entry; stepping back leaves the count alone
+    // and puts the screen just left ahead, where the forward button finds it.
+    expect(window.history.length).toBe(before);
+    window.history.forward();
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Choose a garment' }),
     ).toBeInTheDocument();
   });
 });
