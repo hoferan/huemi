@@ -52,6 +52,13 @@ describe('netlify.toml', () => {
     expect(toml.match(/immutable/g)).toHaveLength(1);
   });
 
+  it('never caches the worker, since it is what tells installed clients about a new version', () => {
+    const block = toml.split('[[headers]]').find((part) => part.includes('for = "/sw.js"'));
+    expect(block).toBeDefined();
+    expect(block).toContain('Cache-Control = "public, max-age=0, must-revalidate"');
+    expect(block).not.toContain('immutable');
+  });
+
   it('sets no content security policy', () => {
     expect(toml).not.toMatch(/Content-Security-Policy/i);
   });
