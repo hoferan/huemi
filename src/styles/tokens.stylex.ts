@@ -53,6 +53,10 @@ export const tokens = stylex.defineVars({
   radiusMedia: '10px',
   frameRadius: '44px',
   touchTarget: '44px',
+  // The widest the app gets. huemi is designed for a phone, so a wider window
+  // shows one centered column of a large phone's width, as mobile-first web
+  // apps do, rather than stretching swatches and sheets across it.
+  column: '480px',
 
   // Type — two roles, identical in the Studio prototype but genuinely
   // different families in Flow. Keep them separate.

@@ -12,6 +12,9 @@ const styles = stylex.create({
     position: 'fixed',
     insetInline: 0,
     bottom: 0,
+    // Over the screen's column, not across a wide window.
+    maxWidth: tokens.column,
+    marginInline: 'auto',
     maxHeight: '72dvh',
     display: 'flex',
     flexDirection: 'column',
