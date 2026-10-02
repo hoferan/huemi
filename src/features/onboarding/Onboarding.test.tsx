@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useNavigate } from 'react-router';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -67,6 +67,30 @@ describe('Onboarding', () => {
     expect(screen.getByText('Pick the color of one garment.')).toBeInTheDocument();
     expect(screen.getByText('See what works for the rest.')).toBeInTheDocument();
     expect(screen.getByText('Keep the outfits you like.')).toBeInTheDocument();
+  });
+
+  // An ordered list, so a screen reader says how many steps there are and
+  // where each sits. The large numerals are drawn for sighted users and kept
+  // out of the accessibility tree, where the list already numbers the steps.
+  it('lists the three steps in order', () => {
+    renderAt();
+    const steps = within(screen.getByRole('list')).getAllByRole('listitem');
+    expect(steps.map((step) => step.textContent)).toEqual([
+      expect.stringContaining('Pick the color of one garment.'),
+      expect.stringContaining('See what works for the rest.'),
+      expect.stringContaining('Keep the outfits you like.'),
+    ]);
+    for (const [index, step] of steps.entries()) {
+      expect(within(step).getByText(String(index + 1))).toHaveAttribute('aria-hidden', 'true');
+    }
+  });
+
+  // The steps already say what the preview shows, so it is drawn and not read.
+  it('keeps the outfit preview out of the accessibility tree', () => {
+    renderAt();
+    const previews = screen.getAllByTestId('step-preview');
+    expect(previews).toHaveLength(3);
+    for (const preview of previews) expect(preview).toHaveAttribute('aria-hidden', 'true');
   });
 
   it('offers exactly one control, and it is not a skip', () => {
