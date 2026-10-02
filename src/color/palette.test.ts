@@ -10,13 +10,14 @@ import {
   nearbyColors,
   PALETTE,
 } from './palette';
+import { hslToHex } from './convert';
 import { hexToOklab } from './oklab';
 
 describe('PALETTE', () => {
-  it('has 18 colors with unique names and hexes', () => {
-    expect(PALETTE).toHaveLength(18);
-    expect(new Set(PALETTE.map((c) => c.name)).size).toBe(18);
-    expect(new Set(PALETTE.map((c) => c.hex)).size).toBe(18);
+  it('has 21 colors with unique names and hexes', () => {
+    expect(PALETTE).toHaveLength(21);
+    expect(new Set(PALETTE.map((c) => c.name)).size).toBe(21);
+    expect(new Set(PALETTE.map((c) => c.hex)).size).toBe(21);
   });
 });
 
@@ -155,6 +156,27 @@ describe('colorName', () => {
     ['#635a56', 'Olive', 'Charcoal'],
   ])('names the neutral read %s by a neutral, not %s', (hex, _wrong, expected) => {
     expect(colorName(parseHex(hex))).toBe(expected);
+  });
+
+  // The family the palette had nothing for until #83. The first five are the
+  // hexes the Polyvore benchmark gives those color words, the last is the
+  // lit aubergine trousers from the #20 photos.
+  it.each([
+    ['#e8a0b8', 'Pink'],
+    ['#e79a86', 'Pink'],
+    ['#f0bd9a', 'Peach'],
+    ['#ddbfa8', 'Peach'],
+    ['#e8c2c2', 'Peach'],
+    ['#a98899', 'Mauve'],
+    ['#a37a76', 'Mauve'],
+  ])('names %s from the gap %s', (hex, expected) => {
+    expect(colorName(parseHex(hex))).toBe(expected);
+  });
+
+  // The mixer's default blue one step lighter. A greyer Mauve was nearer to
+  // it than any blue entry, and named it.
+  it('does not call a muted blue Mauve', () => {
+    expect(colorName(parseHex(hslToHex(210, 40, 55)))).toBe('blue');
   });
 
   it('never gives a color a neutral name', () => {

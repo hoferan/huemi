@@ -23,7 +23,7 @@ export type Toast = { id: number; message: string; action?: ToastAction; focusAc
  *
  * One record rather than two parallel maps, because a cursor that belongs to
  * a different colour than the one on screen is a state nothing can repair:
- * the block would announce the wrong "n of 18" and no test could tell. An
+ * the block would announce the wrong "n of 21" and no test could tell. An
  * absent cursor means the position is unknown, which is what `locate` reports
  * by returning null, and the block then says nothing about the position
  * rather than saying something false.

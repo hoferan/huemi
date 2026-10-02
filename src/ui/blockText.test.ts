@@ -11,7 +11,7 @@ describe('BLOCK_TEXT_ALPHA', () => {
   // safe everywhere the base color can land.
   //
   // The base color comes straight off the URL (useBaseParam calls parseHex
-  // on an unvalidated parameter), not from the 18-swatch PALETTE, so the
+  // on an unvalidated parameter), not from the 21-swatch PALETTE, so the
   // domain here is the same continuous picker range contrast.test.ts sweeps,
   // not the palette: the palette's worst margin is wide enough that a
   // regression to opacity 0.9 would still pass it.

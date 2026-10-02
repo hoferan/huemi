@@ -12,7 +12,7 @@ export type Position = { hex: Hex; cursor: number; count: number };
 
 /**
  * Floored modulo. The remainder operator keeps the sign of the dividend, so
- * `-1 % 18` is `-1` and a backwards swipe would index off the front of the
+ * `-1 % 21` is `-1` and a backwards swipe would index off the front of the
  * list.
  */
 function wrap(value: number, length: number): number {

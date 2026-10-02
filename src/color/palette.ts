@@ -24,20 +24,28 @@ export const PALETTE: readonly NamedColor[] = [
   { name: 'Burgundy', hex: parseHex('#6b2733') },
   { name: 'Rust', hex: parseHex('#a4522d') },
   { name: 'Mustard', hex: parseHex('#c39a3a') },
+  // Peach, pink and mauve, the family the palette had nothing for (#83). Mauve
+  // carries more chroma (0.09) than a dusky mauve usually would. At 0.05 it sat
+  // so close to the neutral axis that it was the nearest color to too much:
+  // it named a muted blue from the mixer, and came before Forest among Denim's
+  // neighbours on the confirm screen.
+  { name: 'Peach', hex: parseHex('#e8b496') },
+  { name: 'Pink', hex: parseHex('#e2a9b4') },
+  { name: 'Mauve', hex: parseHex('#ab6983') },
 ];
 
 /**
  * The closest palette entry and how far away it was.
  *
  * OKLab provides perceptually uniform color distance, which is the appropriate
- * default for camera-read colors of unknown origin. For this palette of 18
+ * default for camera-read colors of unknown origin. For this palette of 21
  * muted colors, RGB and OKLab distance metrics agree everywhere except where an
  * input sits between two entries; even there, margins are small and near-ties
  * are common. OKLab is the principled default rather than an empirically
  * superior alternative.
  *
  * The distance comes out with the winner because the winner alone is not enough
- * to judge by: every input snaps to one of 18 entries whether or not any of
+ * to judge by: every input snaps to one of 21 entries whether or not any of
  * them is close. Callers that show a name to a user want `colorName` instead.
  */
 export function nearestColor(hex: Hex): { color: NamedColor; distance: number } {
@@ -86,7 +94,7 @@ const BRIGHT_CHROMA = 0.18;
  * one. It deliberately carries less than a palette name, and it still carries
  * something: a user confirming a camera read can act on "bright green", where
  * "no close match" leaves them nothing to agree or disagree with. Lower case,
- * so a screen reader's output tells a description from one of the 18 names.
+ * so a screen reader's output tells a description from one of the 21 names.
  */
 export function describeColor(hex: Hex): string {
   const { l, c, h } = hexToOklch(hex);
@@ -134,7 +142,7 @@ export const namesAsNeutral = (hex: Hex): boolean => hexToOklch(hex).c < NAME_NE
  * What to call a color, in a word a user can act on.
  *
  * A palette name where one fits, a description built from the color otherwise.
- * `nearestColor` answers which of 18 entries is closest and will answer even
+ * `nearestColor` answers which of 21 entries is closest and will answer even
  * when none is close; this decides whether that answer is worth saying.
  *
  * Neutrals are only named by neutrals, and colors only by colors. The palette
