@@ -14,3 +14,15 @@ Feature: Picking a color
     Given I have seen the welcome screen
     And I open the picker for the top
     Then every swatch shows its name
+
+  # The brief asks for colors shown large. The swatches share the height the
+  # screen has, so a phone gets tiles about twice the 44px minimum.
+  Scenario: The swatches fill the screen
+    Given I have seen the welcome screen
+    And I open the picker for the top
+    Then the choices fill the screen, each at least 64 tall
+
+  Scenario: The garments fill the screen
+    Given I have seen the welcome screen
+    And I open the garment choice
+    Then the choices fill the screen, each at least 96 tall

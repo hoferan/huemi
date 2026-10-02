@@ -5,6 +5,7 @@ import { colorName } from '../color/palette';
 import type { Hex } from '../model/hex';
 import { tokens } from '../styles/tokens.stylex';
 import { selection } from './selection';
+import { clearOfToasts } from './toastClearance';
 
 // `fill` is the only dynamic entry; see `src/features/confirm/Confirm.tsx` for
 // why the ignore has to bracket the whole object.
@@ -61,6 +62,7 @@ export function Swatch({
   hex,
   onSelect,
   pressed,
+  clearOfToasts: clear,
   ref,
 }: {
   hex: Hex;
@@ -69,6 +71,11 @@ export function Swatch({
   // button, and most callers of this component are not one. Only the
   // correction panel's selection grid passes it.
   pressed?: boolean;
+  /**
+   * Marks the swatch as a region a toast keeps off (`clearOfToasts`). The
+   * picker's swatches reach the foot of the screen; a sheet's do not.
+   */
+  clearOfToasts?: boolean;
   ref?: Ref<HTMLButtonElement>;
 }) {
   return (
@@ -77,6 +84,7 @@ export function Swatch({
       type="button"
       onClick={() => onSelect(hex)}
       aria-pressed={pressed}
+      {...(clear && clearOfToasts)}
       {...stylex.props(
         styles.swatch,
         styles.fill(hex, readableForeground(hex).color),

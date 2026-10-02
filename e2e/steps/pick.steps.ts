@@ -8,6 +8,31 @@ Given('I open the picker for the top', async ({ page }) => {
   await page.goto('/color?slot=top');
 });
 
+Given('I open the garment choice', async ({ page }) => {
+  await page.goto('/slot');
+});
+
+// The choices are the buttons in the main area. Filling the screen means the
+// last thing on it, a choice or the link under them, ends near the bottom of
+// the viewport, neither half way down nor below it, and that no choice was
+// squeezed to make that happen.
+Then('the choices fill the screen, each at least {int} tall', async ({ page }, min: number) => {
+  const main = page.getByRole('main');
+  const choices = await main.getByRole('button').all();
+  expect(choices.length).toBeGreaterThan(0);
+  for (const choice of choices) {
+    expect((await choice.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(min);
+  }
+  const viewport = page.viewportSize()!;
+  const bottom = await main.evaluate((el) =>
+    Math.max(...[...el.querySelectorAll('button, a')].map((c) => c.getBoundingClientRect().bottom)),
+  );
+  expect(bottom).toBeGreaterThan(viewport.height - 48);
+  // Choices that grew past the screen push the last of them, or the link
+  // under them, out of sight.
+  expect(bottom).toBeLessThanOrEqual(viewport.height);
+});
+
 // A tap commits and navigates. This is the only route into the suggestions
 // screen a user takes, and the step exists so a scenario can take it rather
 // than arriving by `page.goto` on a session that has never held anything.

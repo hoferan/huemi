@@ -1,5 +1,6 @@
 import { Link, useNavigate } from 'react-router';
 import * as stylex from '@stylexjs/stylex';
+import { Camera, Palette } from 'lucide-react';
 import { tokens } from '../../styles/tokens.stylex';
 import { Button } from '../../ui/Button';
 import { HOME } from '../../ui/home';
@@ -7,6 +8,7 @@ import { Screen } from '../../ui/Screen';
 import { CHECK_ENTRY } from '../check/copy';
 import { InstallButton } from '../install/InstallButton';
 import { clearOfToasts } from '../../ui/toastClearance';
+import { WayIn } from './WayIn';
 
 const styles = stylex.create({
   wordmark: {
@@ -26,14 +28,15 @@ const styles = stylex.create({
     color: tokens.ink,
     fontSize: tokens.textBody,
   },
-  body: {
-    color: tokens.ink2,
-    fontSize: tokens.textBody,
-    lineHeight: 1.5,
-    margin: 0,
+  // The two ways in take the screen's height, and anything a tall window has
+  // left over sits above them, so they stay where the thumb is.
+  actions: {
+    flex: '1 1 auto',
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'flex-end',
+    gap: '8px',
   },
-  spacer: { flex: '1' },
-  actions: { display: 'flex', flexDirection: 'column', gap: '8px' },
 });
 
 /**
@@ -46,6 +49,11 @@ const styles = stylex.create({
  * and the interface around it has to stay out of the way.
  *
  * The header holds the wordmark and the way into the saved collection.
+ *
+ * The two ways in are the screen's content, so they fill it as two large
+ * cards, each with a line on when to use it. That line replaced the
+ * paragraph that used to sit above two plain buttons and a large empty
+ * space (PO, 2026-10-02).
  *
  * The camera leads because photographing a garment you own is the faster
  * path, a choice André made on 2026-09-24 over putting the picker first or
@@ -66,13 +74,20 @@ export function Entry() {
         </div>
       }
     >
-      <p {...stylex.props(styles.body)}>
-        Photograph something you already own, or choose its color, and huemi suggests the rest.
-      </p>
-      <div {...stylex.props(styles.spacer)} />
       <div {...clearOfToasts} {...stylex.props(styles.actions)}>
-        <Button label="Take a photo" onClick={() => void navigate('/slot?next=camera')} />
-        <Button variant="secondary" label="Pick a color" onClick={() => void navigate('/slot')} />
+        <WayIn
+          icon={Camera}
+          label="Take a photo"
+          note="of something you own"
+          onClick={() => void navigate('/slot?next=camera')}
+        />
+        <WayIn
+          icon={Palette}
+          label="Pick a color"
+          note="if you know it"
+          variant="secondary"
+          onClick={() => void navigate('/slot')}
+        />
         {/*
           The check is huemi's second job, for someone already dressed rather
           than starting from one garment, so it sits below the two ways into

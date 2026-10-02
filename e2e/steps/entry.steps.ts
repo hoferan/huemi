@@ -42,6 +42,11 @@ export function hexToRgb(hex: string): string {
   return `rgb(${r}, ${g}, ${b})`;
 }
 
+Then('the button {string} is at least {int} tall', async ({ page }, name: string, min: number) => {
+  const box = await page.getByRole('button', { name }).boundingBox();
+  expect(box?.height ?? 0).toBeGreaterThanOrEqual(min);
+});
+
 Then('I see the heading {string}', async ({ page }, name: string) => {
   await expect(page.getByRole('heading', { level: 1, name })).toBeVisible();
 });
