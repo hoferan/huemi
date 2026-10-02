@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Link, Navigate, useNavigate } from 'react-router';
+import { Link, useNavigate } from 'react-router';
+import { Redirect } from '../../ui/Redirect';
 import * as stylex from '@stylexjs/stylex';
 import { needsBorder } from '../../color/contrast';
 import { readColor, tapRegion } from '../../color/read';
@@ -61,7 +62,7 @@ export function CheckTap() {
   const check = state.check;
   // The photo lives only in the in-memory session, so a refresh lands here
   // with nothing to tap.
-  if (!check?.photo) return <Navigate to="/check" replace />;
+  if (!check?.photo) return <Redirect to="/check" />;
   return <TapPieces pixels={check.photo.pixels} pieces={check.pieces} />;
 }
 

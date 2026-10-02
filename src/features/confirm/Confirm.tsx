@@ -1,5 +1,6 @@
 import { startTransition, useMemo, useRef, useState } from 'react';
-import { Link, Navigate, useNavigate } from 'react-router';
+import { Link, useNavigate } from 'react-router';
+import { Redirect } from '../../ui/Redirect';
 import * as stylex from '@stylexjs/stylex';
 import { needsBorder, readableForeground } from '../../color/contrast';
 import { withLightness } from '../../color/oklab';
@@ -200,9 +201,9 @@ function firstColor(reading: ColorReading): Hex | null {
 export function Confirm() {
   const slot = useSlotParam();
   const { state } = useSession();
-  if (!slot) return <Navigate to="/slot?next=camera" replace />;
+  if (!slot) return <Redirect to="/slot?next=camera" />;
   if (!state.capture || state.capture.slot !== slot) {
-    return <Navigate to={`/camera?slot=${slot}`} replace />;
+    return <Redirect to={`/camera?slot=${slot}`} />;
   }
   return <ConfirmForCapture slot={slot} pixels={state.capture.frame.pixels} />;
 }

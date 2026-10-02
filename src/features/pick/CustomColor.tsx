@@ -1,5 +1,5 @@
+import { Redirect } from '../../ui/Redirect';
 import { useEffect, useRef, useState } from 'react';
-import { Navigate } from 'react-router';
 import * as stylex from '@stylexjs/stylex';
 import { hslToHex } from '../../color/convert';
 import { colorName } from '../../color/palette';
@@ -40,7 +40,7 @@ const styles = stylex.create({
  */
 export function CustomColor() {
   const slot = useSlotParam();
-  if (!slot) return <Navigate to="/slot" replace />;
+  if (!slot) return <Redirect to="/slot" />;
   return <CustomColorForSlot slot={slot} />;
 }
 

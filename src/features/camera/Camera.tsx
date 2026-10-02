@@ -1,4 +1,5 @@
-import { Navigate, useNavigate } from 'react-router';
+import { useNavigate } from 'react-router';
+import { Redirect } from '../../ui/Redirect';
 import type { Frame } from '../../model/frame';
 import type { Slot } from '../../model/types';
 import { useSession } from '../../session/useSession';
@@ -10,7 +11,7 @@ import { GARMENT_CAPTURE, GARMENT_CAPTURE_TITLE } from './copy';
 /** The garment camera: `CaptureScreen` for one slot, handing its frame to the confirm step. */
 export function Camera() {
   const slot = useSlotParam();
-  if (!slot) return <Navigate to="/slot?next=camera" replace />;
+  if (!slot) return <Redirect to="/slot?next=camera" />;
   return <CameraForSlot slot={slot} />;
 }
 
