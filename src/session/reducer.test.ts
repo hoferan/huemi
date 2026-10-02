@@ -246,38 +246,6 @@ describe('sessionReducer', () => {
     expect(initialSession.capture).toBeNull();
   });
 
-  describe('readingRejected', () => {
-    const read = parseHex('#2b3550');
-    const captured = sessionReducer(initialSession, { type: 'frameCaptured', slot: 'top', frame });
-
-    it('keeps the rejected reading with the capture it came from', () => {
-      const next = sessionReducer(captured, { type: 'readingRejected', slot: 'top', read });
-      expect(next.capture).toEqual({ slot: 'top', frame, read });
-    });
-
-    it('ignores a rejection for another slot', () => {
-      const next = sessionReducer(captured, { type: 'readingRejected', slot: 'shoes', read });
-      expect(next.capture).toEqual({ slot: 'top', frame });
-    });
-
-    it('ignores a rejection with nothing captured', () => {
-      const next = sessionReducer(initialSession, { type: 'readingRejected', slot: 'top', read });
-      expect(next.capture).toBeNull();
-    });
-
-    it('drops the rejected reading with the photo when a new one is taken', () => {
-      const rejected = sessionReducer(captured, { type: 'readingRejected', slot: 'top', read });
-      const next = sessionReducer(rejected, { type: 'frameCaptured', slot: 'top', frame });
-      expect(next.capture).toEqual({ slot: 'top', frame });
-    });
-
-    it('drops the rejected reading when a base is chosen', () => {
-      const rejected = sessionReducer(captured, { type: 'readingRejected', slot: 'top', read });
-      const next = sessionReducer(rejected, { type: 'baseChosen', slot: 'top', hex: navy });
-      expect(next.capture).toBeNull();
-    });
-  });
-
   describe('check', () => {
     const rust = parseHex('#a4522d');
     const frame: Frame = {
@@ -324,32 +292,21 @@ describe('sessionReducer', () => {
       expect(next.check).toEqual({ photo: null, pieces: { shoes: { hex: navy } }, swaps: {} });
     });
 
-    it('keeps what the photo read when the piece is changed by hand', () => {
-      const read = sessionReducer(initialSession, {
-        type: 'checkPieceSet',
-        slot: 'bottom',
-        hex: rust,
-        read: rust,
-      });
-      const changed = sessionReducer(read, { type: 'checkPieceSet', slot: 'bottom', hex: navy });
-      expect(changed.check?.pieces.bottom).toEqual({ hex: navy, read: rust });
-    });
-
     describe('swaps', () => {
       const withPieces = [
         { type: 'checkStarted' } as const,
-        { type: 'checkPieceSet', slot: 'top', hex: navy, read: navy } as const,
+        { type: 'checkPieceSet', slot: 'top', hex: navy } as const,
         { type: 'checkPieceSet', slot: 'bottom', hex: rust } as const,
       ].reduce(sessionReducer, initialSession);
 
-      it('lays a swap over a piece without changing the piece or its read', () => {
+      it('lays a swap over a piece without changing the piece', () => {
         const swapped = sessionReducer(withPieces, {
           type: 'checkSwapped',
           slot: 'top',
           hex: rust,
         });
         expect(swapped.check?.swaps).toEqual({ top: rust });
-        expect(swapped.check?.pieces.top).toEqual({ hex: navy, read: navy });
+        expect(swapped.check?.pieces.top).toEqual({ hex: navy });
       });
 
       it('clears a swap', () => {

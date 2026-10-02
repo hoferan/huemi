@@ -1,6 +1,7 @@
 # 0013. Keep user data on the device
 
-Status: Accepted, 2026-09-24
+Status: Accepted, 2026-09-24. The correction log it describes was removed by
+[ADR 0017](0017-collect-no-training-data-on-the-device.md).
 
 ## Context
 

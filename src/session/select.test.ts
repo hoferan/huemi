@@ -180,7 +180,7 @@ describe('checkedPieces', () => {
     expect(
       checkedPieces({
         photo: null,
-        pieces: { top: { hex: navy, read: navy }, bottom: { hex: rust } },
+        pieces: { top: { hex: navy }, bottom: { hex: rust } },
         swaps: { bottom: navy },
       }),
     ).toEqual({ top: navy, bottom: navy });

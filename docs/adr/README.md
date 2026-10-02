@@ -39,3 +39,4 @@ supersedes it, in which case both say so.
 | [0014](0014-checking-an-outfit-describes-and-never-judges.md)         | Check an outfit by describing it, never by judging it     |
 | [0015](0015-deploy-with-netlifys-git-integration.md)                  | Deploy with Netlify's Git integration                     |
 | [0016](0016-precache-the-build-with-a-hand-written-service-worker.md) | Precache the build with a hand-written service worker     |
+| [0017](0017-collect-no-training-data-on-the-device.md)                | Collect no training data on the device                    |
