@@ -16,6 +16,11 @@ const styles = stylex.create({
     // scrollable to, which the 200% text size check in e2e/invariants.spec.ts
     // enforces.
     minHeight: '100dvh',
+    // One column in a wide window (`tokens.column`); the page around it is
+    // the surface grey, set on the body in index.css.
+    width: '100%',
+    maxWidth: tokens.column,
+    marginInline: 'auto',
     display: 'flex',
     flexDirection: 'column',
     gap: '16px',

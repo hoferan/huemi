@@ -10,5 +10,9 @@
   }
   body {
     margin: 0;
+    /* The page beside the app's column in a wide window. The same value as
+       tokens.surface, and as theme-color in index.html and background_color
+       in the manifest; a StyleX token cannot reach the body. */
+    background-color: #cbc7c0;
   }
 }

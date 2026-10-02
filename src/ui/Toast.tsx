@@ -18,7 +18,8 @@ const styles = stylex.create({
     left: '16px',
     right: '16px',
     zIndex: 10,
-    maxWidth: '560px',
+    // The column less the 16px the toast keeps from each side on a phone.
+    maxWidth: `calc(${tokens.column} - 32px)`,
     marginInline: 'auto',
     display: 'flex',
     alignItems: 'center',
