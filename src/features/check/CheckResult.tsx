@@ -21,6 +21,7 @@ import {
   swapSheetTitle,
   yoursLabel,
 } from './copy';
+import { clearOfToasts } from '../../ui/toastClearance';
 
 const styles = stylex.create({
   blocks: {
@@ -129,7 +130,7 @@ export function CheckResult() {
           </li>
         ))}
       </ul>
-      <div {...stylex.props(styles.actions)}>
+      <div {...clearOfToasts} {...stylex.props(styles.actions)}>
         <Button
           variant="secondary"
           label={CHANGE_PIECES}

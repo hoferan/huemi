@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { Ref } from 'react';
 import * as stylex from '@stylexjs/stylex';
 import { tokens } from '../styles/tokens.stylex';
+import { useToastLift } from './toastClearance';
 
 const slideUp = stylex.keyframes({
   from: { transform: 'translateY(calc(100% + 16px))' },
@@ -13,7 +14,6 @@ const styles = stylex.create({
     position: 'fixed',
     left: '16px',
     right: '16px',
-    bottom: '16px',
     zIndex: 10,
     maxWidth: '560px',
     marginInline: 'auto',
@@ -34,6 +34,9 @@ const styles = stylex.create({
     animationDuration: tokens.toastSlide,
     animationTimingFunction: 'ease-out',
   },
+  // Dynamic: how far the toast floats above the screen's no-toast regions.
+  // See `src/ui/toastClearance.ts`.
+  lift: (bottom: number) => ({ bottom: `${bottom}px` }),
   message: { margin: 0, flexGrow: 1 },
   action: {
     minHeight: tokens.touchTarget,
@@ -61,7 +64,8 @@ function isFocusVisible(element: Element): boolean {
 }
 
 /**
- * One message at the bottom of the screen, with at most one action.
+ * One message at the bottom of the screen, with at most one action, floated
+ * above whatever the screen has marked with `clearOfToasts`.
  *
  * Presentational: it knows nothing of the session, and `src/app/ToastHost.tsx`
  * decides what it says and what the action does. It is not a live region;
@@ -104,6 +108,7 @@ export function Toast({
   const [focused, setFocused] = useState(false);
   const held = hovered || focused;
   const containerRef = useRef<HTMLDivElement>(null);
+  const lift = useToastLift(containerRef);
 
   // Latest callback in a ref, as in useBlockGestures, so a parent passing a
   // new function each render does not restart the countdown.
@@ -155,7 +160,7 @@ export function Toast({
         setFocused(isFocusVisible(event.target));
       }}
       onBlur={() => setFocused(false)}
-      {...stylex.props(styles.toast)}
+      {...stylex.props(styles.toast, styles.lift(lift))}
     >
       <p {...stylex.props(styles.message)}>{message}</p>
       {action && (

@@ -111,8 +111,49 @@ for (const route of ROUTES) {
     }
   });
 
-  // Screen-reader-only text (Announcer's live region, a Swatch's hidden
-  // name) hides itself with `clip-path`, not `overflow`, precisely so it
+  // A toast sits at the foot of the screen, which is where a screen keeps
+  // its main actions, and it stays up to 5 seconds. A screen marks those
+  // actions with `clearOfToasts` from `src/ui/toastClearance.ts` and the
+  // toast floats above them; this is what finds a screen that forgot. It
+  // looks only at controls in the band a toast covers when nothing lifts it,
+  // so a lifted toast may still cover a colour block higher up the screen.
+  //
+  // The toast is raised on the suggestions screen and carried to the route by
+  // a client-side navigation, the way a real one outlives a route change, and
+  // the pointer rests on it so it cannot expire before the measurement.
+  test(`keeps a toast off the controls at the foot of the screen at ${route}`, async ({ page }) => {
+    await page.goto('/suggest?slot=top&hex=%23c39a3a');
+    await page.getByRole('button', { name: 'Save outfit' }).click();
+    await page.locator('[data-toast]').hover();
+    await page.evaluate((to) => {
+      history.pushState(null, '', to);
+      dispatchEvent(new PopStateEvent('popstate'));
+    }, route);
+    await READY[route]?.(page);
+    await expect(page.locator('main h1')).toBeVisible();
+    await expect(page.locator('[data-toast]')).toBeVisible();
+    const covered = await page.evaluate(() => {
+      const toast = document.querySelector('[data-toast]')!.getBoundingClientRect();
+      const band = window.innerHeight - 16 - toast.height;
+      return [...document.querySelectorAll('a, button')]
+        .filter((el) => !el.closest('[data-toast]'))
+        .filter((el) => {
+          const box = el.getBoundingClientRect();
+          const inBand = box.bottom > band && box.top < window.innerHeight;
+          const under =
+            box.top < toast.bottom &&
+            box.bottom > toast.top &&
+            box.left < toast.right &&
+            box.right > toast.left;
+          return box.width > 0 && inBand && under;
+        })
+        .map((el) => el.getAttribute('aria-label') ?? el.textContent?.trim());
+    });
+    expect(covered).toEqual([]);
+  });
+
+  // Screen-reader-only text, which is Announcer's live region, hides itself
+  // with `clip-path`, not `overflow`, precisely so it
   // stays reachable and un-clipped by the 200% text size check above. A unit
   // test can assert the SR_ONLY object still carries that property; it
   // cannot assert the browser actually honours it, since jsdom computes no

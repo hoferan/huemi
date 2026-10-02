@@ -37,6 +37,7 @@ import {
   UNCLEAR_BODY,
   USE_THIS,
 } from './copy';
+import { clearOfToasts } from '../../ui/toastClearance';
 
 const TITLES: Record<ColorReading['kind'], string> = {
   single: TITLE_SINGLE,
@@ -353,7 +354,7 @@ function ConfirmForCapture({ slot, pixels }: { slot: Slot; pixels: Pixels }) {
                 onClose={closePanel}
               />
             )}
-            <div {...stylex.props(styles.actions)}>
+            <div {...clearOfToasts} {...stylex.props(styles.actions)}>
               <Button
                 ref={toggle}
                 variant="secondary"
@@ -364,7 +365,11 @@ function ConfirmForCapture({ slot, pixels }: { slot: Slot; pixels: Pixels }) {
               />
               <Button label={corrected ? USE_THIS : LOOKS_RIGHT} onClick={() => confirm(shown)} />
             </div>
-            {fromTap && <Button variant="secondary" label={TAP_ELSEWHERE} onClick={tapElsewhere} />}
+            {fromTap && (
+              <div {...clearOfToasts}>
+                <Button variant="secondary" label={TAP_ELSEWHERE} onClick={tapElsewhere} />
+              </div>
+            )}
           </>
         )}
         {reading.kind === 'several' && selected && (
@@ -380,11 +385,17 @@ function ConfirmForCapture({ slot, pixels }: { slot: Slot; pixels: Pixels }) {
                 />
               ))}
             </div>
-            <Button label={colorAction(colorName(selected))} onClick={() => confirm(selected)} />
-            {fromTap && <Button variant="secondary" label={TAP_ELSEWHERE} onClick={tapElsewhere} />}
+            <div {...clearOfToasts}>
+              <Button label={colorAction(colorName(selected))} onClick={() => confirm(selected)} />
+            </div>
+            {fromTap && (
+              <div {...clearOfToasts}>
+                <Button variant="secondary" label={TAP_ELSEWHERE} onClick={tapElsewhere} />
+              </div>
+            )}
           </>
         )}
-        <Link to={`/color?slot=${slot}`} {...stylex.props(styles.link)}>
+        <Link to={`/color?slot=${slot}`} {...clearOfToasts} {...stylex.props(styles.link)}>
           {reading.kind === 'several' ? NEITHER : PICK_BY_HAND}
         </Link>
       </div>

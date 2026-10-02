@@ -43,10 +43,14 @@ without adapters.
 Two gaps are real and budgeted rather than assumed away. Radix Dialog has no
 drag-to-dismiss and no spring, and the handoff notes require both, so that drag is
 hand-written. Radix Toast queues, while the notes require one toast at a time with a
-new one replacing the current, so a single-slot controller sits above the provider.
+new one replacing the current. The toast ended up hand-written as well
+(`src/ui/Toast.tsx`), since Radix Toast also brings a live region of its own and the
+shell's `Announcer` would then say every message twice.
 
-Radix announces nothing when a grid re-sorts, so the season sort announcement in the
-color picker is application code.
+Radix announces nothing when content changes under the user without a focus move,
+so those announcements are application code: a shuffle, and Next on a suggestion
+block. The season sort the handoff notes asked to announce was dropped in #15, after
+ADR 0009 found no evidence base for seasonal color analysis.
 
 Tokens stay global through `defineVars` rather than scoped to a wrapper element,
 because dialogs, popovers and toasts all render through portals and would fall

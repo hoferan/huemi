@@ -6,6 +6,7 @@ import { HOME } from '../../ui/home';
 import { Screen } from '../../ui/Screen';
 import { CHECK_ENTRY } from '../check/copy';
 import { InstallButton } from '../install/InstallButton';
+import { clearOfToasts } from '../../ui/toastClearance';
 
 const styles = stylex.create({
   wordmark: {
@@ -69,7 +70,7 @@ export function Entry() {
         Photograph something you already own, or choose its color, and huemi suggests the rest.
       </p>
       <div {...stylex.props(styles.spacer)} />
-      <div {...stylex.props(styles.actions)}>
+      <div {...clearOfToasts} {...stylex.props(styles.actions)}>
         <Button label="Take a photo" onClick={() => void navigate('/slot?next=camera')} />
         <Button variant="secondary" label="Pick a color" onClick={() => void navigate('/slot')} />
         {/*

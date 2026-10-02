@@ -6,6 +6,7 @@ import type { Hex } from '../../model/hex';
 import { tokens } from '../../styles/tokens.stylex';
 import { SheetHandle } from '../../ui/SheetHandle';
 import { Swatch } from '../../ui/Swatch';
+import { swatchGrid } from '../../ui/swatchGrid';
 import { useDragDismiss } from '../../ui/useDragDismiss';
 import { CLOSER, LIGHTER_DARKER, NOT_QUITE } from './copy';
 
@@ -38,7 +39,6 @@ const styles = stylex.create({
   }),
   group: { display: 'flex', flexDirection: 'column', gap: '8px' },
   caption: { margin: 0, fontSize: '0.875rem', color: tokens.ink2 },
-  grid: { display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '8px' },
   sliderRow: { display: 'flex', flexDirection: 'column', gap: '4px' },
   // Ink rather than the browser's default accent, a saturated blue that sits
   // next to the colors the user is judging and would pull on that judgement.
@@ -124,7 +124,7 @@ export function CorrectionPanel({
       />
       <div role="group" aria-label={CLOSER} {...stylex.props(styles.group)}>
         <p {...stylex.props(styles.caption)}>{CLOSER}</p>
-        <div {...stylex.props(styles.grid)}>
+        <div {...stylex.props(swatchGrid.five)}>
           {choices.map((hex) => (
             <Swatch
               key={hex}

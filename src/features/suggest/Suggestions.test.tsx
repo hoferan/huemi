@@ -175,6 +175,18 @@ describe('Suggestions', () => {
     expect(moved).toHaveLength(1);
   });
 
+  // Focus stays on the Next button, whose name does not change, so the
+  // block's new colour reaches a screen reader through the live region or
+  // not at all.
+  it('announces the colour a slot moved to', async () => {
+    const user = userEvent.setup();
+    await at(TOP);
+    await user.click(screen.getByRole('button', { name: 'Next suggestion for Shoes' }));
+    const field = screen.getByRole('button', { name: /^Shoes, .+, other options$/ });
+    const shown = field.getAttribute('aria-label')!.replace(/, other options$/, '');
+    expect(screen.getByRole('status')).toHaveTextContent(shown);
+  });
+
   it('keeps a slot and stops it advancing', async () => {
     const user = userEvent.setup();
     await at(TOP);
