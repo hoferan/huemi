@@ -3,7 +3,7 @@ import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { colorName } from '../../color/palette';
+import { colorName, PALETTE } from '../../color/palette';
 import { readColor } from '../../color/read';
 import { NAVY, WHITE, busy, paint, solid } from '../../color/testing';
 import type { Pixels } from '../../model/frame';
@@ -14,6 +14,7 @@ import { useSession } from '../../session/useSession';
 import { CORRECTIONS_KEY } from '../../storage/localCorrections';
 import { Announcer } from '../../ui/Announcer';
 import { InitialLocationContext } from '../../ui/InitialLocationContext';
+import { Picker } from '../pick/Picker';
 import { Confirm } from './Confirm';
 import {
   CAPTION_CORRECTED,
@@ -66,6 +67,8 @@ function GoBack() {
   );
 }
 
+const CREAM = PALETTE.find(({ name }) => name === 'Cream')!.hex;
+
 function corrections(): unknown {
   return JSON.parse(localStorage.getItem(CORRECTIONS_KEY) ?? '[]');
 }
@@ -84,7 +87,7 @@ function renderWith(pixels: Pixels | null, slot: Slot = 'top', path?: string) {
               <Route path="/seed" element={pixels && <Seed pixels={pixels} slot={slot} />} />
               <Route path="/confirm" element={<Confirm />} />
               <Route path="/camera" element={<Where />} />
-              <Route path="/color" element={<Where />} />
+              <Route path="/color" element={<Picker />} />
               <Route path="/slot" element={<Where />} />
               <Route
                 path="/suggest"
@@ -256,6 +259,26 @@ describe('Confirm', () => {
     );
   });
 
+  // Leaving for the picker is the largest miss the reader makes, so the
+  // reading goes into the log against whatever is picked there.
+  it('records a correction when the user picks by hand instead', async () => {
+    const user = userEvent.setup();
+    const reading = readColor(solid(NAVY));
+    if (reading.kind !== 'single') throw new Error('expected a single reading of navy');
+    renderWith(solid(NAVY));
+    await user.click(await screen.findByRole('link', { name: PICK_BY_HAND }));
+    await user.click(await screen.findByRole('button', { name: 'Cream' }));
+    await screen.findByText(/^\/suggest/);
+    const list = corrections() as { at: string }[];
+    expect(list).toHaveLength(1);
+    expect(list[0]).toEqual({
+      slot: 'top',
+      read: reading.color,
+      corrected: CREAM,
+      at: list[0]!.at,
+    });
+  });
+
   // The base was chosen, which clears the capture, and back returns here.
   it('goes back to the camera when revisited after confirming', async () => {
     const user = userEvent.setup();
@@ -323,6 +346,17 @@ describe('Confirm, several', () => {
     );
   });
 
+  // Neither offered color was right, but no one of them was the reading, so
+  // there is nothing to log a correction against.
+  it('records no correction when the user picks by hand instead', async () => {
+    const user = userEvent.setup();
+    renderWith(stripes());
+    await user.click(await screen.findByRole('link', { name: NEITHER }));
+    await user.click(await screen.findByRole('button', { name: 'Cream' }));
+    await screen.findByText(/^\/suggest/);
+    expect(corrections()).toEqual([]);
+  });
+
   // Two shades that share a name must still be told apart. The second shade
   // is a step darker than NAVY in OKLab L: far enough apart that the reader
   // keeps them as two groups, close enough that colorName calls both "Navy".
@@ -377,6 +411,27 @@ describe('Confirm, unclear', () => {
     fireEvent.click(stubLayout(), { clientX: 20, clientY: 20 });
     expect(await screen.findByRole('heading', { level: 1, name: TITLE_SINGLE })).toHaveFocus();
     expect(screen.getByText('Navy')).toBeInTheDocument();
+  });
+
+  it('records a correction against a tapped reading the user picks by hand over', async () => {
+    const user = userEvent.setup();
+    renderWith(busyWithPatch());
+    await screen.findByRole('heading', { level: 1, name: TITLE_UNCLEAR });
+    fireEvent.click(stubLayout(), { clientX: 20, clientY: 20 });
+    await screen.findByRole('heading', { level: 1, name: TITLE_SINGLE });
+    await user.click(screen.getByRole('link', { name: PICK_BY_HAND }));
+    await user.click(await screen.findByRole('button', { name: 'Cream' }));
+    await screen.findByText(/^\/suggest/);
+    expect(corrections()).toMatchObject([{ slot: 'top', corrected: CREAM }]);
+  });
+
+  it('records no correction when the user picks by hand without a reading', async () => {
+    const user = userEvent.setup();
+    renderWith(paint(100, 100, busy));
+    await user.click(await screen.findByRole('link', { name: PICK_BY_HAND }));
+    await user.click(await screen.findByRole('button', { name: 'Cream' }));
+    await screen.findByText(/^\/suggest/);
+    expect(corrections()).toEqual([]);
   });
 
   // The color block beside the photo already answers what was read once the

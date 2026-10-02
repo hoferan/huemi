@@ -35,8 +35,12 @@ export type SlotPick = { hex: Hex; cursor?: number };
  *
  * In the session and not the URL, because pixels do not fit in one. The
  * session lives in memory only, so holding them costs nothing past the tab.
+ *
+ * `read` is a reading the user turned down by leaving for the picker. The
+ * confirm screen holds its reading in component state, so this is the only
+ * way it reaches the picker, which logs it against the color chosen there.
  */
-export type Capture = { slot: Slot; frame: Frame };
+export type Capture = { slot: Slot; frame: Frame; read?: Hex };
 
 /** One slot of an outfit being checked. `read` is what the photo said, when it came from one. */
 export type CheckPiece = { hex: Hex; read?: Hex };
@@ -85,6 +89,7 @@ export type SessionAction =
   | { type: 'toastShown'; message: string; action?: ToastAction; focusAction?: true }
   | { type: 'toastDismissed'; id: number }
   | { type: 'frameCaptured'; slot: Slot; frame: Frame }
+  | { type: 'readingRejected'; slot: Slot; read: Hex }
   | { type: 'checkStarted' }
   | { type: 'checkPhotoTaken'; frame: Frame }
   | { type: 'checkPieceSet'; slot: CheckSlot; hex: Hex; read?: Hex }

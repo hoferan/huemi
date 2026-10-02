@@ -246,6 +246,38 @@ describe('sessionReducer', () => {
     expect(initialSession.capture).toBeNull();
   });
 
+  describe('readingRejected', () => {
+    const read = parseHex('#2b3550');
+    const captured = sessionReducer(initialSession, { type: 'frameCaptured', slot: 'top', frame });
+
+    it('keeps the rejected reading with the capture it came from', () => {
+      const next = sessionReducer(captured, { type: 'readingRejected', slot: 'top', read });
+      expect(next.capture).toEqual({ slot: 'top', frame, read });
+    });
+
+    it('ignores a rejection for another slot', () => {
+      const next = sessionReducer(captured, { type: 'readingRejected', slot: 'shoes', read });
+      expect(next.capture).toEqual({ slot: 'top', frame });
+    });
+
+    it('ignores a rejection with nothing captured', () => {
+      const next = sessionReducer(initialSession, { type: 'readingRejected', slot: 'top', read });
+      expect(next.capture).toBeNull();
+    });
+
+    it('drops the rejected reading with the photo when a new one is taken', () => {
+      const rejected = sessionReducer(captured, { type: 'readingRejected', slot: 'top', read });
+      const next = sessionReducer(rejected, { type: 'frameCaptured', slot: 'top', frame });
+      expect(next.capture).toEqual({ slot: 'top', frame });
+    });
+
+    it('drops the rejected reading when a base is chosen', () => {
+      const rejected = sessionReducer(captured, { type: 'readingRejected', slot: 'top', read });
+      const next = sessionReducer(rejected, { type: 'baseChosen', slot: 'top', hex: navy });
+      expect(next.capture).toBeNull();
+    });
+  });
+
   describe('check', () => {
     const rust = parseHex('#a4522d');
     const frame: Frame = {
