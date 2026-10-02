@@ -26,3 +26,10 @@ Feature: Entry screen
     And I open huemi
     Then the button "Take a photo" is at least 200 tall
     And the button "Pick a color" is at least 200 tall
+
+  # The three steps share the welcome screen's height above Start, each with
+  # a preview of the outfit they build.
+  Scenario: The steps fill the welcome screen
+    Given I open huemi
+    Then the steps fill the screen above "Start", each at least 120 tall
+    And each step shows its preview in color

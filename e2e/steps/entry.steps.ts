@@ -42,6 +42,41 @@ export function hexToRgb(hex: string): string {
   return `rgb(${r}, ${g}, ${b})`;
 }
 
+Then(
+  'the steps fill the screen above {string}, each at least {int} tall',
+  async ({ page }, button: string, min: number) => {
+    const steps = await page.getByRole('main').getByRole('listitem').all();
+    expect(steps).toHaveLength(3);
+    for (const step of steps) {
+      expect((await step.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(min);
+    }
+    const last = (await steps[2]!.boundingBox())!;
+    const start = (await page.getByRole('button', { name: button }).boundingBox())!;
+    const viewport = page.viewportSize()!;
+    // The steps end just above Start, and Start ends just above the bottom.
+    expect(start.y - (last.y + last.height)).toBeLessThanOrEqual(32);
+    expect(start.y + start.height).toBeGreaterThan(viewport.height - 48);
+    expect(start.y + start.height).toBeLessThanOrEqual(viewport.height);
+  },
+);
+
+// StyleX only paints in a real build, so this is where the preview's colors
+// are seen at all. A block left transparent would be a preview of nothing.
+Then('each step shows its preview in color', async ({ page }) => {
+  const painted = await page
+    .getByTestId('step-preview')
+    .evaluateAll((previews) =>
+      previews.map(
+        (preview) =>
+          [...preview.children].filter(
+            (block) => getComputedStyle(block).backgroundColor !== 'rgba(0, 0, 0, 0)',
+          ).length,
+      ),
+    );
+  // One garment, then all three, then all three kept.
+  expect(painted).toEqual([1, 3, 3]);
+});
+
 Then('the button {string} is at least {int} tall', async ({ page }, name: string, min: number) => {
   const box = await page.getByRole('button', { name }).boundingBox();
   expect(box?.height ?? 0).toBeGreaterThanOrEqual(min);
