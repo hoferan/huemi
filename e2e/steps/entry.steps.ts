@@ -8,6 +8,22 @@ Given('I open huemi', async ({ page }) => {
   await page.goto('/');
 });
 
+Given('an earlier version left a correction log', async ({ page }) => {
+  // Before any page script, so the app's start finds it there. The key is the
+  // one `src/storage/forgetCorrections.ts` deletes.
+  await page.addInitScript(() => {
+    window.localStorage.setItem(
+      'huemi.corrections',
+      '[{"slot":"top","read":"#ad9684","corrected":"#e3b8a0","at":"2026-09-30T10:00:00.000Z"}]',
+    );
+  });
+});
+
+Then('no correction log is kept', async ({ page }) => {
+  await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+  expect(await page.evaluate(() => window.localStorage.getItem('huemi.corrections'))).toBeNull();
+});
+
 Given('I have seen the welcome screen', async ({ page }) => {
   // seedOnboarded runs before any page script, via addInitScript, so the
   // gate's first read already sees the flag. Setting it after goto would

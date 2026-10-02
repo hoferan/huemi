@@ -2,12 +2,11 @@ import { useEffect } from 'react';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { parseHex, type Hex } from '../../model/hex';
 import type { CheckSlot } from '../../model/types';
 import { SessionProvider } from '../../session/SessionProvider';
 import { useSession } from '../../session/useSession';
-import { CORRECTIONS_KEY } from '../../storage/localCorrections';
 import { Announcer } from '../../ui/Announcer';
 import { InitialLocationContext } from '../../ui/InitialLocationContext';
 import { CheckPieces } from './CheckPieces';
@@ -16,7 +15,7 @@ import { CHECK_IT, NEED_TWO, NOT_WEARING, PIECES_TITLE } from './copy';
 const rust = parseHex('#a4522d');
 const cream = parseHex('#e9dfc9');
 
-type Seeded = { slot: CheckSlot; hex: Hex; read?: Hex };
+type Seeded = { slot: CheckSlot; hex: Hex };
 
 function Seed({ pieces }: { pieces: Seeded[] }) {
   const { dispatch } = useSession();
@@ -50,17 +49,9 @@ function renderWith(pieces: Seeded[] = []) {
   );
 }
 
-function corrections(): unknown {
-  return JSON.parse(localStorage.getItem(CORRECTIONS_KEY) ?? '[]');
-}
-
-beforeEach(() => {
-  localStorage.clear();
-});
-
 describe('CheckPieces', () => {
   it('shows the four pieces, named where set', async () => {
-    renderWith([{ slot: 'bottom', hex: rust, read: rust }]);
+    renderWith([{ slot: 'bottom', hex: rust }]);
     expect(await screen.findByRole('heading', { level: 1, name: PIECES_TITLE })).toHaveFocus();
     expect(screen.getByRole('button', { name: 'Outerwear: not set' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Top: not set' })).toBeInTheDocument();
@@ -77,44 +68,14 @@ describe('CheckPieces', () => {
     await user.click(within(sheet).getByRole('button', { name: 'Cream' }));
     expect(await screen.findByRole('button', { name: 'Top: Cream' })).toHaveFocus();
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-    // Set by hand from empty: nothing was read, so nothing was corrected.
-    expect(corrections()).toEqual([]);
   });
 
-  it('empties a piece the user is not wearing, logging nothing', async () => {
+  it('empties a piece the user is not wearing', async () => {
     const user = userEvent.setup();
-    renderWith([{ slot: 'bottom', hex: rust, read: rust }]);
+    renderWith([{ slot: 'bottom', hex: rust }]);
     await user.click(await screen.findByRole('button', { name: 'Bottom: Rust' }));
     await user.click(await screen.findByRole('button', { name: NOT_WEARING }));
     expect(await screen.findByRole('button', { name: 'Bottom: not set' })).toBeInTheDocument();
-    expect(corrections()).toEqual([]);
-  });
-
-  it('logs a change to a piece the photo read, against what it read', async () => {
-    const user = userEvent.setup();
-    renderWith([{ slot: 'bottom', hex: rust, read: rust }]);
-    await user.click(await screen.findByRole('button', { name: 'Bottom: Rust' }));
-    await user.click(
-      within(await screen.findByRole('dialog')).getByRole('button', { name: 'Camel' }),
-    );
-    await user.click(await screen.findByRole('button', { name: 'Bottom: Camel' }));
-    await user.click(
-      within(await screen.findByRole('dialog')).getByRole('button', { name: 'Brown' }),
-    );
-    expect(corrections()).toEqual([
-      expect.objectContaining({ slot: 'bottom', read: rust, corrected: parseHex('#b58a5a') }),
-      expect.objectContaining({ slot: 'bottom', read: rust, corrected: parseHex('#5a3e2e') }),
-    ]);
-  });
-
-  it('logs nothing when a piece is changed back to what the photo read', async () => {
-    const user = userEvent.setup();
-    renderWith([{ slot: 'bottom', hex: parseHex('#b58a5a'), read: rust }]);
-    await user.click(await screen.findByRole('button', { name: 'Bottom: Camel' }));
-    await user.click(
-      within(await screen.findByRole('dialog')).getByRole('button', { name: 'Rust' }),
-    );
-    expect(corrections()).toEqual([]);
   });
 
   it('asks for two pieces before checking, on screen and aloud', async () => {
@@ -147,21 +108,20 @@ describe('CheckPieces', () => {
 
   it('leaves a filled row unchanged when its sheet is dismissed without choosing', async () => {
     const user = userEvent.setup();
-    renderWith([{ slot: 'bottom', hex: rust, read: rust }]);
+    renderWith([{ slot: 'bottom', hex: rust }]);
     const row = await screen.findByRole('button', { name: 'Bottom: Rust' });
     await user.click(row);
     await screen.findByRole('dialog', { name: 'Bottom' });
     await user.keyboard('{Escape}');
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(await screen.findByRole('button', { name: 'Bottom: Rust' })).toHaveFocus();
-    expect(corrections()).toEqual([]);
   });
 
   it('moves on to the result with two pieces', async () => {
     const user = userEvent.setup();
     renderWith([
       { slot: 'top', hex: cream },
-      { slot: 'bottom', hex: rust, read: rust },
+      { slot: 'bottom', hex: rust },
     ]);
     await user.click(await screen.findByRole('button', { name: CHECK_IT }));
     expect(await screen.findByText('/check/result')).toBeInTheDocument();

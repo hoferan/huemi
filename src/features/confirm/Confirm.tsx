@@ -9,7 +9,6 @@ import type { Pixels } from '../../model/frame';
 import type { Hex } from '../../model/hex';
 import type { Slot } from '../../model/types';
 import { useSession } from '../../session/useSession';
-import { localCorrections } from '../../storage/localCorrections';
 import { tokens } from '../../styles/tokens.stylex';
 import { blockText } from '../../ui/blockText';
 import { Button } from '../../ui/Button';
@@ -231,17 +230,7 @@ function ConfirmForCapture({ slot, pixels }: { slot: Slot; pixels: Pixels }) {
   const shown = selected && shift !== 0 ? withLightness(selected, shift) : selected;
   const corrected = reading.kind === 'single' && shown !== reading.color;
 
-  // A correction is a single reading the user changed. Choosing among
-  // `several` corrects nothing, since the reader offered every choice.
   function confirm(hex: Hex) {
-    if (reading.kind === 'single' && hex !== reading.color) {
-      void localCorrections.record({
-        slot,
-        read: reading.color,
-        corrected: hex,
-        at: new Date().toISOString(),
-      });
-    }
     // `baseChosen` clears the capture. React Router 8 applies a navigation
     // inside a transition, so a plain dispatch would render on its own first,
     // and the guard in `Confirm` would send the user to the camera before
@@ -395,19 +384,7 @@ function ConfirmForCapture({ slot, pixels }: { slot: Slot; pixels: Pixels }) {
             )}
           </>
         )}
-        <Link
-          to={`/color?slot=${slot}`}
-          // Leaving for the picker turns the reading down, and the picker logs
-          // it against what the user picks there. A `several` reading has no
-          // one color to log, for the reason `confirm` gives.
-          onClick={() => {
-            if (reading.kind === 'single') {
-              dispatch({ type: 'readingRejected', slot, read: reading.color });
-            }
-          }}
-          {...clearOfToasts}
-          {...stylex.props(styles.link)}
-        >
+        <Link to={`/color?slot=${slot}`} {...clearOfToasts} {...stylex.props(styles.link)}>
           {reading.kind === 'several' ? NEITHER : PICK_BY_HAND}
         </Link>
       </div>

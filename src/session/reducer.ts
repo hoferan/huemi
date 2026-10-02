@@ -94,12 +94,6 @@ export function sessionReducer(state: SessionState, action: SessionAction): Sess
       // One capture at a time: a new shot means the last one was not wanted.
       return { ...state, capture: { slot: action.slot, frame: action.frame } };
 
-    case 'readingRejected':
-      // A reading belongs to the photo it came from, so a rejection that
-      // names another slot is about a capture that is no longer here.
-      if (state.capture?.slot !== action.slot) return state;
-      return { ...state, capture: { ...state.capture, read: action.read } };
-
     case 'checkStarted':
       return { ...state, check: { photo: null, pieces: {}, swaps: {} } };
 
@@ -112,17 +106,13 @@ export function sessionReducer(state: SessionState, action: SessionAction): Sess
       // Created here if missing, since the list can be reached by hand after
       // a refresh has emptied the session.
       const check = state.check ?? { photo: null, pieces: {}, swaps: {} };
-      // A hand change keeps the photo's reading, so the correction log can
-      // compare every later choice with what the camera said.
-      const read = action.read ?? check.pieces[action.slot]?.read;
-      const piece = read === undefined ? { hex: action.hex } : { hex: action.hex, read };
       // A what-if about the old piece says nothing about a new one. Setting
       // the same color again, from the list, is not a new piece.
       const swaps = { ...check.swaps };
       if (action.hex !== check.pieces[action.slot]?.hex) delete swaps[action.slot];
       return {
         ...state,
-        check: { ...check, pieces: { ...check.pieces, [action.slot]: piece }, swaps },
+        check: { ...check, pieces: { ...check.pieces, [action.slot]: { hex: action.hex } }, swaps },
       };
     }
 

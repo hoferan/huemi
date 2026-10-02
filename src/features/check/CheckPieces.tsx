@@ -6,7 +6,6 @@ import { blockLabel, colorName, PALETTE } from '../../color/palette';
 import type { Hex } from '../../model/hex';
 import { CHECK_SLOTS, SLOT_LABELS, type CheckSlot } from '../../model/types';
 import { useSession } from '../../session/useSession';
-import { localCorrections } from '../../storage/localCorrections';
 import { tokens } from '../../styles/tokens.stylex';
 import { Button } from '../../ui/Button';
 import { Screen } from '../../ui/Screen';
@@ -67,12 +66,6 @@ const styles = stylex.create({
  * The button stays enabled below two pieces and says why it did nothing,
  * rather than fading out. A faded button is low contrast, and on a touch
  * screen it cannot say what it is waiting for.
- *
- * A change to a row the photo read is a correction, logged against what the
- * photo said, as the confirm screen logs one. Emptying a row is not: not
- * wearing a jacket says nothing about how well the camera reads color. A
- * patterned piece carries no reading to correct either, the same rule the
- * confirm screen applies to its own several-color state.
  */
 export function CheckPieces() {
   const { state, dispatch } = useSession();
@@ -84,15 +77,6 @@ export function CheckPieces() {
   const filled = CHECK_SLOTS.filter((slot) => pieces[slot]).length;
 
   function choose(slot: CheckSlot, hex: Hex) {
-    const piece = pieces[slot];
-    if (piece?.read && hex !== piece.hex && hex !== piece.read) {
-      void localCorrections.record({
-        slot,
-        read: piece.read,
-        corrected: hex,
-        at: new Date().toISOString(),
-      });
-    }
     dispatch({ type: 'checkPieceSet', slot, hex });
     setOpen(null);
   }

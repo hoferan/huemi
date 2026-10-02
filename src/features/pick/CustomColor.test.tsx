@@ -1,13 +1,9 @@
-import { useEffect } from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router';
-import { beforeEach, describe, expect, it } from 'vitest';
-import { parseHex, type Hex } from '../../model/hex';
-import type { Slot } from '../../model/types';
+import { describe, expect, it } from 'vitest';
 import { SessionProvider } from '../../session/SessionProvider';
 import { useSession } from '../../session/useSession';
-import { CORRECTIONS_KEY } from '../../storage/localCorrections';
 import { Announcer } from '../../ui/Announcer';
 import { InitialLocationContext } from '../../ui/InitialLocationContext';
 import { CustomColor } from './CustomColor';
@@ -35,32 +31,13 @@ function GoBack() {
   );
 }
 
-// A capture whose reading the confirm screen turned down, seeded through
-// real dispatches and a client navigation, the way the confirm screen leaves.
-function Rejected({ slot, read, to }: { slot: Slot; read: Hex; to: string }) {
-  const { dispatch } = useSession();
-  const navigate = useNavigate();
-  useEffect(() => {
-    const pixels = { width: 1, height: 1, data: new Uint8ClampedArray([43, 53, 80, 255]) };
-    dispatch({ type: 'frameCaptured', slot, frame: { pixels, source: 'camera' } });
-    dispatch({ type: 'readingRejected', slot, read });
-    void navigate(to);
-  }, [dispatch, navigate, slot, read, to]);
-  return null;
-}
-
-function corrections(): unknown {
-  return JSON.parse(localStorage.getItem(CORRECTIONS_KEY) ?? '[]');
-}
-
-function renderAt(url: string, rejected?: { slot: Slot; read: Hex }) {
+function renderAt(url: string) {
   render(
-    <MemoryRouter initialEntries={[rejected ? '/seed' : url]}>
+    <MemoryRouter initialEntries={[url]}>
       <SessionProvider>
         <Announcer>
           <InitialLocationContext value={true}>
             <Routes>
-              <Route path="/seed" element={rejected && <Rejected {...rejected} to={url} />} />
               <Route path="/color/custom" element={<CustomColor />} />
               <Route path="/suggest" element={<Where />} />
               <Route path="/slot" element={<p>slot screen</p>} />
@@ -202,23 +179,5 @@ describe('CustomColor back arrow', () => {
       'href',
       '/color?slot=top',
     );
-  });
-});
-
-// "Mix your own" is one step further from the confirm screen, and the
-// reading travels in the session the whole way.
-describe('CustomColor, after a rejected reading', () => {
-  beforeEach(() => {
-    localStorage.clear();
-  });
-
-  it('records the reading against the color mixed', async () => {
-    const user = userEvent.setup();
-    const read = parseHex('#2b3550');
-    renderAt('/color/custom?slot=top', { slot: 'top', read });
-    await user.click(await screen.findByRole('button', { name: 'Use this color' }));
-    const where = await screen.findByText(/^\/suggest/);
-    const base = /base=top:(#[0-9a-f]{6})/.exec(where.textContent)![1];
-    expect(corrections()).toMatchObject([{ slot: 'top', read, corrected: base }]);
   });
 });

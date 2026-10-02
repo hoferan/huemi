@@ -83,8 +83,7 @@ function Swatches({ observation }: { observation: Observation }) {
  *
  * Describes and never judges (ADR 0014): no number, no count, no piece to
  * blame. Swaps are laid over what is worn rather than written into it, so the
- * list still shows the real outfit and a swap never reaches the correction
- * log. The photo is not shown: the blocks carry the corrected colors, and a
+ * list still shows the real outfit. The photo is not shown: the blocks carry the corrected colors, and a
  * hand-entered check has none (PO, 2026-09-25).
  *
  * A swap is not announced. The sheet gives focus back to the block, and the

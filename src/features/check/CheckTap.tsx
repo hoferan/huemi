@@ -96,12 +96,7 @@ function TapPieces({
       announce(TAP_UNCLEAR);
       return;
     }
-    dispatch({
-      type: 'checkPieceSet',
-      slot,
-      hex: outcome.hex,
-      ...(outcome.read && { read: outcome.read }),
-    });
+    dispatch({ type: 'checkPieceSet', slot, hex: outcome.hex });
     advance();
   }
 

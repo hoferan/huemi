@@ -1,14 +1,10 @@
-import { useEffect } from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { PALETTE } from '../../color/palette';
-import { parseHex, type Hex } from '../../model/hex';
-import type { Slot } from '../../model/types';
 import { SessionProvider } from '../../session/SessionProvider';
 import { useSession } from '../../session/useSession';
-import { CORRECTIONS_KEY } from '../../storage/localCorrections';
 import { InitialLocationContext } from '../../ui/InitialLocationContext';
 import { Picker } from './Picker';
 
@@ -35,31 +31,12 @@ function GoBack() {
   );
 }
 
-// A capture whose reading the confirm screen turned down, seeded through
-// real dispatches and a client navigation, the way the confirm screen leaves.
-function Rejected({ slot, read, to }: { slot: Slot; read: Hex; to: string }) {
-  const { dispatch } = useSession();
-  const navigate = useNavigate();
-  useEffect(() => {
-    const pixels = { width: 1, height: 1, data: new Uint8ClampedArray([43, 53, 80, 255]) };
-    dispatch({ type: 'frameCaptured', slot, frame: { pixels, source: 'camera' } });
-    dispatch({ type: 'readingRejected', slot, read });
-    void navigate(to);
-  }, [dispatch, navigate, slot, read, to]);
-  return null;
-}
-
-function corrections(): unknown {
-  return JSON.parse(localStorage.getItem(CORRECTIONS_KEY) ?? '[]');
-}
-
-function renderAt(url: string, rejected?: { slot: Slot; read: Hex }) {
+function renderAt(url: string) {
   render(
-    <MemoryRouter initialEntries={[rejected ? '/seed' : url]}>
+    <MemoryRouter initialEntries={[url]}>
       <SessionProvider>
         <InitialLocationContext value={true}>
           <Routes>
-            <Route path="/seed" element={rejected && <Rejected {...rejected} to={url} />} />
             <Route path="/color" element={<Picker />} />
             <Route path="/suggest" element={<Where />} />
             <Route path="/slot" element={<p>slot screen</p>} />
@@ -129,67 +106,6 @@ describe('Picker', () => {
     );
     await user.click(await screen.findByRole('button', { name: 'go back' }));
     expect(await screen.findByText('before screen')).toBeInTheDocument();
-  });
-});
-
-// A reading the confirm screen turned down travels here in the session.
-describe('Picker, after a rejected reading', () => {
-  const read = parseHex('#2b3550');
-  const navy = parseHex('#1f2a44');
-
-  beforeEach(() => {
-    localStorage.clear();
-  });
-
-  it('records the reading against the color picked', async () => {
-    const user = userEvent.setup();
-    renderAt('/color?slot=top', { slot: 'top', read });
-    await user.click(await screen.findByRole('button', { name: 'Navy' }));
-    await screen.findByText(/^\/suggest/);
-    const list = corrections() as { at: string }[];
-    expect(list).toEqual([{ slot: 'top', read, corrected: navy, at: list[0]?.at }]);
-    expect(Number.isNaN(Date.parse(list[0]!.at))).toBe(false);
-  });
-
-  it('records nothing for a reading of another slot', async () => {
-    const user = userEvent.setup();
-    renderAt('/color?slot=shoes', { slot: 'top', read });
-    await user.click(await screen.findByRole('button', { name: 'Navy' }));
-    await screen.findByText(/^\/suggest/);
-    expect(corrections()).toEqual([]);
-  });
-
-  it('records nothing when the color picked is the reading', async () => {
-    const user = userEvent.setup();
-    renderAt('/color?slot=top', { slot: 'top', read: navy });
-    await user.click(await screen.findByRole('button', { name: 'Navy' }));
-    await screen.findByText(/^\/suggest/);
-    expect(corrections()).toEqual([]);
-  });
-
-  it('records once, however often the user comes back to pick again', async () => {
-    const user = userEvent.setup();
-    render(
-      <MemoryRouter initialEntries={['/seed']}>
-        <SessionProvider>
-          <InitialLocationContext value={true}>
-            <Routes>
-              <Route
-                path="/seed"
-                element={<Rejected slot="top" read={read} to="/color?slot=top" />}
-              />
-              <Route path="/color" element={<Picker />} />
-              <Route path="/suggest" element={<GoBack />} />
-            </Routes>
-          </InitialLocationContext>
-        </SessionProvider>
-      </MemoryRouter>,
-    );
-    await user.click(await screen.findByRole('button', { name: 'Navy' }));
-    await user.click(await screen.findByRole('button', { name: 'go back' }));
-    await user.click(await screen.findByRole('button', { name: 'Cream' }));
-    await screen.findByRole('button', { name: 'go back' });
-    expect(corrections()).toHaveLength(1);
   });
 });
 
