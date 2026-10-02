@@ -1,5 +1,5 @@
+import { Redirect } from '../../ui/Redirect';
 import { useEffect, useMemo, useState } from 'react';
-import { Navigate } from 'react-router';
 import * as stylex from '@stylexjs/stylex';
 import { Shuffle as ShuffleIcon } from 'lucide-react';
 import { suggest } from '../../color/engine';
@@ -115,7 +115,7 @@ export function Suggestions() {
 
   // A base that cannot be rebuilt from the URL cannot be told apart from never
   // having picked one, so there is no error state to render (ADR 0011).
-  if (!base) return <Navigate to="/" replace />;
+  if (!base) return <Redirect to="/" />;
 
   function move(slot: Slot, delta: 1 | -1) {
     if (!base) return;

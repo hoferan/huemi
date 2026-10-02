@@ -1,4 +1,5 @@
-import { Link, Navigate } from 'react-router';
+import { Link } from 'react-router';
+import { Redirect } from '../../ui/Redirect';
 import * as stylex from '@stylexjs/stylex';
 import { PALETTE } from '../../color/palette';
 import type { Slot } from '../../model/types';
@@ -56,7 +57,7 @@ const styles = stylex.create({
  */
 export function Picker() {
   const slot = useSlotParam();
-  if (!slot) return <Navigate to="/slot" replace />;
+  if (!slot) return <Redirect to="/slot" />;
   return <PickerForSlot slot={slot} />;
 }
 

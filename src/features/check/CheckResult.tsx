@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Navigate, useNavigate } from 'react-router';
+import { useNavigate } from 'react-router';
+import { Redirect } from '../../ui/Redirect';
 import * as stylex from '@stylexjs/stylex';
 import { alternativesFor, checkOutfit, type Observation } from '../../color/check';
 import { CHECK_SLOTS, SLOT_AREA, type CheckSlot } from '../../model/types';
@@ -97,12 +98,12 @@ export function CheckResult() {
 
   // A refresh keeps the route and loses the session, which lands here.
   const check = state.check;
-  if (!check) return <Navigate to="/check" replace />;
+  if (!check) return <Redirect to="/check" />;
   const pieces = checkedPieces(check);
   const observations = checkOutfit(pieces);
   // A check with fewer than two pieces, such as a new one reached with Back
   // after "Check another": never describe an outfit that is not there.
-  if (!observations) return <Navigate to="/check/pieces" replace />;
+  if (!observations) return <Redirect to="/check/pieces" />;
 
   const openPiece = openFor === null ? undefined : check.pieces[openFor];
 

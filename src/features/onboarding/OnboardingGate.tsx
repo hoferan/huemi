@@ -1,6 +1,6 @@
+import { Redirect } from '../../ui/Redirect';
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
-import { Navigate } from 'react-router';
 import { localPreferences } from '../../storage/localPreferences';
 
 /**
@@ -30,6 +30,6 @@ export function OnboardingGate({ children }: { children: ReactNode }) {
   }, []);
 
   if (onboarded === null) return null;
-  if (!onboarded) return <Navigate to="/welcome" replace />;
+  if (!onboarded) return <Redirect to="/welcome" />;
   return children;
 }

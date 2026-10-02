@@ -1,9 +1,11 @@
+import { useEffect, useState } from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, Link, useNavigate } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { InitialLocation } from './InitialLocation';
 import { InitialLocationContext } from './InitialLocationContext';
+import { Redirect } from './Redirect';
 import { Screen } from './Screen';
 
 function Back() {
@@ -82,6 +84,72 @@ describe('Screen', () => {
     await user.click(screen.getByRole('link', { name: 'go' }));
     await user.click(screen.getByRole('button', { name: 'back' }));
     expect(screen.getByRole('heading', { level: 1, name: 'Entry' })).toHaveFocus();
+  });
+
+  describe('after a redirect', () => {
+    // The onboarding gate's shape: nothing until an async answer arrives, then
+    // a redirect. A first visit to / lands on /welcome this way.
+    function Gate() {
+      const [ready, setReady] = useState(false);
+      useEffect(() => {
+        void Promise.resolve().then(() => setReady(true));
+      }, []);
+      return ready ? <Redirect to="/welcome" /> : null;
+    }
+
+    function Redirecting() {
+      return (
+        <MemoryRouter>
+          <InitialLocation>
+            <Routes>
+              <Route path="/" element={<Gate />} />
+              <Route
+                path="/welcome"
+                element={
+                  <Screen title="Welcome">
+                    <Link to="/second">go</Link>
+                    <Link to="/old">old</Link>
+                  </Screen>
+                }
+              />
+              <Route path="/old" element={<Redirect to="/second" />} />
+              <Route
+                path="/second"
+                element={
+                  <Screen title="Second">
+                    <Back />
+                  </Screen>
+                }
+              />
+            </Routes>
+          </InitialLocation>
+        </MemoryRouter>
+      );
+    }
+
+    // A redirect replaces the entry the user arrived on rather than taking
+    // them anywhere, so the first screen they see is still a first load.
+    // Focusing its heading drew a focus ring on a page nobody had touched.
+    it('leaves focus alone when the first load redirects', async () => {
+      render(<Redirecting />);
+      await screen.findByRole('heading', { level: 1, name: 'Welcome' });
+      expect(document.activeElement).toBe(document.body);
+    });
+
+    it('still moves focus when a navigation lands on a redirect', async () => {
+      const user = userEvent.setup();
+      render(<Redirecting />);
+      await user.click(await screen.findByRole('link', { name: 'old' }));
+      expect(screen.getByRole('heading', { level: 1, name: 'Second' })).toHaveFocus();
+    });
+
+    it('moves focus after going back to a first entry that redirected', async () => {
+      const user = userEvent.setup();
+      render(<Redirecting />);
+      await user.click(await screen.findByRole('link', { name: 'go' }));
+      await user.click(screen.getByRole('button', { name: 'back' }));
+      expect(screen.getByRole('heading', { level: 1, name: 'Welcome' })).toHaveFocus();
+    });
   });
 
   it('uses documentTitle for the tab when the heading is unwieldy', () => {

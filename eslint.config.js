@@ -174,6 +174,28 @@ export default tseslint.config(
     },
   },
   {
+    // A redirect goes through src/ui/Redirect.tsx, which marks it so
+    // InitialLocation can tell it from a move. A bare <Navigate> on a first
+    // load counts as one, and Screen then takes focus from a page nobody has
+    // touched. The session block below sets this rule for its own .ts files.
+    files: ['src/**/*.tsx'],
+    ignores: ['src/ui/Redirect.tsx'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: 'react-router',
+              importNames: ['Navigate'],
+              message: 'Redirect with src/ui/Redirect.tsx, which keeps a first load a first load.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     // The session's value is that its transitions are a plain data transform:
     // exhaustively testable, and readable without a renderer in your head.
     // Its React bindings sit beside it so features can reach them, so the
