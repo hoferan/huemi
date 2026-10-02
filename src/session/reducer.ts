@@ -94,6 +94,12 @@ export function sessionReducer(state: SessionState, action: SessionAction): Sess
       // One capture at a time: a new shot means the last one was not wanted.
       return { ...state, capture: { slot: action.slot, frame: action.frame } };
 
+    case 'readingRejected':
+      // A reading belongs to the photo it came from, so a rejection that
+      // names another slot is about a capture that is no longer here.
+      if (state.capture?.slot !== action.slot) return state;
+      return { ...state, capture: { ...state.capture, read: action.read } };
+
     case 'checkStarted':
       return { ...state, check: { photo: null, pieces: {}, swaps: {} } };
 

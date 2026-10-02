@@ -1,14 +1,13 @@
-import { Link, Navigate, useNavigate } from 'react-router';
+import { Link, Navigate } from 'react-router';
 import * as stylex from '@stylexjs/stylex';
 import { PALETTE } from '../../color/palette';
-import type { Hex } from '../../model/hex';
 import type { Slot } from '../../model/types';
-import { useSession } from '../../session/useSession';
 import { tokens } from '../../styles/tokens.stylex';
 import { Screen } from '../../ui/Screen';
 import { PICKER_TITLE, SLOT_TITLE } from './copy';
 import { Swatch } from '../../ui/Swatch';
 import { swatchGrid } from '../../ui/swatchGrid';
+import { useChooseBase } from './useChooseBase';
 import { useSlotParam } from './useSlotParam';
 
 const styles = stylex.create({
@@ -54,15 +53,7 @@ export function Picker() {
  * by a runtime check repeated here that could never fail.
  */
 function PickerForSlot({ slot }: { slot: Slot }) {
-  const { dispatch } = useSession();
-  const navigate = useNavigate();
-
-  function choose(hex: Hex) {
-    dispatch({ type: 'baseChosen', slot, hex });
-    // The base travels in the URL, not only in the session, so a refresh of
-    // the suggestions screen rebuilds the same outfit (ADR 0011).
-    void navigate(`/suggest?slot=${slot}&hex=${encodeURIComponent(hex)}`);
-  }
+  const choose = useChooseBase(slot);
 
   return (
     <Screen title={PICKER_TITLE} back={{ to: '/slot', title: SLOT_TITLE }}>

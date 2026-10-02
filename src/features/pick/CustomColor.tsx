@@ -1,15 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
-import { Navigate, useNavigate } from 'react-router';
+import { Navigate } from 'react-router';
 import * as stylex from '@stylexjs/stylex';
 import { hslToHex } from '../../color/convert';
 import { colorName } from '../../color/palette';
 import type { Slot } from '../../model/types';
-import { useSession } from '../../session/useSession';
 import { tokens } from '../../styles/tokens.stylex';
 import { Button } from '../../ui/Button';
 import { Screen } from '../../ui/Screen';
 import { PICKER_TITLE } from './copy';
 import { useAnnounce } from '../../ui/useAnnounce';
+import { useChooseBase } from './useChooseBase';
 import { useSlotParam } from './useSlotParam';
 
 const styles = stylex.create({
@@ -51,8 +51,7 @@ export function CustomColor() {
  * body. Taking `slot` as a prop narrows it by construction instead.
  */
 function CustomColorForSlot({ slot }: { slot: Slot }) {
-  const { dispatch } = useSession();
-  const navigate = useNavigate();
+  const chooseBase = useChooseBase(slot);
   const announce = useAnnounce();
   const [hue, setHue] = useState(210);
   const [saturation, setSaturation] = useState(40);
@@ -82,13 +81,6 @@ function CustomColorForSlot({ slot }: { slot: Slot }) {
     announce(name);
   }, [name, announce]);
 
-  function commit() {
-    dispatch({ type: 'baseChosen', slot, hex });
-    // The base travels in the URL, not only in the session, so a refresh of
-    // the suggestions screen rebuilds the same outfit (ADR 0011).
-    void navigate(`/suggest?slot=${slot}&hex=${encodeURIComponent(hex)}`);
-  }
-
   return (
     <Screen title="Mix your own" back={{ to: `/color?slot=${slot}`, title: PICKER_TITLE }}>
       <div {...stylex.props(styles.preview(hex))} />
@@ -112,7 +104,7 @@ function CustomColorForSlot({ slot }: { slot: Slot }) {
         value={lightness}
         onChange={setLightness}
       />
-      <Button label="Use this color" onClick={commit} />
+      <Button label="Use this color" onClick={() => chooseBase(hex)} />
     </Screen>
   );
 }

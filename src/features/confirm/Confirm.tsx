@@ -395,7 +395,19 @@ function ConfirmForCapture({ slot, pixels }: { slot: Slot; pixels: Pixels }) {
             )}
           </>
         )}
-        <Link to={`/color?slot=${slot}`} {...clearOfToasts} {...stylex.props(styles.link)}>
+        <Link
+          to={`/color?slot=${slot}`}
+          // Leaving for the picker turns the reading down, and the picker logs
+          // it against what the user picks there. A `several` reading has no
+          // one color to log, for the reason `confirm` gives.
+          onClick={() => {
+            if (reading.kind === 'single') {
+              dispatch({ type: 'readingRejected', slot, read: reading.color });
+            }
+          }}
+          {...clearOfToasts}
+          {...stylex.props(styles.link)}
+        >
           {reading.kind === 'several' ? NEITHER : PICK_BY_HAND}
         </Link>
       </div>
