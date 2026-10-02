@@ -42,12 +42,23 @@ describe('Entry', () => {
 
   it('leads with the camera', () => {
     renderAt();
-    const buttons = screen.getAllByRole('button');
-    expect(buttons.map((b) => b.textContent)).toEqual([
-      'Take a photo',
-      'Pick a color',
-      'Already dressed? Check your outfit',
-    ]);
+    const [photo, color, check, ...rest] = screen.getAllByRole('button');
+    expect(photo).toHaveAccessibleName('Take a photo');
+    expect(color).toHaveAccessibleName('Pick a color');
+    expect(check).toHaveAccessibleName('Already dressed? Check your outfit');
+    expect(rest).toEqual([]);
+  });
+
+  // The cards carry the line the start screen's paragraph used to say, as a
+  // description, so the button's name stays the two words a user would say.
+  it('says what each way in is for', () => {
+    renderAt();
+    expect(screen.getByRole('button', { name: 'Take a photo' })).toHaveAccessibleDescription(
+      'of something you own',
+    );
+    expect(screen.getByRole('button', { name: 'Pick a color' })).toHaveAccessibleDescription(
+      'if you know it',
+    );
   });
 
   it('takes the camera route through slot choice', async () => {

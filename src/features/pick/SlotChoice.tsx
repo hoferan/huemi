@@ -4,10 +4,22 @@ import { SLOTS, SLOT_LABELS, type Slot } from '../../model/types';
 import { tokens } from '../../styles/tokens.stylex';
 import { HOME } from '../../ui/home';
 import { Screen } from '../../ui/Screen';
+import { clearOfToasts } from '../../ui/toastClearance';
 import { SLOT_TITLE } from './copy';
 
 const styles = stylex.create({
-  list: { display: 'flex', flexDirection: 'column', gap: '8px' },
+  // The five rows share the screen's height the way the picker's swatches do,
+  // and for the reasons its grid gives. Past 144px, on a window tall enough
+  // for that, a row stops growing rather than turning into a slab.
+  list: {
+    flex: '1 1 0',
+    display: 'grid',
+    gridAutoRows: {
+      default: `minmax(${tokens.touchTarget}, 1fr)`,
+      '@media (min-height: 1000px)': `minmax(${tokens.touchTarget}, 144px)`,
+    },
+    gap: '8px',
+  },
   slot: {
     backgroundColor: tokens.surface,
     color: tokens.ink,
@@ -27,8 +39,8 @@ const styles = stylex.create({
  * Five rows, from `SLOTS` rather than a list written here, so the screen
  * cannot drift from the model the engine weights by area.
  *
- * A list and not a grid: five items each need a 44px target, and a grid would
- * only make them smaller to save space this screen does not need.
+ * One column: five rows that each take a share of the screen are larger
+ * targets than a grid of five could give.
  */
 export function SlotChoice() {
   const navigate = useNavigate();
@@ -49,6 +61,7 @@ export function SlotChoice() {
             key={slot}
             type="button"
             onClick={() => choose(slot)}
+            {...clearOfToasts}
             {...stylex.props(styles.slot)}
           >
             {SLOT_LABELS[slot]}

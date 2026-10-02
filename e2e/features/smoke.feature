@@ -19,3 +19,10 @@ Feature: Entry screen
     And I have seen the welcome screen
     When I open huemi
     Then no correction log is kept
+
+  # The two ways in are the start screen's content, so they take its space.
+  Scenario: The two ways in fill the start screen
+    Given I have seen the welcome screen
+    And I open huemi
+    Then the button "Take a photo" is at least 200 tall
+    And the button "Pick a color" is at least 200 tall
