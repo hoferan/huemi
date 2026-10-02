@@ -57,6 +57,9 @@ export function useToastLift(toast: RefObject<HTMLElement | null>): number {
   useLayoutEffect(() => {
     const measure = () => {
       const element = toast.current;
+      // The ref is set before a layout effect runs and the listeners go with
+      // the cleanup, so this only narrows the type.
+      /* v8 ignore next */
       if (!element) return;
       const regions = [...document.querySelectorAll('[data-toast-clearance]')].map((region) =>
         region.getBoundingClientRect(),

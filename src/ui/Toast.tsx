@@ -9,6 +9,9 @@ const slideUp = stylex.keyframes({
   to: { transform: 'none' },
 });
 
+// `lift` is the only dynamic entry; see `src/features/confirm/Confirm.tsx` for
+// why the ignore has to bracket the whole object.
+/* v8 ignore start */
 const styles = stylex.create({
   toast: {
     position: 'fixed',
@@ -52,6 +55,7 @@ const styles = stylex.create({
     cursor: 'pointer',
   },
 });
+/* v8 ignore stop */
 
 // `:focus-visible` is unsupported in some engines, where the toast just
 // treats every focus as not visible and lets the countdown run.

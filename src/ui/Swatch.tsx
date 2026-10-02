@@ -6,6 +6,9 @@ import type { Hex } from '../model/hex';
 import { tokens } from '../styles/tokens.stylex';
 import { selection } from './selection';
 
+// `fill` is the only dynamic entry; see `src/features/confirm/Confirm.tsx` for
+// why the ignore has to bracket the whole object.
+/* v8 ignore start */
 const styles = stylex.create({
   swatch: {
     display: 'flex',
@@ -42,6 +45,7 @@ const styles = stylex.create({
   // than a border, so the hairline costs the colour area no width.
   hairline: { boxShadow: `inset 0 0 0 1px ${tokens.line}` },
 });
+/* v8 ignore stop */
 
 /**
  * One colour, as a button, with its name printed on it.
