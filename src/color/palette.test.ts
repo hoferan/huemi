@@ -4,14 +4,18 @@ import {
   blockLabel,
   colorName,
   describeColor,
+  NAME_CHROMA_TOLERANCE,
+  NAME_HUE_MIN_CHROMA,
+  NAME_HUE_TOLERANCE,
   NAME_MAX_DISTANCE,
   NEARBY_LIGHTNESS_WEIGHT,
   nearestColor,
+  namesAsNeutral,
   nearbyColors,
   PALETTE,
 } from './palette';
 import { hslToHex } from './convert';
-import { hexToOklab } from './oklab';
+import { hexToOklab, hexToOklch } from './oklab';
 
 describe('PALETTE', () => {
   it('has 21 colors with unique names and hexes', () => {
@@ -177,6 +181,57 @@ describe('colorName', () => {
   // it than any blue entry, and named it.
   it('does not call a muted blue Mauve', () => {
     expect(colorName(parseHex(hslToHex(210, 40, 55)))).toBe('blue');
+  });
+
+  // Found by sweeping the color space after #83. Each was given the name of an
+  // entry from another hue family, or of a muted entry for a saturated color.
+  it.each([
+    ['#6c859d', 'a slate blue', 'Denim'],
+    ['#e64c4c', 'a saturated red', 'bright red'],
+    ['#f4c434', 'a golden yellow', 'pale yellow'],
+    ['#ff9933', 'a bright orange', 'Mustard'],
+    ['#cc9cfc', 'a lavender', 'pale purple'],
+    ['#a94ebc', 'an orchid', 'bright pink'],
+  ])('names %s, %s, as %s', (hex, _what, expected) => {
+    expect(colorName(parseHex(hex))).toBe(expected);
+  });
+
+  // The blues around the mixer's default, at every saturation and lightness a
+  // user can reach there. Mauve is the only chromatic entry near their
+  // lightness, and without a hue check it won on lightness alone.
+  it('never calls a blue Peach, Pink or Mauve', () => {
+    for (let h = 190; h <= 240; h += 5) {
+      for (let s = 5; s <= 60; s += 5) {
+        for (let l = 40; l <= 70; l += 2) {
+          expect(['Peach', 'Pink', 'Mauve']).not.toContain(colorName(parseHex(hslToHex(h, s, l))));
+        }
+      }
+    }
+  });
+
+  // The rule itself, over the whole color space: a color named by an entry
+  // with a hue of its own is within the tolerance of that hue, and a muted name
+  // never goes to a saturated color.
+  it('never names a color with an entry from another hue family', () => {
+    const hueGap = (a: number, b: number) => {
+      const d = Math.abs(a - b) % 360;
+      return d > 180 ? 360 - d : d;
+    };
+    for (let h = 0; h < 360; h += 15) {
+      for (let s = 10; s <= 90; s += 20) {
+        for (let l = 20; l <= 80; l += 10) {
+          const hex = parseHex(hslToHex(h, s, l));
+          const entry = PALETTE.find((c) => c.name === colorName(hex));
+          const color = hexToOklch(hex);
+          if (!entry || namesAsNeutral(hex)) continue;
+          const named = hexToOklch(entry.hex);
+          expect(Math.abs(color.c - named.c)).toBeLessThanOrEqual(NAME_CHROMA_TOLERANCE);
+          if (named.c >= NAME_HUE_MIN_CHROMA) {
+            expect(hueGap(color.h, named.h)).toBeLessThanOrEqual(NAME_HUE_TOLERANCE);
+          }
+        }
+      }
+    }
   });
 
   it('never gives a color a neutral name', () => {

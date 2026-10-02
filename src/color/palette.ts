@@ -132,6 +132,56 @@ export const NAME_MAX_DISTANCE = 0.125;
 const NAME_NEUTRAL_CHROMA = 0.025;
 
 /**
+ * How far apart in OKLCH hue, in degrees, a color and the entry that names it
+ * may be.
+ *
+ * Distance alone let an entry name colors from another hue family whenever it
+ * was the only one near their lightness. Mauve, the one chromatic entry at its
+ * lightness, named slate blues and mid reds, and Khaki named lilacs. 45 degrees
+ * is a little under the space between the palette's own hue families, and it
+ * keeps the names the entries exist for: the #20 aubergine read sits 30 degrees
+ * from Mauve.
+ */
+export const NAME_HUE_TOLERANCE = 45;
+
+/**
+ * An entry greyer than this has no hue to hold a color to, so it is judged by
+ * distance alone. That covers Cream, the least chromatic color at 0.031, whose
+ * hue a camera-sized nudge can swing a long way. Every color the name is for
+ * is checked, however grey: the blue-greys just above the neutral line were
+ * the ones Mauve took.
+ */
+export const NAME_HUE_MIN_CHROMA = 0.04;
+
+/**
+ * How much more or less saturated than its entry a color may be and still take
+ * its name. Every entry is muted, so this keeps a saturated color from being
+ * given one: a bright red was named Mauve, a bright orange Peach. Those get a
+ * description instead ("bright red"), which says what the color is.
+ */
+export const NAME_CHROMA_TOLERANCE = 0.08;
+
+const hueGap = (a: number, b: number): number => {
+  const d = Math.abs(a - b) % 360;
+  return d > 180 ? 360 - d : d;
+};
+
+/**
+ * Whether an entry may name a color at all, before distance decides between
+ * the entries that may. Neutrals are only named by neutrals, and colors only by
+ * colors of their own hue family and roughly their own saturation.
+ */
+function mayName(entry: Hex, hex: Hex): boolean {
+  const neutral = namesAsNeutral(hex);
+  if (namesAsNeutral(entry) !== neutral) return false;
+  if (neutral) return true;
+  const color = hexToOklch(hex);
+  const named = hexToOklch(entry);
+  if (Math.abs(color.c - named.c) > NAME_CHROMA_TOLERANCE) return false;
+  return named.c < NAME_HUE_MIN_CHROMA || hueGap(color.h, named.h) <= NAME_HUE_TOLERANCE;
+}
+
+/**
  * Whether `colorName` calls this color a neutral. Exported for the outfit
  * check, whose sentences name pieces with `colorName` and so have to agree
  * with it about which pieces have a color to talk about.
@@ -160,7 +210,7 @@ export function colorName(hex: Hex): string {
   let best: NamedColor | null = null;
   let distance = Infinity;
   for (const candidate of PALETTE) {
-    if (namesAsNeutral(candidate.hex) !== neutral) continue;
+    if (!mayName(candidate.hex, hex)) continue;
     const d = oklabDistance(candidate.hex, hex);
     if (d < distance) {
       best = candidate;
