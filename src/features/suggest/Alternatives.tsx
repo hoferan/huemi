@@ -48,7 +48,7 @@ export type LeadTile = { hex: Hex; label: string; current: boolean; onChoose: ()
  *
  * Deliberately not filtered by the composer's chroma budget. On the
  * suggestions screen the block's Next button walks this same list, and its
- * position label says "3 of 18" against its length, so a sheet showing fewer
+ * position label says "3 of 21" against its length, so a sheet showing fewer
  * entries would make that label false. Choosing a colour that takes the
  * outfit over budget is the user's call; the composer only decides what to
  * offer first.

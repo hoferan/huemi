@@ -119,7 +119,7 @@ describe('CheckResult', () => {
     const tiles = within(sheet).getAllByRole('button', { name: /^(Yours|.+, \d+ of \d+)/ });
     expect(tiles[0]).toHaveAccessibleName('Yours, Rust');
     expect(tiles[0]).toHaveAttribute('aria-current', 'true');
-    expect(tiles[1]).toHaveAccessibleName('Brown, 1 of 18');
+    expect(tiles[1]).toHaveAccessibleName('Brown, 1 of 21');
   });
 
   it('swaps a piece as a what-if, and its block says so', async () => {
