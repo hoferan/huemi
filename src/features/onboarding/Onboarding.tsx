@@ -4,6 +4,7 @@ import { localPreferences } from '../../storage/localPreferences';
 import { tokens } from '../../styles/tokens.stylex';
 import { Button } from '../../ui/Button';
 import { Screen } from '../../ui/Screen';
+import { clearOfToasts } from '../../ui/toastClearance';
 
 const styles = stylex.create({
   body: {
@@ -50,7 +51,9 @@ export function Onboarding() {
         <span>Keep the outfits you like.</span>
       </p>
       <div {...stylex.props(styles.spacer)} />
-      <Button label="Start" onClick={() => void start()} />
+      <div {...clearOfToasts}>
+        <Button label="Start" onClick={() => void start()} />
+      </div>
     </Screen>
   );
 }

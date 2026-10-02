@@ -3,9 +3,9 @@
 // style is a screen-reader contract rather than a design decision.
 //
 // `clip-path` does the hiding, not `overflow: hidden`. A 1px box can never
-// contain a line of text, so an announcement or a swatch's name always makes
-// this element's own scrollHeight exceed its clientHeight — that is what
-// visually hides it. `overflow: hidden` would report that as a clipped
+// contain a line of text, so an announcement always makes this element's own
+// scrollHeight exceed its clientHeight, which is what visually hides it.
+// `overflow: hidden` would report that as a clipped
 // element with unreachable content to `e2e/invariants.spec.ts`'s 200% text
 // size check, which cannot tell a real layout clip from a deliberate one.
 // `clip-path: inset(50%)` clips the paint to nothing without setting

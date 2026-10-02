@@ -18,6 +18,7 @@ import { useAnnounce } from '../../ui/useAnnounce';
 import { Alternatives } from './Alternatives';
 import { SaveToggle } from './SaveToggle';
 import { useBaseParam } from './useBaseParam';
+import { clearOfToasts } from '../../ui/toastClearance';
 
 // The crossfade is CSS and the flag that triggers it is a timer, so one of the
 // two has to be a number. It is derived rather than restated: `durations` is a
@@ -122,6 +123,13 @@ export function Suggestions() {
     if (!pick) return;
     const next = advance(base, slot, pick.cursor ?? 0, delta);
     dispatch({ type: 'pickChanged', slot, hex: next.hex, cursor: next.cursor });
+
+    // Next keeps focus and keeps its name, and a swipe moves focus nowhere,
+    // so the block's new colour has no other way to a screen reader. The
+    // words are the field's own name without its "other options".
+    announce(
+      [SLOT_LABELS[slot], colorName(next.hex), positionLabel(next.cursor, next.count)].join(', '),
+    );
   }
 
   function shuffle() {
@@ -197,7 +205,7 @@ export function Suggestions() {
           );
         })}
       </div>
-      <div {...stylex.props(styles.footer)}>
+      <div {...clearOfToasts} {...stylex.props(styles.footer)}>
         <p {...stylex.props(styles.hint)}>
           {anyKept
             ? 'Kept pieces stay when you shuffle.'

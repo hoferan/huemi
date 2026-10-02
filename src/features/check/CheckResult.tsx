@@ -21,7 +21,11 @@ import {
   swapSheetTitle,
   yoursLabel,
 } from './copy';
+import { clearOfToasts } from '../../ui/toastClearance';
 
+// `area` is the only dynamic entry; see `src/features/confirm/Confirm.tsx` for
+// why the ignore has to bracket the whole object.
+/* v8 ignore start */
 const styles = stylex.create({
   blocks: {
     display: 'flex',
@@ -53,6 +57,7 @@ const styles = stylex.create({
   last: { borderStartEndRadius: '4px', borderEndEndRadius: '4px' },
   actions: { display: 'flex', gap: '8px' },
 });
+/* v8 ignore stop */
 
 /** Up to two swatches, decorative: the sentence beside them names the pieces. */
 function Swatches({ observation }: { observation: Observation }) {
@@ -129,7 +134,7 @@ export function CheckResult() {
           </li>
         ))}
       </ul>
-      <div {...stylex.props(styles.actions)}>
+      <div {...clearOfToasts} {...stylex.props(styles.actions)}>
         <Button
           variant="secondary"
           label={CHANGE_PIECES}

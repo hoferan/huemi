@@ -12,6 +12,7 @@ import { Button } from '../../ui/Button';
 import { Screen } from '../../ui/Screen';
 import { Sheet } from '../../ui/Sheet';
 import { Swatch } from '../../ui/Swatch';
+import { swatchGrid } from '../../ui/swatchGrid';
 import { useAnnounce } from '../../ui/useAnnounce';
 import {
   CAPTURE_TITLE,
@@ -22,6 +23,7 @@ import {
   PIECES_BODY,
   PIECES_TITLE,
 } from './copy';
+import { clearOfToasts } from '../../ui/toastClearance';
 
 // `fill` is the only dynamic entry; see Confirm.tsx for why the ignore has to
 // bracket the whole object.
@@ -53,7 +55,6 @@ const styles = stylex.create({
   }),
   hairline: { boxShadow: `inset 0 0 0 1px ${tokens.line}` },
   label: { flex: '1', fontFamily: tokens.fontHeading, fontSize: '1.25rem' },
-  grid: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' },
   sheetBody: { display: 'flex', flexDirection: 'column', gap: '12px' },
 });
 /* v8 ignore stop */
@@ -135,7 +136,9 @@ export function CheckPieces() {
         })}
       </div>
       {tooFew && filled < 2 && <p {...stylex.props(styles.body)}>{NEED_TWO}</p>}
-      <Button label={CHECK_IT} onClick={check} />
+      <div {...clearOfToasts}>
+        <Button label={CHECK_IT} onClick={check} />
+      </div>
       {open && (
         <Sheet
           open
@@ -145,7 +148,7 @@ export function CheckPieces() {
           title={SLOT_LABELS[open]}
         >
           <div {...stylex.props(styles.sheetBody)}>
-            <div {...stylex.props(styles.grid)}>
+            <div {...stylex.props(swatchGrid.three)}>
               {PALETTE.map((color) => (
                 <Swatch key={color.hex} hex={color.hex} onSelect={(hex) => choose(open, hex)} />
               ))}

@@ -9,3 +9,8 @@ Feature: Picking a color
     And I open the picker for the top
     Then the swatch "Navy" has background "#1f2a44"
     And the swatch "Cream" has background "#e9dfc9"
+
+  Scenario: Each swatch prints its name
+    Given I have seen the welcome screen
+    And I open the picker for the top
+    Then every swatch shows its name

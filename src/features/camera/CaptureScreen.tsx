@@ -11,6 +11,7 @@ import { CameraContext } from './CameraContext';
 import { DARK_MESSAGE, PHOTO_FAILED, type CaptureCopy } from './copy';
 import { initialLowLight, meanLightness, nextLowLight } from './lightness';
 import { FRAME_MAX_SIDE, SAMPLE_INTERVAL_MS, SAMPLE_SIDE, type CameraFailure } from './port';
+import { clearOfToasts } from '../../ui/toastClearance';
 
 const styles = stylex.create({
   // No overflow clipping here: the 200% text size check in
@@ -258,6 +259,7 @@ export function CaptureScreen({
       <button
         type="button"
         onClick={() => photoInput.current?.click()}
+        {...clearOfToasts}
         {...stylex.props(styles.link, styles.linkButton)}
       >
         Choose a photo
@@ -301,7 +303,7 @@ export function CaptureScreen({
         )}
         <div {...stylex.props(styles.guide, guide === 'outfit' && styles.outfitGuide)} />
       </div>
-      <div {...stylex.props(styles.controls)}>
+      <div {...clearOfToasts} {...stylex.props(styles.controls)}>
         {(dark || alwaysOfferHandEntry) && handEntryLink}
         {status === 'live' && (
           <button

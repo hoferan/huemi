@@ -8,10 +8,10 @@ import { tokens } from '../../styles/tokens.stylex';
 import { Screen } from '../../ui/Screen';
 import { PICKER_TITLE, SLOT_TITLE } from './copy';
 import { Swatch } from '../../ui/Swatch';
+import { swatchGrid } from '../../ui/swatchGrid';
 import { useSlotParam } from './useSlotParam';
 
 const styles = stylex.create({
-  grid: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' },
   // A link is a hit target the same as a button (A11Y.md), so it carries the
   // same token. `inline-flex` rather than the anchor's default `inline` lets
   // `minHeight` take effect at all, and centres the text inside that height
@@ -66,7 +66,7 @@ function PickerForSlot({ slot }: { slot: Slot }) {
 
   return (
     <Screen title={PICKER_TITLE} back={{ to: '/slot', title: SLOT_TITLE }}>
-      <div {...stylex.props(styles.grid)}>
+      <div {...stylex.props(swatchGrid.three)}>
         {PALETTE.map((color) => (
           <Swatch key={color.hex} hex={color.hex} onSelect={choose} />
         ))}

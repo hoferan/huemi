@@ -14,6 +14,7 @@ import { useAnnounce } from '../../ui/useAnnounce';
 import { FramePhoto } from '../confirm/FramePhoto';
 import { CAPTURE_TITLE, ENTER_COLORS, SKIP, TAP_PROMPTS, TAP_UNCLEAR } from './copy';
 import { tapOutcome } from './sequence';
+import { clearOfToasts } from '../../ui/toastClearance';
 
 // `chipFill` is the only dynamic entry, and StyleX compiles it into a
 // null-guard no caller reaches; see Confirm.tsx for why the ignore has to
@@ -131,8 +132,10 @@ function TapPieces({
         })}
       </div>
       {miss && <p {...stylex.props(styles.body)}>{TAP_UNCLEAR}</p>}
-      <Button variant="secondary" label={SKIP} onClick={advance} />
-      <Link to="/check/pieces" {...stylex.props(styles.link)}>
+      <div {...clearOfToasts}>
+        <Button variant="secondary" label={SKIP} onClick={advance} />
+      </div>
+      <Link to="/check/pieces" {...clearOfToasts} {...stylex.props(styles.link)}>
         {ENTER_COLORS}
       </Link>
     </Screen>
