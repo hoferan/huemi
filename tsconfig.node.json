@@ -21,5 +21,11 @@
     "skipLibCheck": true,
     "types": ["node"]
   },
-  "include": ["vite.config.ts", "playwright.config.ts", "netlify.config.test.ts", "pwa/**/*.ts"]
+  "include": [
+    "vite.config.ts",
+    "playwright.config.ts",
+    "netlify.config.test.ts",
+    "filenames.test.ts",
+    "pwa/**/*.ts"
+  ]
 }

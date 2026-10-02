@@ -46,7 +46,11 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'npm run preview',
+    // `vite preview` serves whatever `dist/` holds, so a local run against an
+    // old build tests old code and fails, or passes, on fixes it never saw.
+    // CI builds in a step of its own just before this, so only a local run
+    // builds here.
+    command: process.env.CI ? 'npm run preview' : 'npm run build && npm run preview',
     url: 'http://localhost:4173',
     reuseExistingServer: !process.env.CI,
   },

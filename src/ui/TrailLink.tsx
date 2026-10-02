@@ -2,7 +2,7 @@ import { use } from 'react';
 import type { MouseEvent } from 'react';
 import { Link, useNavigate } from 'react-router';
 import type { LinkProps } from 'react-router';
-import { stepsBackTo } from './historyTrail';
+import { stepsBackTo } from './trail';
 import { HistoryTrailContext } from './HistoryTrailContext';
 
 /**
