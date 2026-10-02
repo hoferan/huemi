@@ -2,8 +2,8 @@ import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { useLocation, useNavigationType } from 'react-router';
 import type { Location } from 'react-router';
-import { advanceTrail, startTrail } from './historyTrail';
-import type { TrailEntry } from './historyTrail';
+import { advanceTrail, startTrail } from './trail';
+import type { TrailEntry } from './trail';
 import { HistoryTrailContext } from './HistoryTrailContext';
 
 function toEntry(location: Location): TrailEntry {

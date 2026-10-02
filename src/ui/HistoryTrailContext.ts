@@ -1,5 +1,5 @@
 import { createContext } from 'react';
-import type { Trail } from './historyTrail';
+import type { Trail } from './trail';
 
 /**
  * The history the app has walked, from `HistoryTrail`.

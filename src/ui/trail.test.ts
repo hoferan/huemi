@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { advanceTrail, startTrail, stepsBackTo } from './historyTrail';
+import { advanceTrail, startTrail, stepsBackTo } from './trail';
 
 const entry = (key: string, href: string) => ({ key, href });
 
