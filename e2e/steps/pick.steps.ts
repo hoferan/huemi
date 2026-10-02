@@ -29,7 +29,7 @@ Then('the swatch {string} has background {string}', async ({ page }, name: strin
 // 1px box is not empty, so this reads the clip and the width instead.
 Then('every swatch shows its name', async ({ page }) => {
   const swatches = page.getByRole('main').getByRole('button');
-  await expect(swatches).toHaveCount(18);
+  await expect(swatches).toHaveCount(21);
   for (const swatch of await swatches.all()) {
     const name = swatch.locator('span');
     await expect(name).not.toHaveText('');
