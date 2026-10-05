@@ -30,7 +30,10 @@ async function shares(page: Page): Promise<RecordedShare[]> {
 
 /** The one share the scenario made, once the fake sheet has recorded it. */
 async function theShare(page: Page): Promise<RecordedShare> {
-  await expect.poll(async () => (await shares(page)).length).toBe(1);
+  // Longer than the default. Chromium encodes toBlob in idle time, and with
+  // every worker busy that took up to 7 s here; a saved card starts painting
+  // only on the tap, so its scenario waits for the whole encode.
+  await expect.poll(async () => (await shares(page)).length, { timeout: 15_000 }).toBe(1);
   return (await shares(page))[0]!;
 }
 
@@ -240,6 +243,51 @@ Then('the names and the link were copied', async ({ page }) => {
   expect(copied).toHaveLength(1);
   const origin = new URL(page.url()).origin;
   expect(copied[0]!.startsWith(`${sentenceFor(names)} ${origin}/shared?`)).toBe(true);
+});
+
+Then("the share's link opens the outfit it names", async ({ page }) => {
+  const share = await theShare(page);
+  const link = linkIn(share);
+
+  await page.goto(link);
+  await expect(page.getByRole('heading', { level: 1, name: 'An outfit for you' })).toBeVisible();
+  expect(`${sentenceFor(await blockNames(page))} ${link}`).toBe(share.text);
+});
+
+// The check's sentences, in tokens.ink, between the last block and the
+// wordmark. Without them that band holds only the background.
+Then('the picture has text between the blocks and the wordmark', async ({ page }) => {
+  const share = await theShare(page);
+  const dataUrl = share.files[0]!.dataUrl;
+  const last = (await paintedBlocks(page, dataUrl, [])).at(-1)!;
+  const ink = await page.evaluate(
+    async ({ dataUrl, top }) => {
+      const image = new Image();
+      image.src = dataUrl;
+      await image.decode();
+      const canvas = document.createElement('canvas');
+      canvas.width = image.naturalWidth;
+      canvas.height = image.naturalHeight;
+      const context = canvas.getContext('2d')!;
+      context.drawImage(image, 0, 0);
+      const band = context.getImageData(40, top, 1000, 1270 - top).data;
+      let count = 0;
+      for (let i = 0; i < band.length; i += 4) {
+        const near =
+          Math.abs(band[i]! - 0x15) <= 1 &&
+          Math.abs(band[i + 1]! - 0x14) <= 1 &&
+          Math.abs(band[i + 2]! - 0x13) <= 1;
+        if (near) count += 1;
+      }
+      return count;
+    },
+    { dataUrl, top: last.bottom + 20 },
+  );
+  expect(ink).toBeGreaterThan(150);
+});
+
+Then("the share's link has no base", async ({ page }) => {
+  expect(linkIn(await theShare(page))).not.toContain('base=');
 });
 
 // `[data-toast]` rather than the text: the live region repeats the message,
