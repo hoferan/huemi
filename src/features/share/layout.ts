@@ -9,6 +9,12 @@ export const IMAGE_HEIGHT = 1350;
 
 export type ShareImageInput = { pieces: Partial<Record<Slot, Hex>>; baseSlot: Slot | null };
 
+/** What a share image shows: the outfit, and for a check, what the check says. */
+export type ShareImage = ShareImageInput & { sentences?: readonly string[] };
+
+/** The width `text` takes in `font`. Only a canvas can say, so the painter supplies it. */
+export type Measure = (text: string, font: string) => number;
+
 /** One thing to paint. A text's `y` is its alphabetic baseline, and text is start-aligned. */
 export type DrawOp =
   | { kind: 'fill'; color: string }
@@ -43,6 +49,34 @@ const FAMILY = '"Outfit Variable", system-ui, sans-serif';
 const SLOT_FONT = `500 30px ${FAMILY}`;
 const NAME_FONT = `500 44px ${FAMILY}`;
 const WORDMARK_FONT = `500 48px ${FAMILY}`;
+const SENTENCE_FONT = `400 32px ${FAMILY}`;
+const SENTENCE_LINE = 44;
+// From the first line's baseline up to the blocks: the line's ascent, 32,
+// and a gap of 24.
+const SENTENCE_CLEARANCE = 56;
+
+/** Every font a share image uses, so the painter can load them first. */
+export const IMAGE_FONTS: readonly string[] = [SLOT_FONT, NAME_FONT, WORDMARK_FONT, SENTENCE_FONT];
+
+/**
+ * `text` broken on spaces into lines no wider than `width`. A word wider than
+ * the line takes a line of its own rather than being cut.
+ */
+export function wrap(text: string, width: number, font: string, measure: Measure): string[] {
+  const lines: string[] = [];
+  let line = '';
+  for (const word of text.split(' ')) {
+    const candidate = line ? `${line} ${word}` : word;
+    if (line && measure(candidate, font) > width) {
+      lines.push(line);
+      line = word;
+    } else {
+      line = candidate;
+    }
+  }
+  if (line) lines.push(line);
+  return lines;
+}
 
 /**
  * The share image as a list of things to paint, head to toe as the
@@ -56,11 +90,22 @@ const WORDMARK_FONT = `500 48px ${FAMILY}`;
  * its color in the foreground `readableForeground` picks, at full opacity,
  * and `colorName` describes a color the palette cannot name instead of
  * giving it a palette word.
+ *
+ * A check's sentences sit under the blocks, above the wordmark, and the
+ * blocks give up the height they need: the sentence is the result (handoff
+ * notes), so it is on the picture as it is on the screen.
  */
-export function layoutShareImage({ pieces, baseSlot }: ShareImageInput): DrawOp[] {
+export function layoutShareImage(
+  { pieces, baseSlot, sentences = [] }: ShareImage,
+  measure: Measure,
+): DrawOp[] {
   const present = SLOTS.filter((slot) => pieces[slot] !== undefined);
-  const height = (BLOCKS_BOTTOM - PADDING - GAP * (present.length - 1)) / present.length;
   const width = IMAGE_WIDTH - 2 * PADDING;
+  const lines = sentences.flatMap((sentence) => wrap(sentence, width, SENTENCE_FONT, measure));
+  const blocksBottom = lines.length
+    ? BLOCKS_BOTTOM - (lines.length - 1) * SENTENCE_LINE - SENTENCE_CLEARANCE
+    : BLOCKS_BOTTOM;
+  const height = (blocksBottom - PADDING - GAP * (present.length - 1)) / present.length;
 
   const ops: DrawOp[] = [{ kind: 'fill', color: BACKGROUND }];
   present.forEach((slot, index) => {
@@ -97,6 +142,16 @@ export function layoutShareImage({ pieces, baseSlot }: ShareImageInput): DrawOp[
         color: foreground,
       },
     );
+  });
+  lines.forEach((text, index) => {
+    ops.push({
+      kind: 'text',
+      x: PADDING,
+      y: BLOCKS_BOTTOM - (lines.length - 1 - index) * SENTENCE_LINE,
+      text,
+      font: SENTENCE_FONT,
+      color: INK,
+    });
   });
   ops.push({
     kind: 'text',
