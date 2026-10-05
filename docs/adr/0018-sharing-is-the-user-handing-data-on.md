@@ -18,14 +18,17 @@ An outfit leaves the phone in three ways:
 ## Decision
 
 Sharing happens only through the share sheet, or the clipboard and a download.
-Nothing moves until the user taps Share and picks where it goes, and huemi sends
-nothing anywhere itself. ADR 0013 stands, and the lint rule needs no exemption,
-since neither `navigator.share` nor `navigator.clipboard` is on its list.
+Nothing moves until the user taps Share. With a share sheet the user then picks
+where it goes; without one it stays on the device, in the clipboard and the
+downloads folder, until the user pastes or sends it. huemi sends nothing anywhere
+itself. ADR 0013 stands, and the lint rule needs no exemption, since neither
+`navigator.share` nor `navigator.clipboard` is on its list.
 
 The link carries the outfit in its query string, one bare hex per piece and the base
 slot, as `src/features/share/link.ts` writes it. Whoever receives it can read the
-colors, and so can the host that serves the page when it is opened, in Netlify's
-request logs. That is what the link is for, and it carries nothing beyond the colors
+colors. So can the messaging service the link travels through, whose preview crawler
+usually fetches it as soon as it is sent, and Netlify, whose request logs record
+every fetch. That is what the link is for, and it carries nothing beyond the colors
 and the base slot: no photo, outfit name or note.
 
 ## Consequences

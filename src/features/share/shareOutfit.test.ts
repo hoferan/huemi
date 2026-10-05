@@ -7,20 +7,20 @@ const LINK = 'https://huemi.app/shared?top=1f2a44&base=top';
 const TEXT = `Navy top. ${LINK}`;
 
 describe('shareOutfit', () => {
-  it('shares the image, the names with the link, and the link', async () => {
+  // No `url`: the link is in the text already, and Android joins the two
+  // into one message, so it would arrive twice.
+  it('shares the image with the names and the link', async () => {
     const port = fakeSharePort();
 
     await expect(shareOutfit(port, image, 'Navy top.', LINK)).resolves.toBe('shared');
-    expect(port.calls.share).toEqual([
-      { files: [image], title: 'huemi outfit', text: TEXT, url: LINK },
-    ]);
+    expect(port.calls.share).toEqual([{ files: [image], title: 'huemi outfit', text: TEXT }]);
   });
 
   it('shares the names with the link when the device cannot share files', async () => {
     const port = fakeSharePort({ canShareFiles: () => false });
 
     await expect(shareOutfit(port, image, 'Navy top.', LINK)).resolves.toBe('shared');
-    expect(port.calls.share).toEqual([{ title: 'huemi outfit', text: TEXT, url: LINK }]);
+    expect(port.calls.share).toEqual([{ title: 'huemi outfit', text: TEXT }]);
   });
 
   it('downloads the image and copies the names with the link without a share sheet', async () => {
@@ -30,6 +30,23 @@ describe('shareOutfit', () => {
     expect(port.calls.download).toEqual([image]);
     expect(port.calls.copy).toEqual([TEXT]);
     expect(port.calls.share).toEqual([]);
+  });
+
+  // A browser that asks where to save takes focus from the page, and the
+  // clipboard then refuses the write.
+  it('copies before it downloads', () => {
+    let copiedFirst = false;
+    const port = fakeSharePort({
+      canShareFiles: () => false,
+      canShare: () => false,
+      download: () => {
+        copiedFirst = port.calls.copy.length === 1;
+      },
+    });
+
+    void shareOutfit(port, image, 'Navy top.', LINK);
+
+    expect(copiedFirst).toBe(true);
   });
 
   it('says only Image saved when the copy fails', async () => {

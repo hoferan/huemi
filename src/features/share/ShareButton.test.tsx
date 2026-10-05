@@ -142,7 +142,11 @@ describe('ShareButton', () => {
     fireEvent.click(button());
 
     const link = shareLink(window.location.origin, NAVY_TOP);
-    expect(port.calls.share[0]).toMatchObject({ url: link, text: `Navy top. ${link}` });
+    expect(port.calls.share[0]).toEqual({
+      files: [expect.any(File)],
+      title: 'huemi outfit',
+      text: `Navy top. ${link}`,
+    });
     await act(() => Promise.resolve());
   });
 

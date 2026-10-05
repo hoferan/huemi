@@ -27,7 +27,8 @@ export function shareLink(origin: string, { pieces, baseSlot }: ShareImageInput)
  *
  * One piece that will not read rejects the whole link. A chat app that cut
  * the link short has lost part of the outfit, and showing the rest would
- * misrepresent what was sent. Parameters it does not know, such as the
+ * misrepresent what was sent, and that includes a hex cut to three digits.
+ * Parameters it does not know, such as the
  * tracking ones apps append, are ignored, and a hex in capitals or with its
  * `#` still reads.
  */
@@ -36,11 +37,11 @@ export function parseShareLink(params: URLSearchParams): ShareImageInput | null 
   for (const slot of SLOTS) {
     const value = params.get(slot);
     if (value === null) continue;
-    try {
-      pieces[slot] = parseHex(`#${value.replace(/^#/, '')}`);
-    } catch {
-      return null;
-    }
+    // Six digits only, which is all `shareLink` writes. `parseHex` would take
+    // three, and a link cut inside its last hex would read as another color.
+    const digits = value.replace(/^#/, '');
+    if (!/^[0-9a-f]{6}$/i.test(digits)) return null;
+    pieces[slot] = parseHex(`#${digits}`);
   }
   if (Object.keys(pieces).length === 0) return null;
 

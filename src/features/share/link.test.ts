@@ -54,7 +54,13 @@ describe('parseShareLink', () => {
   it('accepts a hex with a # or in capitals', () => {
     expect(read('top=%23C39A3A')).toEqual({ pieces: { top: MUSTARD }, baseSlot: null });
     expect(read('top=C39A3A')).toEqual({ pieces: { top: MUSTARD }, baseSlot: null });
-    expect(read('top=fff')).toEqual({ pieces: { top: parseHex('#ffffff') }, baseSlot: null });
+  });
+
+  // shareLink writes six digits. Three is a link cut inside its last hex, and
+  // parseHex would read 1f2 as a quite different #11ff22.
+  it('rejects a hex cut short', () => {
+    expect(read('top=c39a3a&bottom=1f2')).toBeNull();
+    expect(read('top=fff')).toBeNull();
   });
 
   it('rejects a link with a piece it cannot read', () => {

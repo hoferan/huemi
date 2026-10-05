@@ -34,6 +34,12 @@ async function theShare(page: Page): Promise<RecordedShare> {
   return (await shares(page))[0]!;
 }
 
+/** The link a share carries, last in its text. The payload has no `url`. */
+function linkIn(share: RecordedShare): string {
+  expect(share.url).toBeUndefined();
+  return share.text!.split(' ').at(-1)!;
+}
+
 /** "Top: Mustard" for every block on screen, head to toe, as `blockLabel` names them. */
 async function blockNames(page: Page): Promise<string[]> {
   const blocks = page.getByRole('group', { name: /^(Outerwear|Top|Bottom|Shoes|Accessory): / });
@@ -191,7 +197,7 @@ Then("each block's name is painted in the foreground the screen uses", async ({ 
 
 Then('the shared text names every block on screen', async ({ page }) => {
   const share = await theShare(page);
-  const link = share.url!;
+  const link = linkIn(share);
   expect(share.text).toBe(`${sentenceFor(await blockNames(page))} ${link}`);
 });
 
@@ -199,7 +205,7 @@ Then('the share has no file and names every block on screen', async ({ page }) =
   const share = await theShare(page);
   expect(share.files).toEqual([]);
   expect(share.title).toBe('huemi outfit');
-  expect(share.text).toBe(`${sentenceFor(await blockNames(page))} ${share.url!}`);
+  expect(share.text).toBe(`${sentenceFor(await blockNames(page))} ${linkIn(share)}`);
 });
 
 Then('sharing the outfit downloads {string}', async ({ page }, name: string) => {
@@ -215,10 +221,11 @@ Then("the share's link opens the same blocks", async ({ page }) => {
   const names = await blockNames(page);
   const origin = new URL(page.url()).origin;
 
-  expect(share.url!.startsWith(`${origin}/shared?`)).toBe(true);
-  expect(share.text).toBe(`${sentenceFor(names)} ${share.url}`);
+  const link = linkIn(share);
+  expect(link.startsWith(`${origin}/shared?`)).toBe(true);
+  expect(share.text).toBe(`${sentenceFor(names)} ${link}`);
 
-  await page.goto(share.url!);
+  await page.goto(link);
   await expect(page.getByRole('heading', { level: 1, name: 'An outfit for you' })).toBeVisible();
   expect(
     await page
