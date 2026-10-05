@@ -13,18 +13,26 @@ export function buildOutfit(
   id: string,
   now: Date,
 ): Outfit {
-  const pieces: Partial<Record<Slot, Hex>> = { [base.slot]: base.hex };
-  for (const slot of SLOTS) {
-    const pick = picks[slot];
-    if (slot === base.slot || !pick) continue;
-    pieces[slot] = pick.hex;
-  }
   return {
     version: 1,
     id,
     name: outfitName(base),
     createdAt: now.toISOString(),
     baseSlot: base.slot,
-    pieces,
+    pieces: outfitPieces(base, picks),
   };
+}
+
+/** The colour of every piece on screen, the base included, by slot. */
+export function outfitPieces(
+  base: Base,
+  picks: Partial<Record<Slot, SlotPick>>,
+): Partial<Record<Slot, Hex>> {
+  const pieces: Partial<Record<Slot, Hex>> = { [base.slot]: base.hex };
+  for (const slot of SLOTS) {
+    const pick = picks[slot];
+    if (slot === base.slot || !pick) continue;
+    pieces[slot] = pick.hex;
+  }
+  return pieces;
 }

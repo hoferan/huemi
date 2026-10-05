@@ -4,27 +4,11 @@ import { Bookmark } from 'lucide-react';
 import type { Slot } from '../../model/types';
 import type { Base, SlotPick } from '../../session/types';
 import { useSession } from '../../session/useSession';
-import { tokens } from '../../styles/tokens.stylex';
+import { headerButton } from '../../ui/headerButton';
 import { buildOutfit } from '../saved/buildOutfit';
 import { makeOutfitId } from '../saved/makeOutfitId';
 import { sameOutfit } from '../saved/matching';
 import { useOutfits } from '../saved/useOutfits';
-
-const styles = stylex.create({
-  toggle: {
-    display: 'grid',
-    placeItems: 'center',
-    width: tokens.touchTarget,
-    height: tokens.touchTarget,
-    borderRadius: '999px',
-    borderWidth: '1px',
-    borderStyle: 'solid',
-    borderColor: tokens.line,
-    backgroundColor: { default: 'transparent', ':hover': tokens.surface },
-    color: tokens.ink,
-    cursor: 'pointer',
-  },
-});
 
 /**
  * The bookmark. Pressed when what is on screen is exactly a saved outfit,
@@ -90,7 +74,7 @@ export function SaveToggle({
       aria-label="Save outfit"
       aria-pressed={pressed}
       onClick={() => void toggle()}
-      {...stylex.props(styles.toggle)}
+      {...stylex.props(headerButton.button)}
     >
       <Bookmark size={22} aria-hidden="true" fill={pressed ? 'currentColor' : 'none'} />
     </button>
