@@ -1,12 +1,18 @@
 /**
+ * What a check for an update found: a new worker installing or waiting, none,
+ * or no worker registered to check with.
+ */
+export type UpdateResult = 'found' | 'none-found' | 'unregistered';
+
+/**
  * The offline worker, as the dev menu sees it. A port so the menu's tests need
  * neither a service worker nor a Cache Storage, which jsdom has neither of.
  */
 export interface WorkerPort {
   /** The caches `sw.js` made, by name. */
   cacheNames(): Promise<string[]>;
-  /** Asks the browser to look for a new worker; `none` when nothing is registered. */
-  update(): Promise<'checked' | 'none'>;
+  /** Asks the browser to look for a new worker. */
+  update(): Promise<UpdateResult>;
   /** Whether a registration was removed. */
   unregister(): Promise<boolean>;
   reload(): void;
@@ -19,9 +25,11 @@ export const browserWorker: WorkerPort = {
   cacheNames: async () => (await caches.keys()).filter((name) => name.startsWith('huemi-')),
   update: async () => {
     const registration = await navigator.serviceWorker.getRegistration();
-    if (!registration) return 'none';
+    if (!registration) return 'unregistered';
     await registration.update();
-    return 'checked';
+    // A worker without skipWaiting (pwa/worker.js) installs, then waits for
+    // every window on the old one to close.
+    return registration.installing || registration.waiting ? 'found' : 'none-found';
   },
   unregister: async () => {
     const registration = await navigator.serviceWorker.getRegistration();

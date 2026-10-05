@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Route, Routes, useLocation } from 'react-router';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { SessionProvider } from '../../../session/SessionProvider';
 import { useSession } from '../../../session/useSession';
 import { ONBOARDED_KEY } from '../../../storage/localPreferences';
@@ -9,7 +9,7 @@ import { OutfitsProvider } from '../../saved/OutfitsProvider';
 import { fakeOutfitStore, makeOutfit } from '../../saved/testing';
 import { DevModeProvider } from '../DevModeProvider';
 import { fakeDevModeStore } from '../testing';
-import { BUILD } from './build';
+import { BUILD_META } from './build';
 import DevMenu from './DevMenu';
 import type { WorkerPort } from './worker';
 import { fakeWorker } from './worker.testing';
@@ -23,6 +23,15 @@ function Where() {
   return <p data-testid="where">{useLocation().pathname}</p>;
 }
 
+function Back() {
+  const navigate = useNavigate();
+  return (
+    <button type="button" onClick={() => void navigate(-1)}>
+      browser back
+    </button>
+  );
+}
+
 function setup(options: { worker?: WorkerPort; outfits?: number } = {}) {
   const worker = options.worker ?? fakeWorker();
   const outfitStore = fakeOutfitStore(
@@ -32,14 +41,16 @@ function setup(options: { worker?: WorkerPort; outfits?: number } = {}) {
   );
   const devStore = fakeDevModeStore(true);
   render(
-    <MemoryRouter initialEntries={['/dev']}>
+    <MemoryRouter initialEntries={['/', '/dev']} initialIndex={1}>
       <SessionProvider>
         <OutfitsProvider store={outfitStore}>
           <DevModeProvider store={devStore}>
             <Routes>
               <Route path="/dev" element={<DevMenu worker={worker} />} />
               <Route path="/" element={<p>home</p>} />
+              <Route path="*" element={<p>not found</p>} />
             </Routes>
+            <Back />
             <Toast />
             <Where />
           </DevModeProvider>
@@ -51,14 +62,32 @@ function setup(options: { worker?: WorkerPort; outfits?: number } = {}) {
 }
 
 beforeEach(() => localStorage.clear());
+afterEach(() => {
+  document.head.querySelectorAll('meta').forEach((meta) => meta.remove());
+});
+
+function addMeta(name: string, content: string) {
+  const meta = document.createElement('meta');
+  meta.name = name;
+  meta.content = content;
+  document.head.append(meta);
+}
 
 describe('DevMenu', () => {
-  it('shows the build commit and date', async () => {
+  it('shows the build commit and date from the page', async () => {
+    addMeta(BUILD_META.commit, 'abc1234');
+    addMeta(BUILD_META.date, '2026-10-05T09:30:00+02:00');
     setup();
     await screen.findByText('No offline cache.');
     expect(screen.getByRole('heading', { name: 'Build' })).toBeInTheDocument();
-    expect(screen.getByText(BUILD.commit)).toBeInTheDocument();
-    expect(screen.getByText(BUILD.date)).toBeInTheDocument();
+    expect(screen.getByText('abc1234')).toBeInTheDocument();
+    expect(screen.getByText('2026-10-05T09:30:00+02:00')).toBeInTheDocument();
+  });
+
+  it('says unknown for a page without build info', async () => {
+    setup();
+    await screen.findByText('No offline cache.');
+    expect(screen.getAllByText('unknown')).toHaveLength(2);
   });
 
   it('resets onboarding', async () => {
@@ -126,12 +155,20 @@ describe('DevMenu', () => {
     expect(await screen.findByText('No offline cache.')).toBeInTheDocument();
   });
 
-  it('checks for an update', async () => {
-    const { user } = setup({ worker: fakeWorker({ registered: true }) });
+  it('says when an update was found', async () => {
+    const { user } = setup({ worker: fakeWorker({ registered: true, update: true }) });
     await user.click(screen.getByRole('button', { name: 'Check for update' }));
     await waitFor(() =>
-      expect(screen.getByTestId('toast')).toHaveTextContent('Checked for an update.'),
+      expect(screen.getByTestId('toast')).toHaveTextContent(
+        'An update is ready. It applies the next time huemi starts.',
+      ),
     );
+  });
+
+  it('says when no update was found', async () => {
+    const { user } = setup({ worker: fakeWorker({ registered: true }) });
+    await user.click(screen.getByRole('button', { name: 'Check for update' }));
+    await waitFor(() => expect(screen.getByTestId('toast')).toHaveTextContent('No update found.'));
   });
 
   it('reports a missing worker on update', async () => {
@@ -147,7 +184,7 @@ describe('DevMenu', () => {
     const { user } = setup({ worker });
     await user.click(screen.getByRole('button', { name: 'Unregister and reload' }));
     await waitFor(() => expect(worker.reloaded).toBe(1));
-    expect(await worker.update()).toBe('none');
+    expect(await worker.update()).toBe('unregistered');
   });
 
   it('reports a failed update check', async () => {
@@ -184,5 +221,15 @@ describe('DevMenu', () => {
     await waitFor(() => expect(screen.getByTestId('where')).toHaveTextContent(/^\/$/));
     expect(devStore.value).toBe(false);
     expect(screen.getByTestId('toast')).toHaveTextContent('Developer mode off');
+  });
+
+  // Locking replaces /dev, which is now not found, so Back skips it.
+  it('leaves no locked /dev behind for Back', async () => {
+    const { user } = setup();
+    await user.click(screen.getByRole('button', { name: 'Lock developer mode' }));
+    await waitFor(() => expect(screen.getByTestId('where')).toHaveTextContent(/^\/$/));
+    await user.click(screen.getByRole('button', { name: 'browser back' }));
+    await waitFor(() => expect(screen.getByTestId('where')).toHaveTextContent(/^\/$/));
+    expect(screen.queryByText('not found')).not.toBeInTheDocument();
   });
 });

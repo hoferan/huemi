@@ -24,8 +24,10 @@ export function DevModeProvider({
   children: ReactNode;
 }) {
   const [on, setOn] = useState(() => store.isOn());
-  const method = unlockMethod(env);
-  const { hash } = env;
+  // `hashPassphrase` gives lowercase hex, and a value pasted into a deploy
+  // setting may come with capitals or stray whitespace.
+  const hash = env.hash?.trim().toLowerCase();
+  const method = unlockMethod({ dev: env.dev, hash });
 
   const set = useCallback(
     (next: boolean) => {

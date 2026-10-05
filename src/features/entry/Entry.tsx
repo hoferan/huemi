@@ -22,6 +22,9 @@ const styles = stylex.create({
     fontFamily: tokens.fontHeading,
     fontSize: tokens.textBody,
     margin: 0,
+    // Seven rapid taps must not select the word or zoom the page on a phone.
+    userSelect: 'none',
+    touchAction: 'manipulation',
   },
   brand: { display: 'flex', alignItems: 'center' },
   header: { display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
@@ -105,7 +108,7 @@ export function Entry() {
         </div>
       }
     >
-      <UnlockSheet open={asking} onOpenChange={setAsking} />
+      {asking && <UnlockSheet open onOpenChange={setAsking} />}
       <div {...clearOfToasts} {...stylex.props(styles.actions)}>
         <WayIn
           icon={Camera}

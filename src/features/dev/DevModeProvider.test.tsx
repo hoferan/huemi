@@ -88,6 +88,22 @@ describe('DevModeProvider', () => {
     expect(store.value).toBe(true);
   });
 
+  // A hash pasted into a deploy setting can pick up case or spaces on the way.
+  it('accepts a hash given in uppercase with spaces around it', async () => {
+    const store = fakeDevModeStore();
+    const hash = ` ${(await hashPassphrase('correct horse')).toUpperCase()} 
+`;
+    const user = setup(store, { dev: false, hash });
+    await user.click(screen.getByRole('button', { name: 'right' }));
+    await waitFor(() => expect(document.title).toBe('true'));
+    expect(store.value).toBe(true);
+  });
+
+  it('treats a hash of only spaces as none', () => {
+    setup(fakeDevModeStore(), { dev: false, hash: '   ' });
+    expect(screen.getByText('on false method none')).toBeInTheDocument();
+  });
+
   it('tryPassphrase with a wrong one resolves false and stays off', async () => {
     const store = fakeDevModeStore();
     const user = setup(store, { dev: false, hash: await hashPassphrase('correct horse') });

@@ -109,6 +109,17 @@ describe('Entry', () => {
       expect(await screen.findByRole('dialog', { name: 'Developer mode' })).toBeInTheDocument();
     });
 
+    it('opens the passphrase sheet empty again after it was dismissed', async () => {
+      renderWithMode({ dev: false, hash: 'a'.repeat(64) });
+      await tapWordmark(SEVEN_TAPS);
+      const user = userEvent.setup();
+      await user.type(await screen.findByLabelText('Passphrase'), 'half typed');
+      await user.keyboard('{Escape}');
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      await tapWordmark(SEVEN_TAPS);
+      expect(await screen.findByLabelText('Passphrase')).toHaveValue('');
+    });
+
     it('turns developer mode on directly in direct mode', async () => {
       const store = renderWithMode({ dev: true, hash: undefined });
       await tapWordmark(SEVEN_TAPS);

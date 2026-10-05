@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useId, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import * as stylex from '@stylexjs/stylex';
 import { useSession } from '../../session/useSession';
@@ -29,8 +29,11 @@ function UnlockForm({ onDone }: { onDone: () => void }) {
   const { tryPassphrase } = useDevMode();
   const { dispatch } = useSession();
   const [passphrase, setPassphrase] = useState('');
-  const [wrong, setWrong] = useState(false);
+  // Counts wrong attempts. It keys the alert, so each one is a new element
+  // that a screen reader announces, where the same text left in place is not.
+  const [wrong, setWrong] = useState(0);
   const field = useRef<HTMLInputElement>(null);
+  const errorId = useId();
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -42,7 +45,7 @@ function UnlockForm({ onDone }: { onDone: () => void }) {
       onDone();
       return;
     }
-    setWrong(true);
+    setWrong((count) => count + 1);
     field.current?.focus();
   }
 
@@ -55,12 +58,14 @@ function UnlockForm({ onDone }: { onDone: () => void }) {
           type="password"
           autoComplete="off"
           value={passphrase}
+          aria-invalid={wrong > 0 || undefined}
+          aria-describedby={wrong > 0 ? errorId : undefined}
           onChange={(event) => setPassphrase(event.target.value)}
           {...stylex.props(styles.field)}
         />
       </label>
-      {wrong && (
-        <p role="alert" {...stylex.props(styles.error)}>
+      {wrong > 0 && (
+        <p key={wrong} id={errorId} role="alert" {...stylex.props(styles.error)}>
           That passphrase is not right.
         </p>
       )}
@@ -70,8 +75,8 @@ function UnlockForm({ onDone }: { onDone: () => void }) {
 }
 
 /**
- * Asks for the passphrase in a build that has one. The form is the sheet's
- * child, so the field is empty each time the sheet opens.
+ * Asks for the passphrase in a build that has one. Like every `Sheet`, it is
+ * mounted only while it is open, so the field is empty each time it opens.
  */
 export function UnlockSheet({
   open,

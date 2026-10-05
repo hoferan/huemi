@@ -31,29 +31,45 @@ if (process.env.VITEST) {
   delete stylexPlugin.configureServer;
 }
 
-// Which commit this build is, for the developer menu. Netlify sets COMMIT_REF
-// and has no git history to ask; elsewhere git answers, and a tarball with
-// neither reads as unknown.
-function buildCommit(): string {
-  if (process.env.COMMIT_REF) return process.env.COMMIT_REF.slice(0, 7);
+function git(args: string): string {
   try {
-    return execSync('git rev-parse --short HEAD', { stdio: ['ignore', 'pipe', 'ignore'] })
+    return execSync(`git ${args}`, { stdio: ['ignore', 'pipe', 'ignore'] })
       .toString()
       .trim();
   } catch {
-    return 'unknown';
+    return '';
   }
 }
 
+// Which commit this build is and when it was committed, for the developer
+// menu. Netlify names the commit in COMMIT_REF, git does elsewhere, and a
+// tarball with neither reads as unknown. The date is the commit's, never the
+// clock's, so building one commit twice gives the same bytes.
+//
+// They go into index.html and not into the JavaScript. A value in a chunk
+// renames that chunk and every chunk that imports it, which changes the
+// worker's cache name, so every deploy would ship all of the app again.
+// `src/features/dev/menu/build.ts` reads them and holds the same meta names.
+function buildInfo(): Plugin {
+  return {
+    name: 'huemi-build-info',
+    transformIndexHtml() {
+      const commit = process.env.COMMIT_REF?.slice(0, 7) || git('rev-parse --short HEAD');
+      const date = git('log -1 --format=%cI');
+      return [
+        { name: 'huemi-build-commit', content: commit || 'unknown' },
+        { name: 'huemi-build-date', content: date || 'unknown' },
+      ].map((attrs) => ({ tag: 'meta', attrs, injectTo: 'head' }));
+    },
+  };
+}
+
 export default defineConfig({
-  define: {
-    __BUILD_COMMIT__: JSON.stringify(buildCommit()),
-    __BUILD_DATE__: JSON.stringify(new Date().toISOString()),
-  },
   plugins: [
     // MUST precede @vitejs/plugin-react, or React Fast Refresh breaks.
     stylexPlugin,
     react(),
+    buildInfo(),
     // Last, because it lists the finished build: the bundle and the copy of
     // public/ both have to be on disk before it writes dist/sw.js.
     serviceWorker(),

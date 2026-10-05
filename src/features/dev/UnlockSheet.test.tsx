@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { describe, expect, it } from 'vitest';
@@ -55,6 +55,33 @@ describe('UnlockSheet', () => {
     expect(screen.getByRole('dialog')).toBeInTheDocument();
     expect(screen.getByText('mode off')).toBeInTheDocument();
     expect(field).toHaveFocus();
+  });
+
+  it('marks the field invalid and points it at the message', async () => {
+    const { user } = renderSheet(await hashPassphrase('open sesame'));
+    const field = screen.getByLabelText('Passphrase');
+    expect(field).not.toHaveAttribute('aria-invalid');
+    expect(field).not.toHaveAccessibleDescription();
+    await user.type(field, 'wrong');
+    await user.click(screen.getByRole('button', { name: 'Unlock' }));
+    await screen.findByRole('alert');
+    expect(field).toHaveAttribute('aria-invalid', 'true');
+    expect(field).toHaveAccessibleDescription('That passphrase is not right.');
+  });
+
+  // A screen reader announces an alert when it appears. The same node with the
+  // same text says nothing, so each wrong attempt puts up a new one.
+  it('announces a second wrong passphrase again', async () => {
+    const { user } = renderSheet(await hashPassphrase('open sesame'));
+    const field = screen.getByLabelText('Passphrase');
+    await user.type(field, 'wrong');
+    await user.click(screen.getByRole('button', { name: 'Unlock' }));
+    const first = await screen.findByRole('alert');
+    await user.type(field, ' again');
+    await user.click(screen.getByRole('button', { name: 'Unlock' }));
+    await waitFor(() => expect(screen.getByRole('alert')).not.toBe(first));
+    expect(first).not.toBeInTheDocument();
+    expect(screen.getByRole('alert')).toHaveTextContent('That passphrase is not right.');
   });
 
   it('treats a failed check as not unlocked', async () => {

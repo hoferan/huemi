@@ -9,9 +9,9 @@ import { HOME } from '../../../ui/home';
 import { Screen } from '../../../ui/Screen';
 import { useOutfits } from '../../saved/useOutfits';
 import { useDevMode } from '../useDevMode';
-import { BUILD } from './build';
+import { readBuild } from './build';
 import { ClearOutfits } from './ClearOutfits';
-import { browserWorker, type WorkerPort } from './worker';
+import { browserWorker, type UpdateResult, type WorkerPort } from './worker';
 
 const styles = stylex.create({
   section: { display: 'flex', flexDirection: 'column', gap: '12px' },
@@ -30,6 +30,12 @@ const styles = stylex.create({
   value: { margin: 0, overflowWrap: 'anywhere' },
 });
 
+const UPDATE_TOAST: Record<UpdateResult, string> = {
+  found: 'An update is ready. It applies the next time huemi starts.',
+  'none-found': 'No update found.',
+  unregistered: 'No offline worker is registered.',
+};
+
 /**
  * The developer menu: what this build is, and the resets that otherwise mean
  * clearing site data by hand. It is a lazy chunk behind `DevRoute`, so none of
@@ -42,6 +48,7 @@ export default function DevMenu({ worker = browserWorker }: { worker?: WorkerPor
   const navigate = useNavigate();
   const [caches, setCaches] = useState<string[] | null>(null);
   const [clearing, setClearing] = useState(false);
+  const [build] = useState(readBuild);
 
   useEffect(() => {
     let current = true;
@@ -71,9 +78,9 @@ export default function DevMenu({ worker = browserWorker }: { worker?: WorkerPor
         <h2 {...stylex.props(styles.heading)}>Build</h2>
         <dl {...stylex.props(styles.facts)}>
           <dt {...stylex.props(styles.term)}>Commit</dt>
-          <dd {...stylex.props(styles.value)}>{BUILD.commit}</dd>
+          <dd {...stylex.props(styles.value)}>{build.commit}</dd>
           <dt {...stylex.props(styles.term)}>Built</dt>
-          <dd {...stylex.props(styles.value)}>{BUILD.date}</dd>
+          <dd {...stylex.props(styles.value)}>{build.date}</dd>
         </dl>
       </section>
 
@@ -119,13 +126,7 @@ export default function DevMenu({ worker = browserWorker }: { worker?: WorkerPor
           onClick={() => {
             void worker
               .update()
-              .then((result) =>
-                toast(
-                  result === 'checked'
-                    ? 'Checked for an update.'
-                    : 'No offline worker is registered.',
-                ),
-              )
+              .then((result) => toast(UPDATE_TOAST[result]))
               .catch(() => toast("Couldn't check for an update."));
           }}
         />
@@ -147,7 +148,8 @@ export default function DevMenu({ worker = browserWorker }: { worker?: WorkerPor
         onClick={() => {
           lock();
           toast('Developer mode off');
-          void navigate('/');
+          // Replace, because /dev is not found once locked, and Back would land on it.
+          void navigate('/', { replace: true });
         }}
       />
 
