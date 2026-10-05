@@ -5,6 +5,7 @@ import { SLOTS } from '../../model/types';
 import { useSession } from '../../session/useSession';
 import { headerButton } from '../../ui/headerButton';
 import { IMAGE_HEIGHT, IMAGE_WIDTH, layoutShareImage, type ShareImageInput } from './layout';
+import { shareLink } from './link';
 import { ShareContext } from './ShareContext';
 import { shareOutfit, type ShareOutcome } from './shareOutfit';
 import { shareText } from './shareText';
@@ -16,6 +17,7 @@ const MESSAGES: Readonly<Record<ShareOutcome, string | null>> = {
   shared: null,
   dismissed: null,
   downloaded: 'Image saved',
+  downloadedAndCopied: 'Image saved, link copied',
   failed: "Couldn't share this outfit.",
 };
 
@@ -61,14 +63,15 @@ export function ShareButton({ pieces, baseSlot }: ShareImageInput) {
     const current = rendering.current;
     if (inFlight.current || !current) return;
     inFlight.current = true;
-    const text = shareText(input.value.pieces);
+    const names = shareText(input.value.pieces);
+    const link = shareLink(window.location.origin, input.value);
     // Synchronous, so a ready image keeps the tap's activation. A device that
     // throws instead of answering counts as a failed share; letting the throw
     // escape would leave the guard up and the button dead.
     const start = (file: File | null): Promise<ShareOutcome> => {
       if (!file) return Promise.resolve('failed');
       try {
-        return shareOutfit(port, file, text);
+        return shareOutfit(port, file, names, link);
       } catch {
         return Promise.resolve('failed');
       }

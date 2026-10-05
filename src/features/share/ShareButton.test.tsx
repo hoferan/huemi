@@ -5,6 +5,7 @@ import { SessionProvider } from '../../session/SessionProvider';
 import { useSession } from '../../session/useSession';
 import { fakeSharePort, type FakeSharePort } from './fakeShare.testing';
 import { layoutShareImage, type ShareImageInput } from './layout';
+import { shareLink } from './link';
 import type { ShareResult } from './port';
 import { ShareButton } from './ShareButton';
 import { ShareContext } from './ShareContext';
@@ -78,7 +79,10 @@ describe('ShareButton', () => {
     fireEvent.click(button());
 
     expect(port.calls.share).toHaveLength(1);
-    expect(port.calls.share[0]).toMatchObject({ files: [files[0]], text: 'Navy top.' });
+    expect(port.calls.share[0]).toMatchObject({
+      files: [files[0]],
+      text: `Navy top. ${shareLink(window.location.origin, NAVY_TOP)}`,
+    });
     await act(() => Promise.resolve());
   });
 
@@ -101,7 +105,7 @@ describe('ShareButton', () => {
     expect(port.calls.render[1]).toEqual(layoutShareImage(WHITE_TOP));
     expect(port.calls.share[0]).toMatchObject({
       files: [files[1]],
-      text: shareText(WHITE_TOP.pieces),
+      text: `${shareText(WHITE_TOP.pieces)} ${shareLink(window.location.origin, WHITE_TOP)}`,
     });
     await act(() => Promise.resolve());
   });
@@ -132,9 +136,33 @@ describe('ShareButton', () => {
     await settle(() => finish('shared'));
   });
 
-  it('says the image was saved when it downloads instead', async () => {
+  it('shares a link to the outfit on screen', async () => {
+    const { port, button } = await setup();
+
+    fireEvent.click(button());
+
+    const link = shareLink(window.location.origin, NAVY_TOP);
+    expect(port.calls.share[0]).toMatchObject({ url: link, text: `Navy top. ${link}` });
+    await act(() => Promise.resolve());
+  });
+
+  it('says the image was saved and the link copied', async () => {
     const { button, toast } = await setup(
       fakeSharePort({ canShareFiles: () => false, canShare: () => false }),
+    );
+
+    fireEvent.click(button());
+
+    await waitFor(() => expect(toast()).toHaveTextContent('Image saved, link copied'));
+  });
+
+  it('says the image was saved when it downloads instead', async () => {
+    const { button, toast } = await setup(
+      fakeSharePort({
+        canShareFiles: () => false,
+        canShare: () => false,
+        copy: () => Promise.resolve(false),
+      }),
     );
 
     fireEvent.click(button());

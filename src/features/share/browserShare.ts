@@ -79,6 +79,17 @@ async function share(data: ShareData): Promise<ShareResult> {
   }
 }
 
+async function copy(text: string): Promise<boolean> {
+  try {
+    // Missing outside a secure context, and from older browsers.
+    if (!navigator.clipboard) return false;
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export const browserShare: SharePort = {
   render,
   // Both are missing from desktop Firefox, and canShare from older Safari,
@@ -88,4 +99,5 @@ export const browserShare: SharePort = {
   canShare: () => typeof navigator.share === 'function',
   share,
   download,
+  copy,
 };
