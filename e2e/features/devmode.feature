@@ -31,6 +31,7 @@ Feature: Developer mode
     And developer mode is on
     When I open "/dev"
     Then I see the heading "Developer mode"
+    And the menu names the commit and date of the build
     And the screen has no detectable accessibility violations
 
   Scenario: Locking from the menu

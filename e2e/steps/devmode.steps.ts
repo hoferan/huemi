@@ -1,6 +1,7 @@
 import { expect } from '@playwright/test';
 import { createBdd } from 'playwright-bdd';
 import { E2E_PASSPHRASE, seedDevMode } from '../devMode';
+import type { RecordedShare } from '../fakeShare';
 
 const { Given, When, Then } = createBdd();
 
@@ -39,6 +40,14 @@ Then('I see the developer chip', async ({ page }) => {
 
 Then('I do not see the developer chip', async ({ page }) => {
   await expect(page.getByRole('link', { name: 'Developer mode', exact: true })).toHaveCount(0);
+});
+
+// The build writes these into index.html (vite.config.ts) and the menu reads
+// them from there, so `unknown` here means the two disagree on a meta name.
+Then('the menu names the commit and date of the build', async ({ page }) => {
+  const facts = page.locator('section', { has: page.getByRole('heading', { name: 'Build' }) });
+  await expect(facts.locator('dd').nth(0)).toHaveText(/^[0-9a-f]{7,}$/);
+  await expect(facts.locator('dd').nth(1)).toHaveText(/^\d{4}-\d{2}-\d{2}T/);
 });
 
 When('I open {string} and the offline worker is ready', async ({ page }, path: string) => {
@@ -108,5 +117,8 @@ Then('the two shares are identical', async ({ page }) => {
   const second = await page.evaluate(
     () => (window as unknown as { __shares: unknown[] }).__shares[0],
   );
-  expect(second).toEqual(firstShares.get(page));
+  // Two shares with no picture would compare equal without proving anything.
+  const first = firstShares.get(page) as RecordedShare | undefined;
+  expect(first?.files).toHaveLength(1);
+  expect(second).toEqual(first);
 });
