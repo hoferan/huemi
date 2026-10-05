@@ -4,6 +4,7 @@ import { NavigationType, useLocation, useNavigationType } from 'react-router';
 import * as stylex from '@stylexjs/stylex';
 import { ArrowLeft } from 'lucide-react';
 import { tokens } from '../styles/tokens.stylex';
+import { DevSlot } from './DevSlot';
 import { InitialLocationContext } from './InitialLocationContext';
 import { TrailLink } from './TrailLink';
 
@@ -54,7 +55,6 @@ const styles = stylex.create({
     marginBlock: '-10px',
   },
   back: {
-    justifySelf: 'start',
     display: 'inline-flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -65,6 +65,7 @@ const styles = stylex.create({
     borderRadius: tokens.radius,
     color: tokens.ink,
   },
+  start: { justifySelf: 'start', display: 'flex', alignItems: 'center' },
   home: {
     display: 'inline-flex',
     alignItems: 'center',
@@ -157,19 +158,24 @@ export function Screen({
     <main {...stylex.props(styles.main)}>
       {back ? (
         <div {...stylex.props(styles.bar)}>
-          <TrailLink
-            to={back.to}
-            aria-label={`Back to ${back.title}`}
-            {...stylex.props(styles.back)}
-          >
-            <ArrowLeft size={24} aria-hidden="true" />
-          </TrailLink>
+          <div {...stylex.props(styles.start)}>
+            <TrailLink
+              to={back.to}
+              aria-label={`Back to ${back.title}`}
+              {...stylex.props(styles.back)}
+            >
+              <ArrowLeft size={24} aria-hidden="true" />
+            </TrailLink>
+            <DevSlot name="screen.badge" context={{}} />
+          </div>
           <TrailLink to="/" aria-label="huemi, home" {...stylex.props(styles.home)}>
             huemi
           </TrailLink>
           <div {...stylex.props(styles.end)}>{header}</div>
         </div>
       ) : (
+        // No bar, so no developer chip here. Onboarding has neither bar nor
+        // header, and someone in developer mode has already been through it.
         header
       )}
       {/* Headings carry no terminal punctuation; a heading that is itself a

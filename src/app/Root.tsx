@@ -1,5 +1,6 @@
 import { BrowserRouter } from 'react-router';
 import { DevModeProvider } from '../features/dev/DevModeProvider';
+import { DevSlotHost } from '../features/dev/DevSlotHost';
 import { OutfitsProvider } from '../features/saved/OutfitsProvider';
 import { Announcer } from '../ui/Announcer';
 import { HistoryTrail } from '../ui/HistoryTrail';
@@ -26,25 +27,28 @@ import { ToastHost } from './ToastHost';
  * toast host sits inside the announcer, beside the routes, so it outlives a
  * route change. The developer mode provider sits directly inside the router and
  * above `InitialLocation`; nothing it holds depends on the router or the
- * session.
+ * session. `DevSlotHost` sits directly inside it, so every screen can ask for
+ * a developer slot.
  */
 export function Root() {
   return (
     <ErrorBoundary>
       <BrowserRouter>
         <DevModeProvider>
-          <InitialLocation>
-            <HistoryTrail>
-              <SessionProvider>
-                <OutfitsProvider>
-                  <Announcer>
-                    <AppRoutes />
-                    <ToastHost />
-                  </Announcer>
-                </OutfitsProvider>
-              </SessionProvider>
-            </HistoryTrail>
-          </InitialLocation>
+          <DevSlotHost>
+            <InitialLocation>
+              <HistoryTrail>
+                <SessionProvider>
+                  <OutfitsProvider>
+                    <Announcer>
+                      <AppRoutes />
+                      <ToastHost />
+                    </Announcer>
+                  </OutfitsProvider>
+                </SessionProvider>
+              </HistoryTrail>
+            </InitialLocation>
+          </DevSlotHost>
         </DevModeProvider>
       </BrowserRouter>
     </ErrorBoundary>

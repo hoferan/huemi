@@ -2,6 +2,9 @@ import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router';
 import { describe, expect, it } from 'vitest';
+import { DevModeProvider } from '../dev/DevModeProvider';
+import { DevSlotHost } from '../dev/DevSlotHost';
+import { fakeDevModeStore } from '../dev/testing';
 import { InitialLocationContext } from '../../ui/InitialLocationContext';
 import { installOffer } from '../install/installOffer.testing';
 import { Entry } from './Entry';
@@ -38,6 +41,27 @@ describe('Entry', () => {
     const wordmark = screen.getByText('huemi');
     expect(wordmark.tagName).not.toBe('H1');
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
+  });
+
+  it('shows the developer chip beside the wordmark while developer mode is on', async () => {
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <InitialLocationContext value={true}>
+          <DevModeProvider store={fakeDevModeStore(true)}>
+            <DevSlotHost>
+              <Routes>
+                <Route path="/" element={<Entry />} />
+              </Routes>
+            </DevSlotHost>
+          </DevModeProvider>
+        </InitialLocationContext>
+      </MemoryRouter>,
+    );
+    const chip = await screen.findByRole('link', { name: 'Developer mode' });
+    expect(chip).toHaveAttribute('href', '/dev');
+    expect(
+      screen.getByText('huemi').compareDocumentPosition(chip) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 
   it('leads with the camera', () => {

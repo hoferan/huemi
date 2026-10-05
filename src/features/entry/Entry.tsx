@@ -4,6 +4,7 @@ import { Camera, Palette } from 'lucide-react';
 import { tokens } from '../../styles/tokens.stylex';
 import { Button } from '../../ui/Button';
 import { HOME } from '../../ui/home';
+import { DevSlot } from '../../ui/DevSlot';
 import { Screen } from '../../ui/Screen';
 import { CHECK_ENTRY } from '../check/copy';
 import { InstallButton } from '../install/InstallButton';
@@ -17,6 +18,7 @@ const styles = stylex.create({
     fontSize: tokens.textBody,
     margin: 0,
   },
+  brand: { display: 'flex', alignItems: 'center' },
   header: { display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
   saved: {
     display: 'inline-flex',
@@ -67,7 +69,10 @@ export function Entry() {
       title={HOME.title}
       header={
         <div {...stylex.props(styles.header)}>
-          <p {...stylex.props(styles.wordmark)}>huemi</p>
+          <div {...stylex.props(styles.brand)}>
+            <p {...stylex.props(styles.wordmark)}>huemi</p>
+            <DevSlot name="screen.badge" context={{}} />
+          </div>
           <Link to="/saved" {...stylex.props(styles.saved)}>
             Saved
           </Link>

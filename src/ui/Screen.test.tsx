@@ -3,6 +3,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, Link, useNavigate } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { DevSlotContext } from './DevSlotContext';
 import { InitialLocation } from './InitialLocation';
 import { InitialLocationContext } from './InitialLocationContext';
 import { Redirect } from './Redirect';
@@ -254,6 +255,25 @@ describe('Screen', () => {
           control.compareDocumentPosition(heading) & Node.DOCUMENT_POSITION_FOLLOWING,
         ).toBeTruthy();
       }
+    });
+
+    it('renders the screen.badge slot in the bar', () => {
+      render(
+        <MemoryRouter>
+          <DevSlotContext value={(name) => (name === 'screen.badge' ? <i>badge</i> : null)}>
+            <Screen title="Goes with it" back={back}>
+              body
+            </Screen>
+          </DevSlotContext>
+        </MemoryRouter>,
+      );
+      const arrow = screen.getByRole('link', { name: 'Back to Frame the outfit' });
+      const badge = screen.getByText('badge');
+      expect(arrow.compareDocumentPosition(badge) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      expect(
+        badge.compareDocumentPosition(screen.getByRole('link', { name: 'huemi, home' })) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
     });
 
     it('still moves focus to the heading after a navigation, not to the arrow', async () => {
