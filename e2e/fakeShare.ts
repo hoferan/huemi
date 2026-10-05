@@ -18,7 +18,9 @@ export type RecordedShare = {
  *
  * - `files`: a phone that can share the picture
  * - `text`: one that can share only text, as some Android browsers can
- * - `none`: no share sheet at all, as desktop Firefox
+ * - `none`: no share sheet at all, as desktop Firefox. Its clipboard is
+ *   replaced too, recording on `window.__copied`, because headless Chromium
+ *   refuses a clipboard write without a permission grant
  * - `dismiss`: a sheet the user closes without choosing an app
  */
 export async function fakeShare(
@@ -31,6 +33,17 @@ export async function fakeShare(
     if (device === 'none') {
       Reflect.deleteProperty(Navigator.prototype, 'share');
       Reflect.deleteProperty(Navigator.prototype, 'canShare');
+      const copied: string[] = [];
+      Object.assign(window, { __copied: copied });
+      Object.defineProperty(navigator, 'clipboard', {
+        configurable: true,
+        value: {
+          writeText: (text: string) => {
+            copied.push(text);
+            return Promise.resolve();
+          },
+        },
+      });
       return;
     }
     const read = (file: File) =>

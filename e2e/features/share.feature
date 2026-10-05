@@ -34,7 +34,15 @@ Feature: Share
     Given my browser has no share sheet
     When I open the suggestions for a mustard top
     Then sharing the outfit downloads "huemi-outfit.png"
-    And the toast says "Image saved"
+    And the toast says "Image saved, link copied"
+    And the names and the link were copied
+
+  # The round trip a recipient makes: the link has to open what was shared.
+  Scenario: The share links to the outfit on screen
+    Given my phone can share files
+    When I open the suggestions for a mustard top
+    And I share the outfit
+    Then the share's link opens the same blocks
 
   Scenario: Closing the share sheet says nothing
     Given I will close the share sheet
