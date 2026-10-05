@@ -1,4 +1,5 @@
 import { BrowserRouter } from 'react-router';
+import { DevModeProvider } from '../features/dev/DevModeProvider';
 import { OutfitsProvider } from '../features/saved/OutfitsProvider';
 import { Announcer } from '../ui/Announcer';
 import { HistoryTrail } from '../ui/HistoryTrail';
@@ -23,24 +24,28 @@ import { ToastHost } from './ToastHost';
  * outfits provider sits inside the session provider and above the routes, so
  * the bookmark, the saved screen and the toast's Undo share one list; the
  * toast host sits inside the announcer, beside the routes, so it outlives a
- * route change.
+ * route change. The developer mode provider sits directly inside the router and
+ * above `InitialLocation`; nothing it holds depends on the router or the
+ * session.
  */
 export function Root() {
   return (
     <ErrorBoundary>
       <BrowserRouter>
-        <InitialLocation>
-          <HistoryTrail>
-            <SessionProvider>
-              <OutfitsProvider>
-                <Announcer>
-                  <AppRoutes />
-                  <ToastHost />
-                </Announcer>
-              </OutfitsProvider>
-            </SessionProvider>
-          </HistoryTrail>
-        </InitialLocation>
+        <DevModeProvider>
+          <InitialLocation>
+            <HistoryTrail>
+              <SessionProvider>
+                <OutfitsProvider>
+                  <Announcer>
+                    <AppRoutes />
+                    <ToastHost />
+                  </Announcer>
+                </OutfitsProvider>
+              </SessionProvider>
+            </HistoryTrail>
+          </InitialLocation>
+        </DevModeProvider>
       </BrowserRouter>
     </ErrorBoundary>
   );
