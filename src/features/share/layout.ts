@@ -36,7 +36,10 @@ const LINE = 58;
 const BLOCKS_BOTTOM = 1242;
 const WORDMARK_BASELINE = 1310;
 
-const FAMILY = '"Outfit Variable"';
+// tokens.fontHeading's stack. A canvas paints a face that failed to load in
+// the stack's next font, and without one it falls back to the browser's
+// default, usually a serif.
+const FAMILY = '"Outfit Variable", system-ui, sans-serif';
 const SLOT_FONT = `500 30px ${FAMILY}`;
 const NAME_FONT = `500 44px ${FAMILY}`;
 const WORDMARK_FONT = `500 48px ${FAMILY}`;

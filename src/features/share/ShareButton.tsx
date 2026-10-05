@@ -62,8 +62,17 @@ export function ShareButton({ pieces, baseSlot }: ShareImageInput) {
     if (inFlight.current || !current) return;
     inFlight.current = true;
     const text = shareText(input.value.pieces);
-    const start = (file: File | null): Promise<ShareOutcome> =>
-      file ? shareOutfit(port, file, text) : Promise.resolve('failed');
+    // Synchronous, so a ready image keeps the tap's activation. A device that
+    // throws instead of answering counts as a failed share; letting the throw
+    // escape would leave the guard up and the button dead.
+    const start = (file: File | null): Promise<ShareOutcome> => {
+      if (!file) return Promise.resolve('failed');
+      try {
+        return shareOutfit(port, file, text);
+      } catch {
+        return Promise.resolve('failed');
+      }
+    };
     const outcome = current.done ? start(current.file) : current.promise.then(start);
     void outcome
       .then((result) => {

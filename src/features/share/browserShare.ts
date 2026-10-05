@@ -47,8 +47,15 @@ async function render(ops: readonly DrawOp[], width: number, height: number): Pr
     }
   }
 
-  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
-  return blob ? new File([blob], SHARE_FILE_NAME, { type: 'image/png' }) : null;
+  const blob = new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
+  // toBlob copies the bitmap when it is called, so the canvas can go now. The
+  // button paints one per change of outfit, about 5.8 MB each, and iOS
+  // Safari stops handing out 2D contexts once its canvas memory cap is
+  // reached, long before garbage collection would have caught up.
+  canvas.width = 0;
+  canvas.height = 0;
+  const png = await blob;
+  return png ? new File([png], SHARE_FILE_NAME, { type: 'image/png' }) : null;
 }
 
 function download(file: File): void {
@@ -57,7 +64,9 @@ function download(file: File): void {
   link.href = url;
   link.download = file.name;
   link.click();
-  URL.revokeObjectURL(url);
+  // Not revoked in the same task: Firefox, the browser most likely to land
+  // here, has dropped downloads whose URL was revoked right after the click.
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
 /* v8 ignore stop */
 

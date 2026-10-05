@@ -16,6 +16,7 @@ Feature: Share
     And I share the outfit
     Then a PNG named "huemi-outfit.png" of 1080 by 1350 is shared
     And the picture shows the blocks on screen, head to toe
+    And each block's name is painted in the foreground the screen uses
 
   Scenario: The share names every piece
     Given my phone can share files

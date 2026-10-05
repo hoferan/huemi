@@ -187,6 +187,25 @@ describe('ShareButton', () => {
     await waitFor(() => expect(toast()).toHaveTextContent("Couldn't share this outfit."));
   });
 
+  it('recovers when the device throws instead of answering', async () => {
+    let throws = true;
+    const port = fakeSharePort({
+      canShareFiles: () => {
+        if (throws) throw new TypeError('canShare');
+        return true;
+      },
+    });
+    const { button, toast } = await setup(port);
+
+    fireEvent.click(button());
+    await waitFor(() => expect(toast()).toHaveTextContent("Couldn't share this outfit."));
+
+    throws = false;
+    fireEvent.click(button());
+    expect(port.calls.share).toHaveLength(1);
+    await act(() => Promise.resolve());
+  });
+
   it('waits for an image still being made, then shares it', async () => {
     let finish: (file: File | null) => void = () => undefined;
     const file = new File([''], 'huemi-outfit.png', { type: 'image/png' });

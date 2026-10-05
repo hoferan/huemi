@@ -94,9 +94,15 @@ describe('layoutShareImage', () => {
     const [{ slot, name }] = blockTexts(ops) as [{ slot: Text; name: Text }];
     const bottom = block!.y + block!.height;
 
-    expect(name).toMatchObject({ x: 72, font: '500 44px "Outfit Variable"' });
+    expect(name).toMatchObject({
+      x: 72,
+      font: '500 44px "Outfit Variable", system-ui, sans-serif',
+    });
     expect(name.y).toBeCloseTo(bottom - 32);
-    expect(slot).toMatchObject({ x: 72, font: '500 30px "Outfit Variable"' });
+    expect(slot).toMatchObject({
+      x: 72,
+      font: '500 30px "Outfit Variable", system-ui, sans-serif',
+    });
     expect(slot.y).toBeCloseTo(bottom - 32 - 58);
   });
 

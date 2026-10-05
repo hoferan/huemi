@@ -69,52 +69,124 @@ Then(
   },
 );
 
-Then('the picture shows the blocks on screen, head to toe', async ({ page }) => {
-  const share = await theShare(page);
-  const onScreen = await page
+type Rgb = [number, number, number];
+
+/** A computed CSS color, "rgb(31, 42, 68)", as its three channels. */
+function channels(css: string): Rgb {
+  const [r, g, b] = css.match(/\d+/g)!.map(Number);
+  return [r!, g!, b!];
+}
+
+/** Each block on screen: its background, and the foreground its text is drawn in. */
+async function blocksOnScreen(page: Page): Promise<{ background: Rgb; foreground: Rgb }[]> {
+  const styles = await page
     .getByRole('group', { name: /^(Outerwear|Top|Bottom|Shoes|Accessory): / })
     .evaluateAll((nodes) =>
       nodes.map((node) => {
-        const [r, g, b] = getComputedStyle(node).backgroundColor.match(/\d+/g)!.map(Number);
-        return [r!, g!, b!];
+        const style = getComputedStyle(node);
+        return { background: style.backgroundColor, foreground: style.color };
       }),
     );
-  // Column x = 1000 runs inside every block, 40 short of its right edge, so
-  // it misses the start-aligned text and the 24 px corners. A run is a
-  // stretch of one color longer than 40 px, which leaves out the antialiased
-  // rows at a block's top and bottom and the gaps between blocks.
-  const runs = await page.evaluate(async (dataUrl) => {
-    const image = new Image();
-    image.src = dataUrl;
-    await image.decode();
-    const canvas = document.createElement('canvas');
-    canvas.width = image.naturalWidth;
-    canvas.height = image.naturalHeight;
-    const context = canvas.getContext('2d')!;
-    context.drawImage(image, 0, 0);
-    const column = context.getImageData(1000, 0, 1, canvas.height).data;
-    const found: number[][] = [];
-    let start = 0;
-    for (let y = 1; y <= canvas.height; y += 1) {
-      const same =
-        y < canvas.height &&
-        [0, 1, 2].every((channel) => column[y * 4 + channel] === column[start * 4 + channel]);
-      if (same) continue;
-      if (y - start > 40)
-        found.push([column[start * 4]!, column[start * 4 + 1]!, column[start * 4 + 2]!]);
-      start = y;
-    }
-    return found;
-  }, share.files[0]!.dataUrl);
+  return styles.map(({ background, foreground }) => ({
+    background: channels(background),
+    foreground: channels(foreground),
+  }));
+}
 
-  // tokens.bg, around and between the blocks.
-  const blocks = runs.filter(([r, g, b]) => !(r === 0xd8 && g === 0xd5 && b === 0xcf));
-  expect(blocks).toHaveLength(onScreen.length);
-  blocks.forEach((pixel, index) => {
-    pixel.forEach((channel, at) =>
-      expect(Math.abs(channel - onScreen[index]![at]!)).toBeLessThanOrEqual(1),
-    );
+type PaintedBlock = { color: Rgb; top: number; bottom: number; ink: number };
+
+/**
+ * The blocks in the shared picture, top to bottom, read down column x = 1000.
+ * That column runs inside every block, 40 short of its right edge, so it
+ * misses the start-aligned text and the 24 px corners. A block is a stretch
+ * of one color longer than 40 px that is not tokens.bg, which leaves out the
+ * antialiased rows at a block's edges and the gaps between blocks.
+ *
+ * `ink` counts the pixels of the given foregrounds, one per block in order,
+ * where the block's name is set: the band of 34 px above its baseline, 32 in
+ * from the bottom, over the first 400 px from the text's start.
+ */
+async function paintedBlocks(
+  page: Page,
+  dataUrl: string,
+  foregrounds: Rgb[],
+): Promise<PaintedBlock[]> {
+  return page.evaluate(
+    async ({ dataUrl, foregrounds }) => {
+      const image = new Image();
+      image.src = dataUrl;
+      await image.decode();
+      const canvas = document.createElement('canvas');
+      canvas.width = image.naturalWidth;
+      canvas.height = image.naturalHeight;
+      const context = canvas.getContext('2d')!;
+      context.drawImage(image, 0, 0);
+      const column = context.getImageData(1000, 0, 1, canvas.height).data;
+      const at = (y: number): [number, number, number] => [
+        column[y * 4]!,
+        column[y * 4 + 1]!,
+        column[y * 4 + 2]!,
+      ];
+      const found: { color: [number, number, number]; top: number; bottom: number; ink: number }[] =
+        [];
+      let start = 0;
+      for (let y = 1; y <= canvas.height; y += 1) {
+        const same =
+          y < canvas.height && at(y).every((channel, index) => channel === at(start)[index]);
+        if (same) continue;
+        const [r, g, b] = at(start);
+        if (y - start > 40 && !(r === 0xd8 && g === 0xd5 && b === 0xcf)) {
+          found.push({ color: at(start), top: start, bottom: y, ink: 0 });
+        }
+        start = y;
+      }
+      found.forEach((block, index) => {
+        const [fr, fg, fb] = foregrounds[index] ?? [-9, -9, -9];
+        const band = context.getImageData(72, block.bottom - 32 - 34, 400, 34).data;
+        for (let i = 0; i < band.length; i += 4) {
+          const near =
+            Math.abs(band[i]! - fr) <= 1 &&
+            Math.abs(band[i + 1]! - fg) <= 1 &&
+            Math.abs(band[i + 2]! - fb) <= 1;
+          if (near) block.ink += 1;
+        }
+      });
+      return found;
+    },
+    { dataUrl, foregrounds },
+  );
+}
+
+const close = (a: Rgb, b: Rgb) => a.every((channel, index) => Math.abs(channel - b[index]!) <= 1);
+
+Then('the picture shows the blocks on screen, head to toe', async ({ page }) => {
+  const share = await theShare(page);
+  const onScreen = await blocksOnScreen(page);
+  const painted = await paintedBlocks(
+    page,
+    share.files[0]!.dataUrl,
+    onScreen.map((block) => block.foreground),
+  );
+
+  expect(painted).toHaveLength(onScreen.length);
+  painted.forEach((block, index) => {
+    expect(close(block.color, onScreen[index]!.background)).toBe(true);
   });
+});
+
+// Solid strokes of a 44 px name cover far more than 150 pixels in a 400 by 34
+// band. Without the text, or in the other foreground, the band holds none.
+Then("each block's name is painted in the foreground the screen uses", async ({ page }) => {
+  const share = await theShare(page);
+  const onScreen = await blocksOnScreen(page);
+  const painted = await paintedBlocks(
+    page,
+    share.files[0]!.dataUrl,
+    onScreen.map((block) => block.foreground),
+  );
+
+  expect(painted).toHaveLength(onScreen.length);
+  painted.forEach((block) => expect(block.ink).toBeGreaterThan(150));
 });
 
 Then('the shared text names every block on screen', async ({ page }) => {
