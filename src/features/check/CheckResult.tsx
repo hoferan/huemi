@@ -10,6 +10,7 @@ import { tokens } from '../../styles/tokens.stylex';
 import { Button } from '../../ui/Button';
 import { Screen } from '../../ui/Screen';
 import { Sheet } from '../../ui/Sheet';
+import { ShareButton } from '../share/ShareButton';
 import { Alternatives } from '../suggest/Alternatives';
 import { CheckBlock } from './CheckBlock';
 import {
@@ -108,7 +109,17 @@ export function CheckResult() {
   const openPiece = openFor === null ? undefined : check.pieces[openFor];
 
   return (
-    <Screen title={CHECK_TITLE} back={{ to: '/check/pieces', title: PIECES_TITLE }}>
+    <Screen
+      title={CHECK_TITLE}
+      back={{ to: '/check/pieces', title: PIECES_TITLE }}
+      header={
+        <ShareButton
+          pieces={pieces}
+          baseSlot={null}
+          sentences={observations.map(observationText)}
+        />
+      }
+    >
       <div {...stylex.props(styles.blocks)}>
         {CHECK_SLOTS.map((slot) => {
           const hex = pieces[slot];
