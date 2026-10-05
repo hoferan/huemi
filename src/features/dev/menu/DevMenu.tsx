@@ -83,6 +83,7 @@ export default function DevMenu({ worker = browserWorker }: { worker?: WorkerPor
           label="Reset onboarding"
           variant="secondary"
           onClick={() => {
+            // No catch: the preference store swallows its own storage errors.
             void localPreferences
               .setOnboarded(false)
               .then(() => toast('Onboarding will show next time.'));
@@ -95,7 +96,8 @@ export default function DevMenu({ worker = browserWorker }: { worker?: WorkerPor
             onClick={() => setClearing(true)}
           />
         ) : (
-          <p {...stylex.props(styles.text)}>No saved outfits.</p>
+          // Silent while the list is still loading or unreadable: "none" would be a guess.
+          state.status === 'ready' && <p {...stylex.props(styles.text)}>No saved outfits.</p>
         )}
       </section>
 
@@ -123,14 +125,19 @@ export default function DevMenu({ worker = browserWorker }: { worker?: WorkerPor
                     ? 'Checked for an update.'
                     : 'No offline worker is registered.',
                 ),
-              );
+              )
+              .catch(() => toast("Couldn't check for an update."));
           }}
         />
         <Button
           label="Unregister and reload"
           variant="secondary"
           onClick={() => {
-            void worker.unregister().then(() => worker.reload());
+            // A rejection skips the reload, so the menu stays up to say what failed.
+            void worker
+              .unregister()
+              .then(() => worker.reload())
+              .catch(() => toast("Couldn't unregister the offline worker."));
           }}
         />
       </section>

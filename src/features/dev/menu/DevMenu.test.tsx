@@ -150,6 +150,34 @@ describe('DevMenu', () => {
     expect(await worker.update()).toBe('none');
   });
 
+  it('reports a failed update check', async () => {
+    const worker = { ...fakeWorker(), update: () => Promise.reject(new Error('offline')) };
+    const { user } = setup({ worker });
+    await user.click(screen.getByRole('button', { name: 'Check for update' }));
+    await waitFor(() =>
+      expect(screen.getByTestId('toast')).toHaveTextContent("Couldn't check for an update."),
+    );
+  });
+
+  it('reports a failed unregister and does not reload', async () => {
+    const base = fakeWorker({ registered: true });
+    const worker = { ...base, unregister: () => Promise.reject(new Error('blocked')) };
+    const { user } = setup({ worker });
+    await user.click(screen.getByRole('button', { name: 'Unregister and reload' }));
+    await waitFor(() =>
+      expect(screen.getByTestId('toast')).toHaveTextContent(
+        "Couldn't unregister the offline worker.",
+      ),
+    );
+    expect(base.reloaded).toBe(0);
+  });
+
+  it('does not say there are no outfits while they load', async () => {
+    setup();
+    expect(screen.queryByText('No saved outfits.')).not.toBeInTheDocument();
+    expect(await screen.findByText('No saved outfits.')).toBeInTheDocument();
+  });
+
   it('locks and goes home', async () => {
     const { user, devStore } = setup();
     await user.click(screen.getByRole('button', { name: 'Lock developer mode' }));
