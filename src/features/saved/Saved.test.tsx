@@ -192,6 +192,36 @@ describe('Saved back arrow', () => {
   });
 });
 
+/**
+ * A stand-in IntersectionObserver, which jsdom lacks. `show` reports an
+ * element as on screen to whichever observer watches it.
+ */
+function watchVisibility() {
+  const watched = new Map<Element, IntersectionObserverCallback>();
+  class FakeObserver {
+    constructor(private readonly callback: IntersectionObserverCallback) {}
+    observe(element: Element) {
+      watched.set(element, this.callback);
+    }
+    disconnect() {}
+    unobserve() {}
+  }
+  const original = Reflect.get(window, 'IntersectionObserver') as unknown;
+  Reflect.set(window, 'IntersectionObserver', FakeObserver);
+  return {
+    show(element: Element) {
+      const callback = watched.get(element);
+      callback?.(
+        [{ isIntersecting: true, target: element } as IntersectionObserverEntry],
+        {} as IntersectionObserver,
+      );
+    },
+    restore() {
+      Reflect.set(window, 'IntersectionObserver', original);
+    },
+  };
+}
+
 describe('Saved: sharing', () => {
   const NAVY = makeOutfit();
   const MUSTARD = makeOutfit({
@@ -208,13 +238,32 @@ describe('Saved: sharing', () => {
     expect(screen.getByRole('button', { name: 'Share Mustard top' })).toBeInTheDocument();
   });
 
-  it('paints nothing until a Share is touched', async () => {
+  it('paints nothing for a card that is not on screen', async () => {
     const port = fakeSharePort();
+    const screenWatch = watchVisibility();
     setup(fakeOutfitStore([NAVY, MUSTARD]), port);
     await screen.findByRole('button', { name: 'Share Navy bottom' });
     await act(async () => {});
 
     expect(port.calls.render).toHaveLength(0);
+    screenWatch.restore();
+  });
+
+  // The picture has to be ready before the tap: Safari refuses a share that
+  // waited for it. A card scrolled into view paints its own.
+  it('paints a card as it comes on screen', async () => {
+    const port = fakeSharePort();
+    const screenWatch = watchVisibility();
+    setup(fakeOutfitStore([NAVY, MUSTARD]), port);
+    const share = await screen.findByRole('button', { name: 'Share Mustard top' });
+
+    act(() => screenWatch.show(share.closest('li')!));
+
+    await waitFor(() => expect(port.calls.render).toHaveLength(1));
+    expect(port.calls.render[0]).toContainEqual(
+      expect.objectContaining({ kind: 'block', color: '#c39a3a' }),
+    );
+    screenWatch.restore();
   });
 
   it('paints the outfit whose Share is touched, and shares it', async () => {

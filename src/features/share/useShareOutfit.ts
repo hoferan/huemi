@@ -82,12 +82,17 @@ export function useShareOutfit(image: ShareImage, when: 'now' | 'onIntent'): Sha
     if (when === 'now') rendering.current = startRendering(port, input.key, input.value);
   }, [port, input, when]);
 
-  /** The rendering for the outfit as it is now, started if there is none. */
+  /**
+   * The rendering for the outfit as it is now, started if there is none, or
+   * if the last one could not make a picture: an iPhone that hit its canvas
+   * memory cap once may well manage on the next tap.
+   */
   function current(): Rendering {
-    if (rendering.current?.key !== input.key) {
-      rendering.current = startRendering(port, input.key, input.value);
-    }
-    return rendering.current;
+    const last = rendering.current;
+    if (last && last.key === input.key && !(last.done && !last.file)) return last;
+    const next = startRendering(port, input.key, input.value);
+    rendering.current = next;
+    return next;
   }
 
   function share() {

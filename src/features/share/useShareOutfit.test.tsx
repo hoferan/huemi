@@ -93,4 +93,26 @@ describe('useShareOutfit', () => {
 
     expect(port.calls.share).toHaveLength(0);
   });
+
+  // An iPhone at its canvas memory cap paints nothing once. The tap tries
+  // again rather than failing for good.
+  it('paints again after a picture could not be made', async () => {
+    let attempts = 0;
+    const port = fakeSharePort({
+      render: () => {
+        attempts += 1;
+        return Promise.resolve(
+          attempts === 1 ? null : new File([''], 'huemi-outfit.png', { type: 'image/png' }),
+        );
+      },
+    });
+    render(tree(port, NAVY_TOP, 'now'));
+    await waitFor(() => expect(port.calls.render).toHaveLength(1));
+    await act(async () => {});
+
+    press('share');
+
+    await waitFor(() => expect(port.calls.share).toHaveLength(1));
+    expect(port.calls.render).toHaveLength(2);
+  });
 });
