@@ -12,6 +12,7 @@ import { CustomColor } from '../features/pick/CustomColor';
 import { Picker } from '../features/pick/Picker';
 import { SlotChoice } from '../features/pick/SlotChoice';
 import { Saved } from '../features/saved/Saved';
+import { Shared } from '../features/shared/Shared';
 import { Suggestions } from '../features/suggest/Suggestions';
 
 export type AppRoute = { path: string; element: ReactElement };
@@ -47,4 +48,5 @@ export const APP_ROUTES: readonly AppRoute[] = [
   { path: '/check/result', element: <CheckResult /> },
   { path: '/suggest', element: <Suggestions /> },
   { path: '/saved', element: <Saved /> },
+  { path: '/shared', element: <Shared /> },
 ];

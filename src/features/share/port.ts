@@ -18,6 +18,8 @@ export interface SharePort {
   canShare(): boolean;
   share(data: ShareData): Promise<ShareResult>;
   download(file: File): void;
+  /** False when the clipboard is missing or refused. */
+  copy(text: string): Promise<boolean>;
 }
 
 export const SHARE_TITLE = 'huemi outfit';

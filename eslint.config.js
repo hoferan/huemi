@@ -213,6 +213,8 @@ export default tseslint.config(
     // of sending something off it. A script tag, an image URL or an import from
     // a CDN would still get past. The service worker in milestone six has to
     // fetch, and will need an exemption scoped to its own file.
+    // Sharing is not on the list: navigator.share and the clipboard move data
+    // only where the user sends it (ADR 0018).
     files: ['src/**/*.{ts,tsx}'],
     rules: {
       'no-restricted-globals': [

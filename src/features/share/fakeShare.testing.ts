@@ -2,7 +2,12 @@ import type { DrawOp } from './layout';
 import { SHARE_FILE_NAME, type SharePort } from './port';
 
 export type FakeSharePort = SharePort & {
-  calls: { share: ShareData[]; download: File[]; render: (readonly DrawOp[])[] };
+  calls: {
+    share: ShareData[];
+    download: File[];
+    copy: string[];
+    render: (readonly DrawOp[])[];
+  };
 };
 
 /**
@@ -11,13 +16,14 @@ export type FakeSharePort = SharePort & {
  * can tell which render a share used.
  */
 export function fakeSharePort(overrides: Partial<SharePort> = {}): FakeSharePort {
-  const calls: FakeSharePort['calls'] = { share: [], download: [], render: [] };
+  const calls: FakeSharePort['calls'] = { share: [], download: [], copy: [], render: [] };
   const port: SharePort = {
     render: () => Promise.resolve(new File([''], SHARE_FILE_NAME, { type: 'image/png' })),
     canShareFiles: () => true,
     canShare: () => true,
     share: () => Promise.resolve('shared'),
     download: () => undefined,
+    copy: () => Promise.resolve(true),
     ...overrides,
   };
   return {
@@ -35,6 +41,10 @@ export function fakeSharePort(overrides: Partial<SharePort> = {}): FakeSharePort
     download: (file) => {
       calls.download.push(file);
       port.download(file);
+    },
+    copy: (text) => {
+      calls.copy.push(text);
+      return port.copy(text);
     },
   };
 }

@@ -34,6 +34,12 @@ async function theShare(page: Page): Promise<RecordedShare> {
   return (await shares(page))[0]!;
 }
 
+/** The link a share carries, last in its text. The payload has no `url`. */
+function linkIn(share: RecordedShare): string {
+  expect(share.url).toBeUndefined();
+  return share.text!.split(' ').at(-1)!;
+}
+
 /** "Top: Mustard" for every block on screen, head to toe, as `blockLabel` names them. */
 async function blockNames(page: Page): Promise<string[]> {
   const blocks = page.getByRole('group', { name: /^(Outerwear|Top|Bottom|Shoes|Accessory): / });
@@ -191,14 +197,15 @@ Then("each block's name is painted in the foreground the screen uses", async ({ 
 
 Then('the shared text names every block on screen', async ({ page }) => {
   const share = await theShare(page);
-  expect(share.text).toBe(sentenceFor(await blockNames(page)));
+  const link = linkIn(share);
+  expect(share.text).toBe(`${sentenceFor(await blockNames(page))} ${link}`);
 });
 
 Then('the share has no file and names every block on screen', async ({ page }) => {
   const share = await theShare(page);
   expect(share.files).toEqual([]);
   expect(share.title).toBe('huemi outfit');
-  expect(share.text).toBe(sentenceFor(await blockNames(page)));
+  expect(share.text).toBe(`${sentenceFor(await blockNames(page))} ${linkIn(share)}`);
 });
 
 Then('sharing the outfit downloads {string}', async ({ page }, name: string) => {
@@ -207,6 +214,32 @@ Then('sharing the outfit downloads {string}', async ({ page }, name: string) => 
     page.getByRole('button', { name: 'Share outfit' }).click(),
   ]);
   expect(download.suggestedFilename()).toBe(name);
+});
+
+Then("the share's link opens the same blocks", async ({ page }) => {
+  const share = await theShare(page);
+  const names = await blockNames(page);
+  const origin = new URL(page.url()).origin;
+
+  const link = linkIn(share);
+  expect(link.startsWith(`${origin}/shared?`)).toBe(true);
+  expect(share.text).toBe(`${sentenceFor(names)} ${link}`);
+
+  await page.goto(link);
+  await expect(page.getByRole('heading', { level: 1, name: 'An outfit for you' })).toBeVisible();
+  expect(
+    await page
+      .getByRole('group')
+      .evaluateAll((nodes) => nodes.map((node) => node.getAttribute('aria-label'))),
+  ).toEqual(names);
+});
+
+Then('the names and the link were copied', async ({ page }) => {
+  const copied = await page.evaluate(() => (window as unknown as { __copied: string[] }).__copied);
+  const names = await blockNames(page);
+  expect(copied).toHaveLength(1);
+  const origin = new URL(page.url()).origin;
+  expect(copied[0]!.startsWith(`${sentenceFor(names)} ${origin}/shared?`)).toBe(true);
 });
 
 // `[data-toast]` rather than the text: the live region repeats the message,
