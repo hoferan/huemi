@@ -5,6 +5,7 @@ import { CheckPieces } from '../features/check/CheckPieces';
 import { CheckResult } from '../features/check/CheckResult';
 import { CheckTap } from '../features/check/CheckTap';
 import { Confirm } from '../features/confirm/Confirm';
+import { DevRoute } from '../features/dev/DevRoute';
 import { Entry } from '../features/entry/Entry';
 import { Onboarding } from '../features/onboarding/Onboarding';
 import { OnboardingGate } from '../features/onboarding/OnboardingGate';
@@ -49,4 +50,5 @@ export const APP_ROUTES: readonly AppRoute[] = [
   { path: '/suggest', element: <Suggestions /> },
   { path: '/saved', element: <Saved /> },
   { path: '/shared', element: <Shared /> },
+  { path: '/dev', element: <DevRoute /> },
 ];

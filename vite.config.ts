@@ -1,5 +1,6 @@
 // defineConfig comes from vitest/config, not vite: the `test` block below
 // is a Vitest option, and Vite's own defineConfig types reject it.
+import { execSync } from 'node:child_process';
 import { defaultExclude, defineConfig } from 'vitest/config';
 import type { Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
@@ -30,7 +31,25 @@ if (process.env.VITEST) {
   delete stylexPlugin.configureServer;
 }
 
+// Which commit this build is, for the developer menu. Netlify sets COMMIT_REF
+// and has no git history to ask; elsewhere git answers, and a tarball with
+// neither reads as unknown.
+function buildCommit(): string {
+  if (process.env.COMMIT_REF) return process.env.COMMIT_REF.slice(0, 7);
+  try {
+    return execSync('git rev-parse --short HEAD', { stdio: ['ignore', 'pipe', 'ignore'] })
+      .toString()
+      .trim();
+  } catch {
+    return 'unknown';
+  }
+}
+
 export default defineConfig({
+  define: {
+    __BUILD_COMMIT__: JSON.stringify(buildCommit()),
+    __BUILD_DATE__: JSON.stringify(new Date().toISOString()),
+  },
   plugins: [
     // MUST precede @vitejs/plugin-react, or React Fast Refresh breaks.
     stylexPlugin,
