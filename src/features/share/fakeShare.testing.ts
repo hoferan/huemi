@@ -34,9 +34,9 @@ export function fakeSharePort(overrides: Partial<SharePort> = {}): FakeSharePort
   };
   return {
     calls,
-    render: (ops, width, height) => {
-      calls.render.push(ops);
-      return port.render(ops, width, height);
+    render: (build, width, height) => {
+      calls.render.push(build(charMeasure));
+      return port.render(build, width, height);
     },
     canShareFiles: (files) => port.canShareFiles(files),
     canShare: () => port.canShare(),

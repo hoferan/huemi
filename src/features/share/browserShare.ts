@@ -1,4 +1,4 @@
-import type { DrawOp } from './layout';
+import { IMAGE_FONTS, type DrawOp, type Measure } from './layout';
 import { SHARE_FILE_NAME, type SharePort, type ShareResult } from './port';
 
 /* v8 ignore start */
@@ -9,12 +9,16 @@ import { SHARE_FILE_NAME, type SharePort, type ShareResult } from './port';
 /** A light block's hairline, tokens.line at twice the screen's width for a 1080 wide image. */
 const HAIRLINE = 'rgba(0, 0, 0, 0.2)';
 
-async function render(ops: readonly DrawOp[], width: number, height: number): Promise<File | null> {
+async function render(
+  build: (measure: Measure) => readonly DrawOp[],
+  width: number,
+  height: number,
+): Promise<File | null> {
   // A canvas does not wait for a web font the way a page does: text painted
-  // before the face loads uses the fallback for good. A face that will not
-  // load still leaves an image worth sharing, in the stack's next font.
-  const fonts = new Set(ops.flatMap((op) => (op.kind === 'text' ? [op.font] : [])));
-  await Promise.all([...fonts].map((font) => document.fonts.load(font).catch(() => [])));
+  // or measured before the face loads uses the fallback for good. A face that
+  // will not load still leaves an image worth sharing, in the stack's next
+  // font.
+  await Promise.all(IMAGE_FONTS.map((font) => document.fonts.load(font).catch(() => [])));
 
   const canvas = document.createElement('canvas');
   canvas.width = width;
@@ -23,6 +27,10 @@ async function render(ops: readonly DrawOp[], width: number, height: number): Pr
   if (!context) return null;
   context.textBaseline = 'alphabetic';
   context.textAlign = 'start';
+  const ops = build((text, font) => {
+    context.font = font;
+    return context.measureText(text).width;
+  });
 
   for (const op of ops) {
     if (op.kind === 'fill') {

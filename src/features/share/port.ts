@@ -1,4 +1,4 @@
-import type { DrawOp } from './layout';
+import type { DrawOp, Measure } from './layout';
 
 /** How a share sheet ended. Closing the sheet is the user's answer, not a failure. */
 export type ShareResult = 'shared' | 'dismissed' | 'failed';
@@ -12,8 +12,16 @@ export type ShareResult = 'shared' | 'dismissed' | 'failed';
  * runs under Vitest against a fake.
  */
 export interface SharePort {
-  /** Null when the device could not paint it. */
-  render(ops: readonly DrawOp[], width: number, height: number): Promise<File | null>;
+  /**
+   * Builds the image's ops with a measure for the loaded fonts, then paints
+   * them. A layout that wraps text needs the measure, and only the painter's
+   * canvas has one. Null when the device could not paint it.
+   */
+  render(
+    build: (measure: Measure) => readonly DrawOp[],
+    width: number,
+    height: number,
+  ): Promise<File | null>;
   canShareFiles(files: File[]): boolean;
   canShare(): boolean;
   share(data: ShareData): Promise<ShareResult>;

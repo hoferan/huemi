@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { parseHex } from '../../model/hex';
 import { SessionProvider } from '../../session/SessionProvider';
 import { useSession } from '../../session/useSession';
-import { fakeSharePort, type FakeSharePort } from './fakeShare.testing';
+import { charMeasure, fakeSharePort, type FakeSharePort } from './fakeShare.testing';
 import { layoutShareImage, type ShareImageInput } from './layout';
 import { shareLink } from './link';
 import type { ShareResult } from './port';
@@ -61,7 +61,7 @@ describe('ShareButton', () => {
 
   it('renders the image for the outfit before any tap', async () => {
     const { port } = await setup();
-    expect(port.calls.render[0]).toEqual(layoutShareImage(NAVY_TOP));
+    expect(port.calls.render[0]).toEqual(layoutShareImage(NAVY_TOP, charMeasure));
     expect(port.calls.share).toHaveLength(0);
   });
 
@@ -102,7 +102,7 @@ describe('ShareButton', () => {
     await act(() => Promise.resolve());
     fireEvent.click(button());
 
-    expect(port.calls.render[1]).toEqual(layoutShareImage(WHITE_TOP));
+    expect(port.calls.render[1]).toEqual(layoutShareImage(WHITE_TOP, charMeasure));
     expect(port.calls.share[0]).toMatchObject({
       files: [files[1]],
       text: `${shareText(WHITE_TOP.pieces)} ${shareLink(window.location.origin, WHITE_TOP)}`,
