@@ -2,6 +2,8 @@ import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router';
 import { describe, expect, it } from 'vitest';
+import { SessionProvider } from '../../session/SessionProvider';
+import { useSession } from '../../session/useSession';
 import { DevModeProvider } from '../dev/DevModeProvider';
 import { DevSlotHost } from '../dev/DevSlotHost';
 import { fakeDevModeStore } from '../dev/testing';
@@ -13,20 +15,47 @@ function SlotProbe() {
   return <p data-testid="slot-search">{useLocation().search}</p>;
 }
 
+function ToastProbe() {
+  return <p data-testid="toast">{useSession().state.toast?.message}</p>;
+}
+
 function renderAt() {
   return render(
-    <MemoryRouter initialEntries={['/']}>
-      <InitialLocationContext value={true}>
-        <Routes>
-          <Route path="/" element={<Entry />} />
-          <Route path="/slot" element={<SlotProbe />} />
-          <Route path="/saved" element={<p>saved screen</p>} />
-          <Route path="/check" element={<p>outfit camera</p>} />
-        </Routes>
-      </InitialLocationContext>
-    </MemoryRouter>,
+    <SessionProvider>
+      <MemoryRouter initialEntries={['/']}>
+        <InitialLocationContext value={true}>
+          <Routes>
+            <Route path="/" element={<Entry />} />
+            <Route path="/slot" element={<SlotProbe />} />
+            <Route path="/saved" element={<p>saved screen</p>} />
+            <Route path="/check" element={<p>outfit camera</p>} />
+          </Routes>
+        </InitialLocationContext>
+      </MemoryRouter>
+    </SessionProvider>,
   );
 }
+
+function renderWithMode(env: { dev: boolean; hash: string | undefined }, on = false) {
+  const store = fakeDevModeStore(on);
+  render(
+    <SessionProvider>
+      <MemoryRouter initialEntries={['/']}>
+        <InitialLocationContext value={true}>
+          <DevModeProvider store={store} env={env}>
+            <Routes>
+              <Route path="/" element={<Entry />} />
+            </Routes>
+            <ToastProbe />
+          </DevModeProvider>
+        </InitialLocationContext>
+      </MemoryRouter>
+    </SessionProvider>,
+  );
+  return store;
+}
+
+const SEVEN_TAPS = 7;
 
 describe('Entry', () => {
   it('leads with what to do', () => {
@@ -45,23 +74,68 @@ describe('Entry', () => {
 
   it('shows the developer chip beside the wordmark while developer mode is on', async () => {
     render(
-      <MemoryRouter initialEntries={['/']}>
-        <InitialLocationContext value={true}>
-          <DevModeProvider store={fakeDevModeStore(true)}>
-            <DevSlotHost>
-              <Routes>
-                <Route path="/" element={<Entry />} />
-              </Routes>
-            </DevSlotHost>
-          </DevModeProvider>
-        </InitialLocationContext>
-      </MemoryRouter>,
+      <SessionProvider>
+        <MemoryRouter initialEntries={['/']}>
+          <InitialLocationContext value={true}>
+            <DevModeProvider store={fakeDevModeStore(true)}>
+              <DevSlotHost>
+                <Routes>
+                  <Route path="/" element={<Entry />} />
+                </Routes>
+              </DevSlotHost>
+            </DevModeProvider>
+          </InitialLocationContext>
+        </MemoryRouter>
+      </SessionProvider>,
     );
     const chip = await screen.findByRole('link', { name: 'Developer mode' });
     expect(chip).toHaveAttribute('href', '/dev');
     expect(
       screen.getByText('huemi').compareDocumentPosition(chip) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
+  });
+
+  describe('the wordmark', () => {
+    async function tapWordmark(times: number) {
+      const user = userEvent.setup();
+      for (let i = 0; i < times; i++) await user.click(screen.getByText('huemi'));
+    }
+
+    it('opens the passphrase sheet after seven taps in passphrase mode', async () => {
+      renderWithMode({ dev: false, hash: 'a'.repeat(64) });
+      await tapWordmark(SEVEN_TAPS - 1);
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      await tapWordmark(1);
+      expect(await screen.findByRole('dialog', { name: 'Developer mode' })).toBeInTheDocument();
+    });
+
+    it('turns developer mode on directly in direct mode', async () => {
+      const store = renderWithMode({ dev: true, hash: undefined });
+      await tapWordmark(SEVEN_TAPS);
+      expect(store.value).toBe(true);
+      expect(screen.getByTestId('toast')).toHaveTextContent('Developer mode on');
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+
+    it('does nothing in none mode', async () => {
+      const store = renderWithMode({ dev: false, hash: undefined });
+      await tapWordmark(SEVEN_TAPS);
+      expect(store.value).toBe(false);
+      expect(screen.getByTestId('toast')).toBeEmptyDOMElement();
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+
+    it('does nothing while developer mode is already on', async () => {
+      renderWithMode({ dev: true, hash: undefined }, true);
+      await tapWordmark(SEVEN_TAPS);
+      expect(screen.getByTestId('toast')).toBeEmptyDOMElement();
+    });
+
+    it('does nothing without a provider', async () => {
+      renderAt();
+      await tapWordmark(SEVEN_TAPS);
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
   });
 
   it('leads with the camera', () => {

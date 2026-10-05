@@ -41,21 +41,24 @@ const styles = stylex.create({
  * quiet one is a way in that is not the screen's main job, like the entry
  * screen's link to the outfit check.
  *
- * `type="button"` explicitly: the default inside a form is `submit`, and a
- * screen that later grows a form would start navigating on Enter with no
- * change to this file.
+ * `type` is `button` unless a caller says otherwise: the default inside a
+ * form is `submit`, and a screen that later grows a form would start
+ * navigating on Enter with no change to this file. A form's own submit
+ * control asks for `submit` by name.
  */
 export function Button({
   label,
   onClick,
   variant = 'primary',
+  type = 'button',
   expanded,
   controls,
   ref,
 }: {
   label: string;
-  onClick: () => void;
+  onClick?: () => void;
   variant?: 'primary' | 'secondary' | 'quiet';
+  type?: 'button' | 'submit';
   expanded?: boolean;
   controls?: string;
   ref?: Ref<HTMLButtonElement>;
@@ -63,7 +66,7 @@ export function Button({
   return (
     <button
       ref={ref}
-      type="button"
+      type={type}
       onClick={onClick}
       aria-expanded={expanded}
       aria-controls={controls}

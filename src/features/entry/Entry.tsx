@@ -1,12 +1,17 @@
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import * as stylex from '@stylexjs/stylex';
 import { Camera, Palette } from 'lucide-react';
+import { useSession } from '../../session/useSession';
 import { tokens } from '../../styles/tokens.stylex';
 import { Button } from '../../ui/Button';
 import { HOME } from '../../ui/home';
 import { DevSlot } from '../../ui/DevSlot';
 import { Screen } from '../../ui/Screen';
 import { CHECK_ENTRY } from '../check/copy';
+import { UnlockSheet } from '../dev/UnlockSheet';
+import { useDevMode } from '../dev/useDevMode';
+import { useTapUnlock } from '../dev/useTapUnlock';
 import { InstallButton } from '../install/InstallButton';
 import { clearOfToasts } from '../../ui/toastClearance';
 import { WayIn } from './WayIn';
@@ -63,6 +68,19 @@ const styles = stylex.create({
  */
 export function Entry() {
   const navigate = useNavigate();
+  const { dispatch } = useSession();
+  const { on, method, unlock } = useDevMode();
+  const [asking, setAsking] = useState(false);
+
+  const onWordmarkTap = useTapUnlock(() => {
+    if (on) return;
+    if (method === 'direct') {
+      unlock();
+      dispatch({ type: 'toastShown', message: 'Developer mode on' });
+    } else if (method === 'passphrase') {
+      setAsking(true);
+    }
+  });
 
   return (
     <Screen
@@ -70,7 +88,15 @@ export function Entry() {
       header={
         <div {...stylex.props(styles.header)}>
           <div {...stylex.props(styles.brand)}>
-            <p {...stylex.props(styles.wordmark)}>huemi</p>
+            {/*
+              Seven quick taps unlock the developer mode. It is a hidden gesture
+              for the developer, so it must not show up as a control to anyone
+              else: no role, no focus stop, no pointer cursor.
+            */}
+            {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions */}
+            <p onClick={onWordmarkTap} {...stylex.props(styles.wordmark)}>
+              huemi
+            </p>
             <DevSlot name="screen.badge" context={{}} />
           </div>
           <Link to="/saved" {...stylex.props(styles.saved)}>
@@ -79,6 +105,7 @@ export function Entry() {
         </div>
       }
     >
+      <UnlockSheet open={asking} onOpenChange={setAsking} />
       <div {...clearOfToasts} {...stylex.props(styles.actions)}>
         <WayIn
           icon={Camera}
