@@ -57,6 +57,15 @@ export function useShareOutfit(image: ShareImage, when: 'now' | 'onIntent'): Sha
   const { dispatch } = useSession();
   const rendering = useRef<Rendering | null>(null);
   const inFlight = useRef(false);
+  // A share still waiting for its picture when its card is deleted or opened
+  // has nobody left to show a sheet or a message to.
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
 
   // Held until the outfit changes, not merely its object: the suggestions
   // screen builds a new one on every render, and each would paint again.
@@ -90,7 +99,8 @@ export function useShareOutfit(image: ShareImage, when: 'now' | 'onIntent'): Sha
     // Synchronous, so a ready image keeps the tap's activation. A device that
     // throws instead of answering counts as a failed share; letting the throw
     // escape would leave the guard up and the button dead.
-    const start = (file: File | null): Promise<ShareOutcome> => {
+    const start = (file: File | null): Promise<ShareOutcome | null> => {
+      if (!mounted.current) return Promise.resolve(null);
       if (!file) return Promise.resolve('failed');
       try {
         return shareOutfit(port, file, names, link);
@@ -101,7 +111,7 @@ export function useShareOutfit(image: ShareImage, when: 'now' | 'onIntent'): Sha
     const outcome = pending.done ? start(pending.file) : pending.promise.then(start);
     void outcome
       .then((result) => {
-        const message = MESSAGES[result];
+        const message = result && MESSAGES[result];
         if (message) dispatch({ type: 'toastShown', message });
       })
       .finally(() => {

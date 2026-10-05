@@ -1,9 +1,10 @@
 import * as stylex from '@stylexjs/stylex';
-import { Trash2 } from 'lucide-react';
+import { Share2, Trash2 } from 'lucide-react';
 import { needsBorder } from '../../color/contrast';
 import { colorName } from '../../color/palette';
 import { SLOTS, SLOT_LABELS, type Outfit } from '../../model/types';
 import { tokens } from '../../styles/tokens.stylex';
+import { useShareOutfit } from '../share/useShareOutfit';
 import { formatSavedDate } from './formatSavedDate';
 
 const styles = stylex.create({
@@ -45,10 +46,17 @@ const styles = stylex.create({
   },
   name: { fontSize: '1.05rem', fontWeight: 500 },
   date: { fontSize: '0.8rem', color: tokens.ink2 },
-  remove: {
+  // Share over Delete, in a column of their own, so neither ever narrows the
+  // name, whatever the width or the text size.
+  actions: {
     gridColumn: '2',
     alignSelf: 'end',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '8px',
     margin: '10px',
+  },
+  action: {
     display: 'inline-flex',
     alignItems: 'center',
     gap: '6px',
@@ -73,6 +81,10 @@ const styles = stylex.create({
  * The open button is named by the outfit's name alone. The date and the
  * pieces are its description, read after the name, because the strip says
  * nothing to someone who cannot see it or cannot tell its colours apart.
+ *
+ * Share paints its picture only once a pointer lands on it or focus reaches
+ * it (`useShareOutfit`). A list of saved outfits painting every one as it
+ * opens would cost a canvas of about 5.8 MB per card.
  */
 export function SavedCard({
   outfit,
@@ -91,6 +103,10 @@ export function SavedCard({
     return hex ? [`${colorName(hex)} ${SLOT_LABELS[slot].toLowerCase()}`] : [];
   }).join(', ');
   const details = `outfit-${outfit.id}-details`;
+  const { share, prepare } = useShareOutfit(
+    { pieces: outfit.pieces, baseSlot: outfit.baseSlot },
+    'onIntent',
+  );
 
   return (
     <li {...stylex.props(styles.card)}>
@@ -131,15 +147,28 @@ export function SavedCard({
       <span id={details} hidden>
         {`${date}. ${pieces}`}
       </span>
-      <button
-        type="button"
-        aria-label={`Delete ${outfit.name}`}
-        onClick={onDelete}
-        {...stylex.props(styles.remove)}
-      >
-        <Trash2 size={16} aria-hidden="true" />
-        Delete
-      </button>
+      <div {...stylex.props(styles.actions)}>
+        <button
+          type="button"
+          aria-label={`Share ${outfit.name}`}
+          onPointerDown={prepare}
+          onFocus={prepare}
+          onClick={share}
+          {...stylex.props(styles.action)}
+        >
+          <Share2 size={16} aria-hidden="true" />
+          Share
+        </button>
+        <button
+          type="button"
+          aria-label={`Delete ${outfit.name}`}
+          onClick={onDelete}
+          {...stylex.props(styles.action)}
+        >
+          <Trash2 size={16} aria-hidden="true" />
+          Delete
+        </button>
+      </div>
     </li>
   );
 }

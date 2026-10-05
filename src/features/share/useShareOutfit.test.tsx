@@ -76,4 +76,21 @@ describe('useShareOutfit', () => {
 
     await waitFor(() => expect(port.calls.render).toHaveLength(2));
   });
+
+  it('stays silent when unmounted before its picture is ready', async () => {
+    let finish: (file: File | null) => void = () => undefined;
+    const port = fakeSharePort({
+      render: () => new Promise<File | null>((resolve) => (finish = resolve)),
+    });
+    const view = render(tree(port, NAVY_TOP, 'onIntent'));
+    press('share');
+
+    view.unmount();
+    await act(() => {
+      finish(new File([''], 'huemi-outfit.png', { type: 'image/png' }));
+      return Promise.resolve();
+    });
+
+    expect(port.calls.share).toHaveLength(0);
+  });
 });
