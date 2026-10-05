@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router';
 import { describe, expect, it } from 'vitest';
@@ -9,7 +9,12 @@ import { SessionProvider } from '../../session/SessionProvider';
 import { useSession } from '../../session/useSession';
 import { Announcer } from '../../ui/Announcer';
 import { InitialLocationContext } from '../../ui/InitialLocationContext';
+import { checkOutfit } from '../../color/check';
+import { fakeSharePort, type FakeSharePort } from '../share/fakeShare.testing';
+import { ShareContext } from '../share/ShareContext';
+import { shareText } from '../share/shareText';
 import { CheckResult } from './CheckResult';
+import { observationText } from './copy';
 
 const charcoal = parseHex('#3d3d3f');
 const cream = parseHex('#e9dfc9');
@@ -45,22 +50,24 @@ const OUTFIT: Seeded[] = [
   { slot: 'shoes', hex: burgundy },
 ];
 
-function renderWith(pieces: Seeded[] = OUTFIT, start = true) {
+function renderWith(pieces: Seeded[] = OUTFIT, start = true, port = fakeSharePort()) {
   render(
-    <MemoryRouter initialEntries={['/seed']}>
-      <SessionProvider>
-        <Announcer>
-          <InitialLocationContext value={false}>
-            <Routes>
-              <Route path="/seed" element={<Seed pieces={pieces} start={start} />} />
-              <Route path="/check/result" element={<CheckResult />} />
-              <Route path="/check/pieces" element={<Where label="list" />} />
-              <Route path="/check" element={<Where label="camera" />} />
-            </Routes>
-          </InitialLocationContext>
-        </Announcer>
-      </SessionProvider>
-    </MemoryRouter>,
+    <ShareContext value={port}>
+      <MemoryRouter initialEntries={['/seed']}>
+        <SessionProvider>
+          <Announcer>
+            <InitialLocationContext value={false}>
+              <Routes>
+                <Route path="/seed" element={<Seed pieces={pieces} start={start} />} />
+                <Route path="/check/result" element={<CheckResult />} />
+                <Route path="/check/pieces" element={<Where label="list" />} />
+                <Route path="/check" element={<Where label="camera" />} />
+              </Routes>
+            </InitialLocationContext>
+          </Announcer>
+        </SessionProvider>
+      </MemoryRouter>
+    </ShareContext>,
   );
 }
 
@@ -198,5 +205,55 @@ describe('CheckResult back arrow', () => {
     expect(
       await screen.findByRole('link', { name: 'Back to What are you wearing?' }),
     ).toHaveAttribute('href', '/check/pieces');
+  });
+});
+
+describe('CheckResult: sharing', () => {
+  const texts = (port: FakeSharePort) =>
+    port.calls.render.at(-1)!.flatMap((op) => (op.kind === 'text' ? [op.text] : []));
+
+  it('offers to share the checked outfit', async () => {
+    renderWith();
+    expect(await screen.findByRole('button', { name: 'Share outfit' })).toBeInTheDocument();
+  });
+
+  it('paints the pieces and the sentences on the screen', async () => {
+    const port = fakeSharePort();
+    renderWith(OUTFIT, true, port);
+    await waitFor(() => expect(port.calls.render.length).toBeGreaterThan(0));
+
+    const sentences = checkOutfit({
+      outerwear: charcoal,
+      top: cream,
+      bottom: rust,
+      shoes: burgundy,
+    })!.map(observationText);
+    const painted = texts(port).join(' ');
+    for (const sentence of sentences) {
+      for (const word of sentence.split(' ')) expect(painted).toContain(word);
+    }
+    expect(texts(port).some((text) => text.includes('BASE'))).toBe(false);
+  });
+
+  it('shares the swapped outfit', async () => {
+    const user = userEvent.setup();
+    const port = fakeSharePort();
+    renderWith(OUTFIT, true, port);
+    await user.click(await screen.findByRole('button', { name: 'Bottom: Rust, swap' }));
+    const sheet = await screen.findByRole('dialog');
+    await user.click(within(sheet).getByRole('button', { name: /^Navy, / }));
+    await waitFor(() => expect(port.calls.render.length).toBeGreaterThan(1));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Share outfit' }));
+
+    await waitFor(() => expect(port.calls.share).toHaveLength(1));
+    const text = port.calls.share[0]!.text!;
+    expect(
+      text.startsWith(
+        shareText({ outerwear: charcoal, top: cream, bottom: navy, shoes: burgundy }),
+      ),
+    ).toBe(true);
+    expect(text).toContain('bottom=1f2a44');
+    expect(text).not.toContain('base=');
   });
 });

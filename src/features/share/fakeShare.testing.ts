@@ -1,5 +1,11 @@
-import type { DrawOp } from './layout';
+import type { DrawOp, Measure } from './layout';
 import { SHARE_FILE_NAME, type SharePort } from './port';
+
+/** Half the font's pixel size per character: wide enough to wrap, simple to count. */
+export const charMeasure: Measure = (text, font) => {
+  const size = Number(/(\d+)px/.exec(font)?.[1] ?? 0);
+  return text.length * 0.5 * size;
+};
 
 export type FakeSharePort = SharePort & {
   calls: {
@@ -28,9 +34,9 @@ export function fakeSharePort(overrides: Partial<SharePort> = {}): FakeSharePort
   };
   return {
     calls,
-    render: (ops, width, height) => {
-      calls.render.push(ops);
-      return port.render(ops, width, height);
+    render: (build, width, height) => {
+      calls.render.push(build(charMeasure));
+      return port.render(build, width, height);
     },
     canShareFiles: (files) => port.canShareFiles(files),
     canShare: () => port.canShare(),

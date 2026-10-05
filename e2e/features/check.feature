@@ -162,3 +162,17 @@ Feature: Capturing an outfit to check
     And I set "Bottom: not set" to "Rust"
     And I press "How does it work together?"
     Then the block "Bottom: Rust" is filled with "#a4522d"
+
+  # The sentence is the result (handoff notes), so it travels with the picture.
+  Scenario: Sharing a checked outfit carries what the check says
+    Given my camera shows an outfit
+    And my phone can share files
+    When I open the outfit check
+    And I follow the link "Enter the colors"
+    And I set "Top: not set" to "Cream"
+    And I set "Bottom: not set" to "Navy"
+    And I press "How does it work together?"
+    And I share the outfit
+    Then the picture shows the blocks on screen, head to toe
+    And the picture has text between the blocks and the wordmark
+    And the share's link has no base

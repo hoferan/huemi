@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router';
 import { describe, expect, it } from 'vitest';
@@ -10,6 +10,9 @@ import { Announcer } from '../../ui/Announcer';
 import { InitialLocationContext } from '../../ui/InitialLocationContext';
 import { openOutfit } from './openOutfit';
 import { OutfitsProvider } from './OutfitsProvider';
+import { fakeSharePort, type FakeSharePort } from '../share/fakeShare.testing';
+import { shareLink } from '../share/link';
+import { ShareContext } from '../share/ShareContext';
 import { Saved } from './Saved';
 import { fakeOutfitStore, makeOutfit, NAVY_BOTTOM } from './testing';
 
@@ -33,23 +36,25 @@ function ToastText() {
   );
 }
 
-function setup(store: OutfitStore) {
+function setup(store: OutfitStore, port: FakeSharePort = fakeSharePort()) {
   render(
-    <MemoryRouter initialEntries={['/saved']}>
-      <InitialLocationContext value={true}>
-        <SessionProvider>
-          <OutfitsProvider store={store}>
-            <Announcer>
-              <Routes>
-                <Route path="/saved" element={<Saved />} />
-                <Route path="/suggest" element={<Suggest />} />
-              </Routes>
-              <ToastText />
-            </Announcer>
-          </OutfitsProvider>
-        </SessionProvider>
-      </InitialLocationContext>
-    </MemoryRouter>,
+    <ShareContext value={port}>
+      <MemoryRouter initialEntries={['/saved']}>
+        <InitialLocationContext value={true}>
+          <SessionProvider>
+            <OutfitsProvider store={store}>
+              <Announcer>
+                <Routes>
+                  <Route path="/saved" element={<Saved />} />
+                  <Route path="/suggest" element={<Suggest />} />
+                </Routes>
+                <ToastText />
+              </Announcer>
+            </OutfitsProvider>
+          </SessionProvider>
+        </InitialLocationContext>
+      </MemoryRouter>
+    </ShareContext>,
   );
   return userEvent.setup();
 }
@@ -184,5 +189,127 @@ describe('Saved back arrow', () => {
     expect(
       await screen.findByRole('link', { name: 'Back to Start with a garment' }),
     ).toHaveAttribute('href', '/');
+  });
+});
+
+/**
+ * A stand-in IntersectionObserver, which jsdom lacks. `show` reports an
+ * element as on screen to whichever observer watches it.
+ */
+function watchVisibility() {
+  const watched = new Map<Element, IntersectionObserverCallback>();
+  class FakeObserver {
+    constructor(private readonly callback: IntersectionObserverCallback) {}
+    observe(element: Element) {
+      watched.set(element, this.callback);
+    }
+    disconnect() {}
+    unobserve() {}
+  }
+  const original = Reflect.get(window, 'IntersectionObserver') as unknown;
+  Reflect.set(window, 'IntersectionObserver', FakeObserver);
+  return {
+    show(element: Element) {
+      const callback = watched.get(element);
+      callback?.(
+        [{ isIntersecting: true, target: element } as IntersectionObserverEntry],
+        {} as IntersectionObserver,
+      );
+    },
+    restore() {
+      Reflect.set(window, 'IntersectionObserver', original);
+    },
+  };
+}
+
+describe('Saved: sharing', () => {
+  const NAVY = makeOutfit();
+  const MUSTARD = makeOutfit({
+    id: 'mustard',
+    name: 'Mustard top',
+    baseSlot: 'top',
+    pieces: { top: parseHex('#c39a3a'), bottom: parseHex('#1f2a44') },
+  });
+
+  it('offers to share each saved outfit by name', async () => {
+    setup(fakeOutfitStore([NAVY, MUSTARD]));
+
+    expect(await screen.findByRole('button', { name: 'Share Navy bottom' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Share Mustard top' })).toBeInTheDocument();
+  });
+
+  it('paints nothing for a card that is not on screen', async () => {
+    const port = fakeSharePort();
+    const screenWatch = watchVisibility();
+    setup(fakeOutfitStore([NAVY, MUSTARD]), port);
+    await screen.findByRole('button', { name: 'Share Navy bottom' });
+    await act(async () => {});
+
+    expect(port.calls.render).toHaveLength(0);
+    screenWatch.restore();
+  });
+
+  // The picture has to be ready before the tap: Safari refuses a share that
+  // waited for it. A card scrolled into view paints its own.
+  it('paints a card as it comes on screen', async () => {
+    const port = fakeSharePort();
+    const screenWatch = watchVisibility();
+    setup(fakeOutfitStore([NAVY, MUSTARD]), port);
+    const share = await screen.findByRole('button', { name: 'Share Mustard top' });
+
+    act(() => screenWatch.show(share.closest('li')!));
+
+    await waitFor(() => expect(port.calls.render).toHaveLength(1));
+    expect(port.calls.render[0]).toContainEqual(
+      expect.objectContaining({ kind: 'block', color: '#c39a3a' }),
+    );
+    screenWatch.restore();
+  });
+
+  it('paints the outfit whose Share is touched, and shares it', async () => {
+    const port = fakeSharePort();
+    setup(fakeOutfitStore([NAVY, MUSTARD]), port);
+    const share = await screen.findByRole('button', { name: 'Share Mustard top' });
+
+    fireEvent.pointerDown(share);
+    await waitFor(() => expect(port.calls.render).toHaveLength(1));
+    fireEvent.click(share);
+
+    await waitFor(() => expect(port.calls.share).toHaveLength(1));
+    expect(port.calls.render).toHaveLength(1);
+    const link = shareLink(window.location.origin, { pieces: MUSTARD.pieces, baseSlot: 'top' });
+    expect(port.calls.share[0]!.text!.endsWith(link)).toBe(true);
+  });
+
+  it('paints on keyboard focus too', async () => {
+    const port = fakeSharePort();
+    setup(fakeOutfitStore([NAVY]), port);
+
+    fireEvent.focus(await screen.findByRole('button', { name: 'Share Navy bottom' }));
+
+    await waitFor(() => expect(port.calls.render).toHaveLength(1));
+  });
+
+  it('ignores a render that finishes after the card is gone', async () => {
+    let finish: (file: File | null) => void = () => undefined;
+    const port = fakeSharePort({
+      render: () => new Promise<File | null>((resolve) => (finish = resolve)),
+    });
+    const user = setup(fakeOutfitStore([NAVY]), port);
+    const share = await screen.findByRole('button', { name: 'Share Navy bottom' });
+
+    fireEvent.pointerDown(share);
+    fireEvent.click(share);
+    await user.click(screen.getByRole('button', { name: 'Delete Navy bottom' }));
+    await waitFor(() =>
+      expect(screen.queryByRole('button', { name: 'Share Navy bottom' })).toBeNull(),
+    );
+    await act(() => {
+      finish(new File([''], 'huemi-outfit.png', { type: 'image/png' }));
+      return Promise.resolve();
+    });
+
+    expect(port.calls.share).toHaveLength(0);
+    expect(screen.getByTestId('toast')).not.toHaveTextContent("Couldn't share");
   });
 });

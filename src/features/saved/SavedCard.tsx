@@ -1,16 +1,19 @@
+import { useRef } from 'react';
 import * as stylex from '@stylexjs/stylex';
-import { Trash2 } from 'lucide-react';
+import { Share2, Trash2 } from 'lucide-react';
 import { needsBorder } from '../../color/contrast';
 import { colorName } from '../../color/palette';
 import { SLOTS, SLOT_LABELS, type Outfit } from '../../model/types';
 import { tokens } from '../../styles/tokens.stylex';
+import { useOnVisible } from '../../ui/useOnVisible';
+import { useShareOutfit } from '../share/useShareOutfit';
 import { formatSavedDate } from './formatSavedDate';
 
 const styles = stylex.create({
   card: {
-    // Two columns, not two overlapping layers: Delete has a column of its
-    // own, so it can never cover the name or the date, whatever the text
-    // size.
+    // Two columns, not two overlapping layers: Share and Delete have a
+    // column of their own, so they can never cover the name or the date,
+    // whatever the text size.
     display: 'grid',
     gridTemplateColumns: '1fr auto',
     borderWidth: '1px',
@@ -45,10 +48,17 @@ const styles = stylex.create({
   },
   name: { fontSize: '1.05rem', fontWeight: 500 },
   date: { fontSize: '0.8rem', color: tokens.ink2 },
-  remove: {
+  // Share over Delete, in a column of their own, so neither ever narrows the
+  // name, whatever the width or the text size.
+  actions: {
     gridColumn: '2',
     alignSelf: 'end',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '8px',
     margin: '10px',
+  },
+  action: {
     display: 'inline-flex',
     alignItems: 'center',
     gap: '6px',
@@ -67,12 +77,18 @@ const styles = stylex.create({
 });
 
 /**
- * One saved outfit: its colours as a strip, its name and its date, and a
- * Delete button beside the button that opens it.
+ * One saved outfit: its colours as a strip, its name and its date, and Share
+ * and Delete beside the button that opens it.
  *
  * The open button is named by the outfit's name alone. The date and the
  * pieces are its description, read after the name, because the strip says
  * nothing to someone who cannot see it or cannot tell its colours apart.
+ *
+ * Share's picture is painted when the card comes on screen, or earlier if a
+ * pointer lands on Share or focus reaches it (`useShareOutfit`). It has to be
+ * ready before the tap, because Safari refuses a share that waited for it,
+ * and painting only the cards on screen spares a long list a canvas of about
+ * 5.8 MB per card.
  */
 export function SavedCard({
   outfit,
@@ -91,9 +107,15 @@ export function SavedCard({
     return hex ? [`${colorName(hex)} ${SLOT_LABELS[slot].toLowerCase()}`] : [];
   }).join(', ');
   const details = `outfit-${outfit.id}-details`;
+  const { share, prepare } = useShareOutfit(
+    { pieces: outfit.pieces, baseSlot: outfit.baseSlot },
+    'onIntent',
+  );
+  const card = useRef<HTMLLIElement>(null);
+  useOnVisible(card, prepare);
 
   return (
-    <li {...stylex.props(styles.card)}>
+    <li ref={card} {...stylex.props(styles.card)}>
       <button
         type="button"
         id={`outfit-${outfit.id}`}
@@ -131,15 +153,28 @@ export function SavedCard({
       <span id={details} hidden>
         {`${date}. ${pieces}`}
       </span>
-      <button
-        type="button"
-        aria-label={`Delete ${outfit.name}`}
-        onClick={onDelete}
-        {...stylex.props(styles.remove)}
-      >
-        <Trash2 size={16} aria-hidden="true" />
-        Delete
-      </button>
+      <div {...stylex.props(styles.actions)}>
+        <button
+          type="button"
+          aria-label={`Share ${outfit.name}`}
+          onPointerDown={prepare}
+          onFocus={prepare}
+          onClick={share}
+          {...stylex.props(styles.action)}
+        >
+          <Share2 size={16} aria-hidden="true" />
+          Share
+        </button>
+        <button
+          type="button"
+          aria-label={`Delete ${outfit.name}`}
+          onClick={onDelete}
+          {...stylex.props(styles.action)}
+        >
+          <Trash2 size={16} aria-hidden="true" />
+          Delete
+        </button>
+      </div>
     </li>
   );
 }

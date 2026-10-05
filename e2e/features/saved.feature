@@ -56,3 +56,11 @@ Feature: Saved outfits
     When I open the suggestions for a mustard top
     And I save the outfit
     Then the toast has an animation duration of "0.2s"
+
+  Scenario: Sharing a saved outfit
+    Given I have a saved outfit
+    And my phone can share files
+    When I open the saved outfits
+    And I press "Share Navy bottom"
+    Then a PNG named "huemi-outfit.png" of 1080 by 1350 is shared
+    And the share's link opens the outfit it names
