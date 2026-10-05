@@ -114,8 +114,9 @@ jobs:
       - run: npx playwright install-deps chromium
         if: steps.pw-cache.outputs.cache-hit == 'true'
       # The hash of the passphrase the developer mode scenarios type, repeated
-      # from e2e/devMode.ts. The verify job's build gets none, so that one checks a
-      # build in which developer mode cannot be unlocked.
+      # from e2e/devMode.ts. The verify job's build gets none, which shows only
+      # that such a build compiles; the unit test "does nothing in none mode" in
+      # src/features/entry/Entry.test.tsx pins that the taps then do nothing.
       - run: npm run build
         env:
           VITE_DEV_MODE_HASH: db8bdc58a077d02fa147d1fb47846e7cc600aa9e9553f87264760b5f4b5b9f42

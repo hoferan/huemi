@@ -72,8 +72,8 @@ on the start screen's wordmark and a passphrase turn on a DEV chip and a menu at
 developer feature adds a slot there and lists its component in
 `src/features/dev/registry.tsx`. The passphrase's hash is `VITE_DEV_MODE_HASH`, set in
 Netlify's site settings and never committed, and `npm run devmode:hash` prints it for
-a passphrase read from stdin. Under `npm run dev` the taps turn the mode on without
-asking.
+a passphrase typed at its prompt. ADR 0019 says how to set it in Netlify. Under
+`npm run dev` the taps turn the mode on without asking.
 
 ## Conventions
 

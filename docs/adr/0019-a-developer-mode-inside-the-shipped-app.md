@@ -32,9 +32,9 @@ feature. `src/dev/` stays the unbundled harness.
 Seven taps on the start screen's wordmark within three seconds open a sheet that
 asks for a passphrase. The build compares a SHA-256 of `huemi-dev:` and the
 passphrase with `VITE_DEV_MODE_HASH`. That value is set in Netlify's site settings
-and never committed; `npm run devmode:hash` prints it for a passphrase read from
-stdin. The dev server skips the sheet and turns the mode on straight away, and a
-production build with no hash ignores the taps. `unlockMethod` in
+and never committed; `npm run devmode:hash` prints it for a passphrase typed at its
+prompt or piped to it. The dev server skips the sheet and turns the mode on straight
+away, and a production build with no hash ignores the taps. `unlockMethod` in
 `src/features/dev/passphrase.ts` decides between these cases.
 
 The mode is one localStorage key, `huemi.devmode`, which is `on` or absent and sits
@@ -55,9 +55,19 @@ which hosts the unlock gesture, no screen branches on the mode beyond placing a
 the menu.
 
 `/dev` is a lazy route. With the mode off it renders the not-found screen, so the
-address gives nothing away. With the mode on it shows the commit and build date,
+address gives nothing away. With the mode on it shows the commit and its date,
 resets for onboarding and saved outfits, the service worker's cache names with
 Check for update and Unregister and reload, and a button to lock the mode.
+
+The commit and its date go into `index.html` as `<meta>` tags, and the menu reads
+them from the page. Compiled into the JavaScript, they would rename the menu's
+chunk and every chunk that imports it on every build. That changes the worker's
+cache name even when the source has not (ADR 0016), so every deploy would send the
+whole app to every installed copy again. In the page, two builds of one commit come
+out identical. A new commit still changes `index.html`, and with it the cache name,
+but chunks whose code is unchanged keep their names. The date is the commit's, from
+git, for the same reason. `index.html` is precached, so the menu shows both
+offline.
 
 A shared image, sentence or link never carries developer state. The share code
 does not read the mode, and the scenario "Developer mode leaves a share unchanged"
@@ -78,9 +88,12 @@ and a record of its own.
 ADR 0013 stands. The flag is the only new thing stored, it stays in the browser,
 and nothing in the mode sends anything over the network.
 
-A visitor who never unlocks the mode runs only the provider, the tap counter and
-the unlock sheet, which are in the main bundle. The menu and every slot filler are
-separate chunks, fetched when the mode turns on. The service worker precaches every
+The main bundle holds the provider, the tap counter, the unlock sheet, `DevRoute`,
+`DevSlotHost`, `DevSlot` and the error boundary around the lazy parts, and a
+visitor who never unlocks the mode runs nothing else of it. The menu and every
+slot filler are separate chunks, fetched when the mode turns on. A chunk that fails
+to load empties its slot, or on `/dev` says the menu did not load and offers a
+reload, and the rest of the app carries on. The service worker precaches every
 file in the build, so an installed copy holds those chunks as well and the mode
 works offline, but nothing loads them while the mode is off.
 
@@ -92,8 +105,15 @@ the next two.
 Testing the passphrase needs a known hash. `e2e/devMode.ts` holds the one the
 browser suite types, and `playwright.config.ts` and the e2e job in
 `.github/workflows/ci.yml` repeat it, since neither can import that file. The
-verify job builds with no hash, so it checks a build in which the mode cannot be
-unlocked.
+verify job builds with no hash, which shows only that such a build compiles. That
+the taps then do nothing is pinned by the unit test "does nothing in none mode" in
+`src/features/entry/Entry.test.tsx`.
+
+Netlify needs `VITE_DEV_MODE_HASH` set for the Deploy Previews context as well as
+for production, or the mode cannot be unlocked on a preview. Vite inlines the value
+when it builds, so changing it takes a redeploy. It must not be marked as a secret
+in Netlify: it ships in `dist/` by design, and Netlify's secrets scan fails any
+build whose output contains a secret value.
 
 The seven-tap gesture is pointer-only and gives no hint that it exists. `A11Y.md`
 records that as a deliberate exception, since the gesture is meant for the
