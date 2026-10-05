@@ -13,6 +13,8 @@ import { Announcer } from '../../ui/Announcer';
 import { InitialLocationContext } from '../../ui/InitialLocationContext';
 import { OutfitsProvider } from '../saved/OutfitsProvider';
 import { fakeOutfitStore } from '../saved/testing';
+import { fakeSharePort, type FakeSharePort } from '../share/fakeShare.testing';
+import { ShareContext } from '../share/ShareContext';
 import { Suggestions } from './Suggestions';
 
 function Where() {
@@ -23,22 +25,24 @@ function Where() {
 // Awaits the provider's first load before returning, the way `SaveToggle`'s
 // own tests do. Without this, its `list()` promise settles after the test
 // body has already made its assertions, outside of `act()`.
-async function at(url: string) {
+async function at(url: string, port: FakeSharePort = fakeSharePort()) {
   render(
-    <MemoryRouter initialEntries={[url]}>
-      <InitialLocationContext value={true}>
-        <SessionProvider>
-          <OutfitsProvider store={fakeOutfitStore()}>
-            <Announcer>
-              <Routes>
-                <Route path="/suggest" element={<Suggestions />} />
-                <Route path="/" element={<Where />} />
-              </Routes>
-            </Announcer>
-          </OutfitsProvider>
-        </SessionProvider>
-      </InitialLocationContext>
-    </MemoryRouter>,
+    <ShareContext value={port}>
+      <MemoryRouter initialEntries={[url]}>
+        <InitialLocationContext value={true}>
+          <SessionProvider>
+            <OutfitsProvider store={fakeOutfitStore()}>
+              <Announcer>
+                <Routes>
+                  <Route path="/suggest" element={<Suggestions />} />
+                  <Route path="/" element={<Where />} />
+                </Routes>
+              </Announcer>
+            </OutfitsProvider>
+          </SessionProvider>
+        </InitialLocationContext>
+      </MemoryRouter>
+    </ShareContext>,
   );
   await act(async () => {});
 }
@@ -102,6 +106,19 @@ const MUSTARD: Base = { slot: 'top', hex: '#c39a3a' as Hex };
 const CHOSE_MUSTARD: SessionAction = { type: 'baseChosen', ...MUSTARD };
 
 describe('Suggestions', () => {
+  it('offers to share the outfit on screen', async () => {
+    const port = fakeSharePort();
+    await at('/suggest?slot=bottom&hex=%231f2a44', port);
+
+    const header = screen.getByRole('button', { name: 'Save outfit' }).parentElement!;
+    expect(within(header).getByRole('button', { name: 'Share outfit' })).toBeInTheDocument();
+    await waitFor(() => expect(port.calls.render.length).toBeGreaterThan(0));
+    const ops = port.calls.render.at(-1)!;
+    expect(ops).toContainEqual(expect.objectContaining({ kind: 'block', color: '#1f2a44' }));
+    expect(ops).toContainEqual(expect.objectContaining({ kind: 'text', text: 'BOTTOM · BASE' }));
+    expect(ops.filter((op) => op.kind === 'block')).toHaveLength(5);
+  });
+
   it('sends a visitor with no usable base back to the entry screen', async () => {
     await at('/suggest');
     expect(screen.getByText('at /')).toBeInTheDocument();

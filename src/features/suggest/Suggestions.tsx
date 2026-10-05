@@ -12,6 +12,8 @@ import { durations, tokens } from '../../styles/tokens.stylex';
 import { BaseBlock } from '../../ui/BaseBlock';
 import { Screen } from '../../ui/Screen';
 import { PICKER_TITLE } from '../pick/copy';
+import { outfitPieces } from '../saved/buildOutfit';
+import { ShareButton } from '../share/ShareButton';
 import { Sheet } from '../../ui/Sheet';
 import { SuggestionBlock } from '../../ui/SuggestionBlock';
 import { useAnnounce } from '../../ui/useAnnounce';
@@ -28,7 +30,7 @@ import { clearOfToasts } from '../../ui/toastClearance';
 const SHUFFLE_MS = Number.parseInt(durations.shuffle, 10);
 
 const styles = stylex.create({
-  header: { display: 'flex', justifyContent: 'flex-end' },
+  header: { display: 'flex', justifyContent: 'flex-end', gap: '8px' },
   blocks: { display: 'flex', flexDirection: 'column', gap: '8px', flexGrow: 1 },
   // The base is the ground every suggestion is made against, so it reads
   // larger. The proportion is the prototype's.
@@ -169,6 +171,7 @@ export function Suggestions() {
       back={{ to: `/color?slot=${base.slot}`, title: PICKER_TITLE }}
       header={
         <div {...stylex.props(styles.header)}>
+          <ShareButton pieces={outfitPieces(base, picks)} baseSlot={base.slot} />
           <SaveToggle base={base} picks={picks} />
         </div>
       }
