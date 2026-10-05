@@ -5,7 +5,7 @@ import { parseHex, type Hex } from '../../model/hex';
 import type { Slot } from '../../model/types';
 import { layoutShareImage, type DrawOp } from './layout';
 
-const OUTFIT: Partial<Record<Slot, Hex>> = {
+const OUTFIT: Record<Slot, Hex> = {
   outerwear: parseHex('#b88a5c'),
   top: parseHex('#ffffff'),
   bottom: parseHex('#1f2a44'),
@@ -111,7 +111,7 @@ describe('layoutShareImage', () => {
     const magenta = parseHex('#c431c4');
     const [{ name }] = blockTexts(
       layoutShareImage({ pieces: { top: magenta }, baseSlot: 'top' }),
-    ) as [{ name: Text }];
+    ) as [{ slot: Text; name: Text }];
 
     expect(name.text).toBe(colorName(magenta));
     expect(PALETTE.map((entry) => entry.name)).not.toContain(name.text);
