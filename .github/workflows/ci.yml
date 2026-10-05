@@ -113,7 +113,12 @@ jobs:
         if: steps.pw-cache.outputs.cache-hit != 'true'
       - run: npx playwright install-deps chromium
         if: steps.pw-cache.outputs.cache-hit == 'true'
+      # The hash of the passphrase the developer mode scenarios type, repeated
+      # from e2e/devMode.ts. The verify job's build gets none, so that one checks a
+      # build in which developer mode cannot be unlocked.
       - run: npm run build
+        env:
+          VITE_DEV_MODE_HASH: db8bdc58a077d02fa147d1fb47846e7cc600aa9e9553f87264760b5f4b5b9f42
       # `npm run e2e` runs `bddgen` before `playwright test`, so generation
       # from the .feature files happens here too rather than as a separate
       # CI step — the same command used locally.

@@ -24,6 +24,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "e2e": "bddgen && playwright test",
+    "devmode:hash": "node scripts/devmode-hash.mjs",
     "prepare": "husky"
   },
   "lint-staged": {

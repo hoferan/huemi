@@ -53,5 +53,11 @@ export default defineConfig({
     command: process.env.CI ? 'npm run preview' : 'npm run build && npm run preview',
     url: 'http://localhost:4173',
     reuseExistingServer: !process.env.CI,
+    // Read by the build in a local run. A reused server keeps the build it was
+    // started with, so a stale preview on 4173 would lack the hash and fail the
+    // passphrase scenario; stop it first. The value is the one in
+    // e2e/devMode.ts, which this config cannot import (tsconfig.node.json has no
+    // DOM types). CI sets it on its build step too.
+    env: { VITE_DEV_MODE_HASH: 'db8bdc58a077d02fa147d1fb47846e7cc600aa9e9553f87264760b5f4b5b9f42' },
   },
 });
