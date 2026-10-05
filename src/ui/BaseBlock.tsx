@@ -1,12 +1,12 @@
 import type { ReactElement } from 'react';
 import * as stylex from '@stylexjs/stylex';
 import { Lock } from 'lucide-react';
-import { colorName } from '../color/palette';
 import type { Hex } from '../model/hex';
-import { SLOT_LABELS, type Slot } from '../model/types';
+import type { Slot } from '../model/types';
 import { tokens } from '../styles/tokens.stylex';
 import { ColorBlock } from './ColorBlock';
-import { blockText, fieldLayout } from './blockText';
+import { blockText } from './blockText';
+import { BlockField } from './PlainBlock';
 
 /**
  * The garment the user started from.
@@ -30,10 +30,7 @@ export function BaseBlock({
 }): ReactElement {
   return (
     <ColorBlock slot={slot} hex={hex} style={style} fade={fade}>
-      <div {...stylex.props(fieldLayout.field)}>
-        <span {...stylex.props(blockText.slot)}>{SLOT_LABELS[slot]}</span>
-        <span {...stylex.props(blockText.name)}>{colorName(hex)}</span>
-      </div>
+      <BlockField slot={slot} hex={hex} />
       <span {...stylex.props(blockText.mark)}>
         <Lock size={16} aria-hidden="true" />
         Base
