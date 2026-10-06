@@ -40,7 +40,12 @@ function Seed({ pixels, slot = 'top' }: { pixels: Pixels; slot?: Slot }) {
   const { dispatch } = useSession();
   const navigate = useNavigate();
   useEffect(() => {
-    dispatch({ type: 'frameCaptured', slot, frame: { pixels, source: 'camera' } });
+    dispatch({
+      type: 'frameCaptured',
+      slot,
+      frame: { pixels, source: 'camera' },
+      lowLight: false,
+    });
     void navigate('/confirm?slot=top');
   }, [dispatch, navigate, pixels, slot]);
   return null;

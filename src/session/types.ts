@@ -36,7 +36,12 @@ export type SlotPick = { hex: Hex; cursor?: number };
  * In the session and not the URL, because pixels do not fit in one. The
  * session lives in memory only, so holding them costs nothing past the tab.
  */
-export type Capture = { slot: Slot; frame: Frame };
+export type Capture = {
+  slot: Slot;
+  frame: Frame;
+  /** The low-light warning at the shutter. `null` for an uploaded photo. */
+  lowLight: boolean | null;
+};
 
 /** One slot of an outfit being checked. */
 export type CheckPiece = { hex: Hex };
@@ -84,7 +89,7 @@ export type SessionAction =
   | { type: 'picksReplaced'; picks: Partial<Record<Slot, SlotPick>> }
   | { type: 'toastShown'; message: string; action?: ToastAction; focusAction?: true }
   | { type: 'toastDismissed'; id: number }
-  | { type: 'frameCaptured'; slot: Slot; frame: Frame }
+  | { type: 'frameCaptured'; slot: Slot; frame: Frame; lowLight: boolean | null }
   | { type: 'checkStarted' }
   | { type: 'checkPhotoTaken'; frame: Frame }
   | { type: 'checkPieceSet'; slot: CheckSlot; hex: Hex }

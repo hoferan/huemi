@@ -49,9 +49,12 @@ function Where() {
   const { state } = useSession();
   const capture = state.capture ? `${state.capture.slot}:${state.capture.frame.source}` : 'none';
   return (
-    <p>
-      {pathname + search} capture={capture}
-    </p>
+    <>
+      <p>
+        {pathname + search} capture={capture}
+      </p>
+      <p>lowLight={String(state.capture?.lowLight)}</p>
+    </>
   );
 }
 
@@ -105,6 +108,28 @@ describe('Camera', () => {
     renderAt(fakeCamera().port);
     await user.click(await screen.findByRole('button', { name: 'Take photo' }));
     expect(await screen.findByText('/confirm?slot=top capture=top:camera')).toBeInTheDocument();
+  });
+
+  it('keeps the low-light state with the capture', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const { port, attach } = fakeCamera({ readFrame: vi.fn(() => dark) });
+    renderAt(port);
+    await screen.findByRole('button', { name: 'Take photo' });
+    await waitFor(() => expect(attach).toHaveBeenCalled());
+    act(() => {
+      vi.advanceTimersByTime(SAMPLE_INTERVAL_MS * 2);
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Take photo' }));
+    expect(await screen.findByText('lowLight=true')).toBeInTheDocument();
+  });
+
+  it('keeps no low-light reading with a chosen photo', async () => {
+    const { container } = renderAt(fakeCamera().port);
+    await screen.findByRole('button', { name: 'Take photo' });
+    fireEvent.change(photoInput(container), {
+      target: { files: [new File(['x'], 'shirt.jpg')] },
+    });
+    expect(await screen.findByText('lowLight=null')).toBeInTheDocument();
   });
 
   it('does nothing when the shutter is pressed before the video has a frame', async () => {

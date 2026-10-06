@@ -1,14 +1,14 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Frame } from '../../model/frame';
 import { Announcer } from '../../ui/Announcer';
 import { InitialLocationContext } from '../../ui/InitialLocationContext';
 import { CameraContext } from './CameraContext';
 import { CaptureScreen } from './CaptureScreen';
 import type { CaptureCopy } from './copy';
-import type { CameraPort } from './port';
+import { SAMPLE_INTERVAL_MS, type CameraPort } from './port';
 
 const frame: Frame = {
   pixels: { width: 1, height: 1, data: new Uint8ClampedArray([200, 200, 200, 255]) },
@@ -57,12 +57,21 @@ function renderWith(camera: CameraPort, onFrame = vi.fn()) {
   return onFrame;
 }
 
+const darkFrame: Frame = {
+  pixels: { width: 1, height: 1, data: new Uint8ClampedArray([10, 10, 10, 255]) },
+  source: 'camera',
+};
+
+afterEach(() => {
+  vi.useRealTimers();
+});
+
 describe('CaptureScreen', () => {
   it('hands the frame to its caller', async () => {
     const user = userEvent.setup();
     const onFrame = renderWith(port());
     await user.click(await screen.findByRole('button', { name: 'Take photo' }));
-    expect(onFrame).toHaveBeenCalledWith(frame);
+    expect(onFrame).toHaveBeenCalledWith(frame, false);
     expect(screen.getByRole('heading', { level: 1, name: 'A title' })).toBeInTheDocument();
   });
 
@@ -115,6 +124,36 @@ describe('CaptureScreen', () => {
     fireEvent.change(document.querySelector('input[type="file"]')!, {
       target: { files: [new File(['x'], 'outfit.jpg')] },
     });
-    await vi.waitFor(() => expect(onFrame).toHaveBeenCalledWith(frame));
+    await vi.waitFor(() => expect(onFrame).toHaveBeenCalledWith(frame, null));
+  });
+
+  it('passes the low-light warning with the shutter', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const attach = vi.fn<CameraPort['attach']>();
+    const camera = port({ readFrame: vi.fn(() => darkFrame), attach });
+    const onFrame = renderWith(camera);
+    await screen.findByRole('button', { name: 'Take photo' });
+    await vi.waitFor(() => expect(attach).toHaveBeenCalled());
+    act(() => {
+      vi.advanceTimersByTime(SAMPLE_INTERVAL_MS * 2);
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Take photo' }));
+    expect(onFrame).toHaveBeenCalledWith(darkFrame, true);
+  });
+
+  it('passes no low-light reading with a photo', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const attach = vi.fn<CameraPort['attach']>();
+    const camera = port({ readFrame: vi.fn(() => darkFrame), attach });
+    const onFrame = renderWith(camera);
+    await screen.findByRole('button', { name: 'Take photo' });
+    await vi.waitFor(() => expect(attach).toHaveBeenCalled());
+    act(() => {
+      vi.advanceTimersByTime(SAMPLE_INTERVAL_MS * 2);
+    });
+    fireEvent.change(document.querySelector('input[type="file"]')!, {
+      target: { files: [new File(['x'], 'outfit.jpg')] },
+    });
+    await vi.waitFor(() => expect(onFrame).toHaveBeenCalledWith(frame, null));
   });
 });

@@ -232,13 +232,45 @@ describe('sessionReducer', () => {
   };
 
   it('holds a captured frame and the slot it is for', () => {
-    const next = sessionReducer(initialSession, { type: 'frameCaptured', slot: 'bottom', frame });
-    expect(next.capture).toEqual({ slot: 'bottom', frame });
+    const next = sessionReducer(initialSession, {
+      type: 'frameCaptured',
+      slot: 'bottom',
+      frame,
+      lowLight: false,
+    });
+    expect(next.capture).toEqual({ slot: 'bottom', frame, lowLight: false });
+  });
+
+  it('frameCaptured stores lowLight', () => {
+    const dark = sessionReducer(initialSession, {
+      type: 'frameCaptured',
+      slot: 'top',
+      frame,
+      lowLight: true,
+    });
+    expect(dark.capture?.lowLight).toBe(true);
+    const photo = sessionReducer(initialSession, {
+      type: 'frameCaptured',
+      slot: 'top',
+      frame,
+      lowLight: null,
+    });
+    expect(photo.capture?.lowLight).toBeNull();
   });
 
   it('replaces an earlier capture rather than keeping both', () => {
-    const first = sessionReducer(initialSession, { type: 'frameCaptured', slot: 'top', frame });
-    const second = sessionReducer(first, { type: 'frameCaptured', slot: 'shoes', frame });
+    const first = sessionReducer(initialSession, {
+      type: 'frameCaptured',
+      slot: 'top',
+      frame,
+      lowLight: false,
+    });
+    const second = sessionReducer(first, {
+      type: 'frameCaptured',
+      slot: 'shoes',
+      frame,
+      lowLight: false,
+    });
     expect(second.capture?.slot).toBe('shoes');
   });
 

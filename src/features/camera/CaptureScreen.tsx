@@ -138,7 +138,11 @@ export function CaptureScreen({
    * light. The outfit check sets it: entering colors is a peer route there.
    */
   alwaysOfferHandEntry?: boolean;
-  onFrame: (frame: Frame) => void;
+  /**
+   * `lowLight` is the warning showing at the shutter, and `null` for a chosen
+   * photo, which was not lit by this camera.
+   */
+  onFrame: (frame: Frame, lowLight: boolean | null) => void;
 }) {
   const camera = use(CameraContext);
   const announce = useAnnounce();
@@ -220,7 +224,7 @@ export function CaptureScreen({
   function shoot() {
     if (!video.current) return;
     const frame = camera.readFrame(video.current, FRAME_MAX_SIDE);
-    if (frame) onFrame(frame);
+    if (frame) onFrame(frame, dark);
   }
 
   async function photoChosen(event: ChangeEvent<HTMLInputElement>) {
@@ -232,7 +236,7 @@ export function CaptureScreen({
     const result = await camera.readPhoto(file, FRAME_MAX_SIDE);
     if (!here.current) return;
     if (result.ok) {
-      onFrame(result.frame);
+      onFrame(result.frame, null);
       return;
     }
     setPhotoFailed(true);

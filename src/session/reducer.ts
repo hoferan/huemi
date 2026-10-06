@@ -92,7 +92,10 @@ export function sessionReducer(state: SessionState, action: SessionAction): Sess
 
     case 'frameCaptured':
       // One capture at a time: a new shot means the last one was not wanted.
-      return { ...state, capture: { slot: action.slot, frame: action.frame } };
+      return {
+        ...state,
+        capture: { slot: action.slot, frame: action.frame, lowLight: action.lowLight },
+      };
 
     case 'checkStarted':
       return { ...state, check: { photo: null, pieces: {}, swaps: {} } };
