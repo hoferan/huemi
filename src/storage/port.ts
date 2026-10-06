@@ -64,4 +64,9 @@ export interface FieldStore {
   deleteCapture(id: string): Promise<StorageResult<void>>;
   /** Sets the capture's garment. Fails for an unknown capture id. */
   linkCapture(id: string, garmentId: string): Promise<StorageResult<void>>;
+  /**
+   * The random id this device's exports carry, made the first time it is
+   * asked for and the same ever after.
+   */
+  setId(): Promise<StorageResult<string>>;
 }

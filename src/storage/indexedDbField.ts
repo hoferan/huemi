@@ -6,6 +6,7 @@ export const FIELD_DB = 'huemi-field';
 
 /* v8 ignore start -- jsdom has no indexedDB; e2e/features/field.feature drives it. */
 type FrameRecord = { id: string; width: number; height: number; data: Uint8ClampedArray };
+type MetaRecord = { id: 'setId'; value: string };
 
 // The request is untyped on purpose: getAll and get return `any`, and T names what the caller stored.
 const settle = <T>(request: IDBRequest): Promise<T> =>
@@ -31,33 +32,63 @@ const finished = (tx: IDBTransaction): Promise<void> =>
     };
   });
 
-// One open, shared. A failed open stays failed until the page reloads, which
-// is the right answer for private mode and for a blocked upgrade.
+// One open, shared, and forgotten whenever it stops being usable, so the
+// next call opens again: after a failed open, after another tab's upgrade
+// asks this one to close, and after the browser closes it.
 let opened: Promise<IDBDatabase> | undefined;
 
+const STORES = ['garments', 'captures', 'frames', 'meta'];
+
 function openDb(): Promise<IDBDatabase> {
-  opened ??= new Promise((resolve, reject) => {
+  if (opened) return opened;
+  const attempt = new Promise<IDBDatabase>((resolve, reject) => {
     if (typeof indexedDB === 'undefined') {
       reject(new Error('IndexedDB is unavailable'));
       return;
     }
     const request = indexedDB.open(FIELD_DB, 1);
-    request.onupgradeneeded = () => {
-      for (const name of ['garments', 'captures', 'frames']) {
-        request.result.createObjectStore(name, { keyPath: 'id' });
+    request.onupgradeneeded = (event) => {
+      // Each version's stores, so a later version adds its own and leaves these.
+      if (event.oldVersion < 1) {
+        for (const name of STORES) request.result.createObjectStore(name, { keyPath: 'id' });
       }
     };
     request.onsuccess = () => {
-      resolve(request.result);
+      const db = request.result;
+      db.onversionchange = () => {
+        db.close();
+        opened = undefined;
+      };
+      db.onclose = () => {
+        opened = undefined;
+      };
+      resolve(db);
     };
     request.onerror = () => {
       reject(request.error ?? new Error('open failed'));
     };
-    request.onblocked = () => {
-      reject(new Error('open blocked'));
-    };
+    // No onblocked: a blocked open waits for the other tab to close its
+    // connection and then succeeds, so it is not a failure.
   });
-  return opened;
+  opened = attempt;
+  attempt.catch(() => {
+    if (opened === attempt) opened = undefined;
+  });
+  return attempt;
+}
+
+// iOS can drop the connection while the app is in the background without
+// firing onclose, and the next transaction then throws InvalidStateError.
+// One fresh open is worth a try before that counts as a failure.
+async function transaction(stores: string[], mode: IDBTransactionMode): Promise<IDBTransaction> {
+  const db = await openDb();
+  try {
+    return db.transaction(stores, mode);
+  } catch (error) {
+    if (!(error instanceof DOMException && error.name === 'InvalidStateError')) throw error;
+    opened = undefined;
+    return (await openDb()).transaction(stores, mode);
+  }
 }
 
 // Runs `work` in one transaction and turns every failure, including a failed
@@ -68,13 +99,23 @@ async function run<T>(
   work: (tx: IDBTransaction) => Promise<T>,
 ): Promise<StorageResult<T>> {
   try {
-    const db = await openDb();
-    const tx = db.transaction(stores, mode);
+    const tx = await transaction(stores, mode);
     // Listen for completion before `work` awaits anything.
     const done = finished(tx);
-    // If `work` throws, the transaction aborts and `done` rejects unobserved.
+    // If `work` throws, the transaction is aborted below and `done` rejects
+    // unobserved.
     done.catch(() => undefined);
-    const value = await work(tx);
+    let value: T;
+    try {
+      value = await work(tx);
+    } catch (error) {
+      try {
+        tx.abort();
+      } catch {
+        // Already finished, so there is nothing to undo.
+      }
+      throw error;
+    }
     await done;
     return { ok: true, value };
   } catch (error) {
@@ -152,6 +193,16 @@ export const indexedDbField: FieldStore = {
       const capture = await settle<FieldCapture | undefined>(captures.get(id));
       if (!capture) throw new Error('no capture');
       await settle(captures.put({ ...capture, garmentId }));
+    }),
+
+  setId: () =>
+    run(['meta'], 'readwrite', async (tx) => {
+      const meta = tx.objectStore('meta');
+      const kept = await settle<MetaRecord | undefined>(meta.get('setId'));
+      if (kept) return kept.value;
+      const made: MetaRecord = { id: 'setId', value: crypto.randomUUID() };
+      await settle(meta.put(made));
+      return made.value;
     }),
 };
 /* v8 ignore stop */

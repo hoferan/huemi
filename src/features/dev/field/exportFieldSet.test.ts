@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { FieldCapture, FieldGarment } from '../../../model/field';
-import { decodeFieldExport } from '../../../model/fieldExport';
+import type { FieldStore } from '../../../storage/port';
+import { decodeFieldExport, encodeFieldExport } from '../../../model/fieldExport';
 import { parseHex } from '../../../model/hex';
 import { fakeSharePort } from '../../share/fakeShare.testing';
 import { buildFieldExport, deliverFieldExport, exportFileName } from './exportFieldSet';
@@ -34,7 +35,38 @@ const PIXELS = {
   data: new Uint8ClampedArray([31, 42, 68, 255, 0, 128, 255, 254]),
 };
 
-const identity = (bytes: Uint8Array<ArrayBuffer>) => Promise.resolve(bytes);
+type Chunks = AsyncIterable<Uint8Array<ArrayBuffer>>;
+
+// Stands in for gzip: the chunks joined as they come, so the text stays readable.
+async function concat(chunks: Chunks): Promise<Uint8Array<ArrayBuffer>> {
+  const parts: Uint8Array[] = [];
+  for await (const chunk of chunks) parts.push(chunk);
+  const out = new Uint8Array(parts.reduce((sum, part) => sum + part.length, 0));
+  let at = 0;
+  for (const part of parts) {
+    out.set(part, at);
+    at += part.length;
+  }
+  return out;
+}
+
+// Builds with `concat` and hands back the text it wrote.
+async function written(store: FieldStore, now = NOW): Promise<string> {
+  let text = '';
+  const built = await buildFieldExport({
+    store,
+    compress: async (chunks) => {
+      const bytes = await concat(chunks);
+      text = new TextDecoder().decode(bytes);
+      return bytes;
+    },
+    now,
+  });
+  expect(built).toBeInstanceOf(File);
+  return text;
+}
+
+const identity = concat;
 
 async function seeded() {
   const store = fakeFieldStore();
@@ -98,23 +130,95 @@ describe('buildFieldExport', () => {
       },
       { width: 1, height: 1, data: new Uint8ClampedArray([9, 8, 7, 255]) },
     );
-    let compressed: Uint8Array<ArrayBuffer> | undefined;
-    await buildFieldExport({
-      store,
-      compress: (bytes) => {
-        compressed = bytes;
-        return Promise.resolve(bytes);
-      },
-      now: NOW,
-    });
 
-    const set = decodeFieldExport(new TextDecoder().decode(compressed));
+    const set = decodeFieldExport(await written(store));
     expect(set.exportedAt).toBe(NOW.toISOString());
     expect(set.garments).toEqual([GARMENT]);
     const byId = new Map(set.captures.map((capture) => [capture.id, capture]));
     expect(byId.get('c1')).toEqual({ ...CAPTURE, pixels: PIXELS });
     expect([...byId.get('c2')!.pixels.data]).toEqual([9, 8, 7, 255]);
     expect(byId.get('c2')!.lowLight).toBeNull();
+  });
+
+  it('streams the same text encodeFieldExport writes for the set', async () => {
+    const store = await seeded();
+    await store.saveCapture(
+      { ...CAPTURE, id: 'c2', takenAt: '2026-10-06T10:00:00.000Z', width: 1, height: 1 },
+      { width: 1, height: 1, data: new Uint8ClampedArray([9, 8, 7, 255]) },
+    );
+    const setId = await store.setId();
+    if (!setId.ok) throw new Error('no set id');
+
+    expect(await written(store)).toBe(
+      encodeFieldExport({
+        version: 1,
+        exportedAt: NOW.toISOString(),
+        setId: setId.value,
+        garments: [GARMENT],
+        // Newest first, as the store lists them.
+        captures: [
+          {
+            ...CAPTURE,
+            id: 'c2',
+            takenAt: '2026-10-06T10:00:00.000Z',
+            width: 1,
+            height: 1,
+            pixels: { width: 1, height: 1, data: new Uint8ClampedArray([9, 8, 7, 255]) },
+          },
+          { ...CAPTURE, pixels: PIXELS },
+        ],
+      }),
+    );
+  });
+
+  it('streams an empty set as a whole document', async () => {
+    const store = fakeFieldStore();
+    await store.saveGarment(GARMENT);
+    expect(decodeFieldExport(await written(store)).captures).toEqual([]);
+  });
+
+  it('reads each frame only once the one before it has been written', async () => {
+    const inner = await seeded();
+    await inner.saveCapture({ ...CAPTURE, id: 'c2', takenAt: '2026-10-06T10:00:00.000Z' }, PIXELS);
+    await inner.saveCapture({ ...CAPTURE, id: 'c3', takenAt: '2026-10-07T10:00:00.000Z' }, PIXELS);
+    let reads = 0;
+    const store: FieldStore = {
+      ...inner,
+      readPixels: (id) => {
+        reads += 1;
+        return inner.readPixels(id);
+      },
+    };
+    // How many frames had been read when each chunk arrived.
+    const seen: number[] = [];
+    await buildFieldExport({
+      store,
+      compress: async (chunks) => {
+        for await (const chunk of chunks) {
+          void chunk;
+          seen.push(reads);
+        }
+        return new Uint8Array();
+      },
+      now: NOW,
+    });
+    // The head, one chunk a capture, and the tail.
+    expect(seen).toEqual([0, 1, 2, 3, 3]);
+  });
+
+  it("carries the device's set id, the same on every export", async () => {
+    const store = await seeded();
+    const first = decodeFieldExport(await written(store)).setId;
+    const second = decodeFieldExport(await written(store, new Date(2026, 9, 7))).setId;
+    const kept = await store.setId();
+    expect(first).toBe(kept.ok && kept.value);
+    expect(second).toBe(first);
+  });
+
+  it('reports a set id it cannot read', async () => {
+    const store = await seeded();
+    store.setId = () => Promise.resolve({ ok: false, reason: 'test' });
+    expect(await buildFieldExport({ store, compress: identity })).toBe('failed');
   });
 });
 

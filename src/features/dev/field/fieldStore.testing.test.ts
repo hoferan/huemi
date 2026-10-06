@@ -105,6 +105,14 @@ describe('fakeFieldStore', () => {
     expect((await fakeFieldStore().deleteCapture('nope')).ok).toBe(false);
   });
 
+  it('keeps one set id, made on first asking', async () => {
+    const store = fakeFieldStore();
+    const first = value(await store.setId());
+    expect(first).toMatch(/\S/);
+    expect(value(await store.setId())).toBe(first);
+    expect(value(await fakeFieldStore().setId())).not.toBe(first);
+  });
+
   it('fails every call when failing', async () => {
     const store = fakeFieldStore({ failing: true });
     const results = await Promise.all([
@@ -116,6 +124,7 @@ describe('fakeFieldStore', () => {
       store.readPixels('c'),
       store.deleteCapture('c'),
       store.linkCapture('c', 'g'),
+      store.setId(),
     ]);
     for (const result of results) expect(result).toEqual({ ok: false, reason: 'test' });
   });

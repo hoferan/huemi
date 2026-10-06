@@ -8,13 +8,14 @@ const failed = (reason: string): Promise<StorageResult<never>> =>
 
 /**
  * An in-memory FieldStore with the port's semantics: upsert by id, newest
- * first, a garment's delete cascading, unknown ids failing. With `failing`,
- * every call fails.
+ * first, a garment's delete cascading, unknown ids failing, one set id made
+ * on first asking. With `failing`, every call fails.
  */
 export function fakeFieldStore(options: { failing?: boolean } = {}): FieldStore {
   const garments = new Map<string, FieldGarment>();
   const captures = new Map<string, FieldCapture>();
   const frames = new Map<string, Pixels>();
+  let setId: string | undefined;
   const failing = options.failing === true;
   // Runs a call only when the store is not failing.
   const guard =
@@ -64,5 +65,6 @@ export function fakeFieldStore(options: { failing?: boolean } = {}): FieldStore 
       captures.set(id, { ...capture, garmentId });
       return ok(undefined);
     }),
+    setId: guard(() => ok((setId ??= crypto.randomUUID()))),
   };
 }

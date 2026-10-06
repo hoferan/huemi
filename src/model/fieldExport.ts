@@ -22,14 +22,34 @@ function fromBase64(text: string): Uint8ClampedArray {
   return out;
 }
 
-/** Pixel bytes become base64 so the whole set is one JSON document. */
+type ExportedCapture = FieldExport['captures'][number];
+
+// A capture as the file holds it, with its pixel bytes in base64.
+const wireCapture = (capture: ExportedCapture) => {
+  const { pixels } = capture;
+  return {
+    ...capture,
+    pixels: { width: pixels.width, height: pixels.height, data: toBase64(pixels.data) },
+  };
+};
+
+/** One capture as it sits in the file's `captures` array. */
+export function encodeFieldCapture(capture: ExportedCapture): string {
+  return JSON.stringify(wireCapture(capture));
+}
+
+/**
+ * Pixel bytes become base64 so the whole set is one JSON document. The keys
+ * go in a fixed order, the one the streamed export in
+ * `src/features/dev/field/exportFieldSet.ts` writes.
+ */
 export function encodeFieldExport(data: FieldExport): string {
   return JSON.stringify({
-    ...data,
-    captures: data.captures.map((c) => ({
-      ...c,
-      pixels: { width: c.pixels.width, height: c.pixels.height, data: toBase64(c.pixels.data) },
-    })),
+    version: data.version,
+    exportedAt: data.exportedAt,
+    setId: data.setId,
+    garments: data.garments,
+    captures: data.captures.map(wireCapture),
   });
 }
 
@@ -54,12 +74,19 @@ function hex(v: unknown) {
   }
 }
 
+// One color, or two to three for a multicolor piece, as the kit records it.
+function truth(v: unknown) {
+  const hexes = list(v);
+  if (hexes.length < 1 || hexes.length > 3) reject();
+  return hexes.map(hex);
+}
+
 function decodeGarment(v: unknown): FieldGarment {
   const g = obj(v);
   return {
     id: str(g.id),
     label: str(g.label),
-    truth: list(g.truth).map(hex),
+    truth: truth(g.truth),
     createdAt: str(g.createdAt),
   };
 }
@@ -79,7 +106,7 @@ function decodePixels(v: unknown): Pixels {
   return { width, height, data };
 }
 
-function decodeCapture(v: unknown): FieldCapture & { pixels: Pixels } {
+function decodeCapture(v: unknown): ExportedCapture {
   const c = obj(v);
   const light = c.light;
   if (c.source !== 'kit' && c.source !== 'flow') reject();
@@ -103,8 +130,9 @@ function decodeCapture(v: unknown): FieldCapture & { pixels: Pixels } {
 
 /**
  * Reads a field export back, checking enough to fail loudly on the wrong
- * file: the version, the arrays, every hex, and that each frame's bytes fill
- * its stated size. Any failure throws the same error.
+ * file: the version, the set's id, the arrays, every hex, the number of true
+ * colors, and that each frame's bytes fill its stated size. Any failure
+ * throws the same error.
  */
 export function decodeFieldExport(json: string): FieldExport {
   let raw: unknown;
@@ -118,21 +146,28 @@ export function decodeFieldExport(json: string): FieldExport {
   return {
     version: 1,
     exportedAt: str(r.exportedAt),
+    setId: str(r.setId),
     garments: list(r.garments).map(decodeGarment),
     captures: list(r.captures).map(decodeCapture),
   };
 }
 
 /**
- * Combines exports from several devices. Records share ids across exports, so
- * the one from the newest export wins; ISO timestamps compare as strings.
+ * Combines exports from several devices. Each export is a whole snapshot of
+ * its set, so only the newest export of each set counts: a capture deleted on
+ * the phone stays deleted even if an older export still holds it. The sets
+ * that remain are then unioned by id, and where two hold the same id, the
+ * newer export wins. ISO timestamps compare as strings. The result names
+ * every set it came from, joined with `+`.
  */
 export function mergeFieldExports(exports: readonly FieldExport[]): FieldExport {
-  const ordered = [...exports].sort((a, b) =>
-    a.exportedAt < b.exportedAt ? -1 : a.exportedAt > b.exportedAt ? 1 : 0,
-  );
+  const byTime = (a: FieldExport, b: FieldExport) =>
+    a.exportedAt < b.exportedAt ? -1 : a.exportedAt > b.exportedAt ? 1 : 0;
+  const newest = new Map<string, FieldExport>();
+  for (const e of [...exports].sort(byTime)) newest.set(e.setId, e);
+  const ordered = [...newest.values()].sort(byTime);
   const garments = new Map<string, FieldGarment>();
-  const captures = new Map<string, FieldExport['captures'][number]>();
+  const captures = new Map<string, ExportedCapture>();
   for (const e of ordered) {
     for (const g of e.garments) garments.set(g.id, g);
     for (const c of e.captures) captures.set(c.id, c);
@@ -140,6 +175,7 @@ export function mergeFieldExports(exports: readonly FieldExport[]): FieldExport 
   return {
     version: 1,
     exportedAt: ordered.at(-1)?.exportedAt ?? new Date(0).toISOString(),
+    setId: [...newest.keys()].sort().join('+'),
     garments: [...garments.values()],
     captures: [...captures.values()],
   };

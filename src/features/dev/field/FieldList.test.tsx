@@ -14,9 +14,16 @@ import { FieldList } from './FieldList';
 import { fakeFieldStore } from './fieldStore.testing';
 import { FieldStoreContext } from './FieldStoreContext';
 
-// jsdom has no CompressionStream to run the real one against, and an identity
-// keeps the bytes readable here. e2e/features/field.feature unzips a real export.
-vi.mock('./gzip', () => ({ gzip: (bytes: Uint8Array) => Promise.resolve(bytes) }));
+// jsdom has no CompressionStream to run the real one against, and joining the
+// chunks keeps the bytes readable here. e2e/features/field.feature unzips a
+// real export.
+vi.mock('./gzip', () => ({
+  gzipChunks: async (chunks: AsyncIterable<Uint8Array>) => {
+    const parts: number[] = [];
+    for await (const chunk of chunks) parts.push(...chunk);
+    return Uint8Array.from(parts);
+  },
+}));
 
 const garment = (id: string, label: string, createdAt: string, ...hexes: string[]) =>
   ({ id, label, truth: hexes.map(parseHex), createdAt }) satisfies FieldGarment;

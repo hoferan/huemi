@@ -1,9 +1,9 @@
-import type { FieldExport } from '../../../model/field';
-import { encodeFieldExport } from '../../../model/fieldExport';
+import type { FieldCapture, FieldGarment } from '../../../model/field';
+import { encodeFieldCapture } from '../../../model/fieldExport';
 import type { FieldStore } from '../../../storage/port';
 import type { SharePort, ShareResult } from '../../share/port';
 import { EXPORT_TITLE } from './copy';
-import { gzip } from './gzip';
+import { gzipChunks } from './gzip';
 
 export type ExportOutcome = ShareResult | 'downloaded';
 
@@ -14,39 +14,66 @@ export function exportFileName(now: Date): string {
   return `huemi-field-${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}.json.gz`;
 }
 
+type Chunks = AsyncIterable<Uint8Array<ArrayBuffer>>;
+
+/**
+ * The export's JSON in pieces: the head with the garments, then each capture
+ * with its frame, then the tail. A frame is read only when the piece before
+ * it has been taken, so memory holds one frame at a time.
+ * The text is what `encodeFieldExport` writes for the same set, which its
+ * test checks. A frame that cannot be read throws.
+ */
+async function* exportChunks(
+  store: FieldStore,
+  head: { exportedAt: string; setId: string; garments: FieldGarment[] },
+  captures: readonly FieldCapture[],
+): Chunks {
+  const text = new TextEncoder();
+  yield text.encode(
+    `{"version":1,"exportedAt":${JSON.stringify(head.exportedAt)},` +
+      `"setId":${JSON.stringify(head.setId)},` +
+      `"garments":${JSON.stringify(head.garments)},"captures":[`,
+  );
+  for (const [i, capture] of captures.entries()) {
+    const read = await store.readPixels(capture.id);
+    if (!read.ok) throw new Error(read.reason);
+    yield text.encode(
+      (i === 0 ? '' : ',') + encodeFieldCapture({ ...capture, pixels: read.value }),
+    );
+  }
+  yield text.encode(']}');
+}
+
 /**
  * Everything the field recorder holds, as one gzipped file. A frame that
  * cannot be read fails the whole export, so no capture leaves without its
- * frame. The frames are read one at a time.
+ * frame. The frames stream through the compressor one at a time, so the
+ * memory it takes is about one frame and the compressed file.
  */
 export async function buildFieldExport({
   store,
-  compress = gzip,
+  compress = gzipChunks,
   now = new Date(),
 }: {
   store: FieldStore;
-  compress?: (bytes: Uint8Array<ArrayBuffer>) => Promise<Uint8Array<ArrayBuffer>>;
+  compress?: (chunks: Chunks) => Promise<Uint8Array<ArrayBuffer>>;
   now?: Date;
 }): Promise<File | 'failed'> {
-  const [garments, captures] = await Promise.all([store.listGarments(), store.listCaptures()]);
-  if (!garments.ok || !captures.ok) return 'failed';
-  const withFrames: FieldExport['captures'] = [];
-  for (const capture of captures.value) {
-    const read = await store.readPixels(capture.id);
-    if (!read.ok) return 'failed';
-    withFrames.push({ ...capture, pixels: read.value });
-  }
+  const [garments, captures, setId] = await Promise.all([
+    store.listGarments(),
+    store.listCaptures(),
+    store.setId(),
+  ]);
+  if (!garments.ok || !captures.ok || !setId.ok) return 'failed';
   let bytes: Uint8Array<ArrayBuffer>;
-  // Inside the try too: a set large enough runs past the longest string the
-  // browser will build, and the encoding throws.
   try {
-    const json = encodeFieldExport({
-      version: 1,
-      exportedAt: now.toISOString(),
-      garments: garments.value,
-      captures: withFrames,
-    });
-    bytes = await compress(new TextEncoder().encode(json));
+    bytes = await compress(
+      exportChunks(
+        store,
+        { exportedAt: now.toISOString(), setId: setId.value, garments: garments.value },
+        captures.value,
+      ),
+    );
   } catch {
     return 'failed';
   }

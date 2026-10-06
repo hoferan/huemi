@@ -42,10 +42,15 @@ export type FieldCapture = {
   build: string;
 };
 
-/** The file a field set is exported to and merged from. */
+/**
+ * The file a field set is exported to and merged from. `setId` is a random id
+ * the device picks at its first export and keeps, so a merge can tell a newer
+ * export of the same set from an export of another.
+ */
 export type FieldExport = {
   version: 1;
   exportedAt: string;
+  setId: string;
   garments: FieldGarment[];
   captures: (FieldCapture & { pixels: Pixels })[];
 };
