@@ -6,7 +6,7 @@ import type { FieldCapture, FieldGarment } from '../../../model/field';
 import { parseHex } from '../../../model/hex';
 import { SessionProvider } from '../../../session/SessionProvider';
 import { useSession } from '../../../session/useSession';
-import type { FieldStore } from '../../../storage/port';
+import type { FieldStore, StorageResult } from '../../../storage/port';
 import { fakeSharePort } from '../../share/fakeShare.testing';
 import type { SharePort } from '../../share/port';
 import { ShareContext } from '../../share/ShareContext';
@@ -533,6 +533,66 @@ describe('FieldList', () => {
       expect(screen.queryByRole('button', { name: 'Share the export' })).not.toBeInTheDocument(),
     );
     expect(screen.getByRole('button', { name: 'Export' })).toBeEnabled();
+  });
+
+  describe('while an export prepares', () => {
+    // Holds the export at its set id, which only the export asks for, so the
+    // list loads as usual and the build waits until released.
+    async function holdExport(setId: StorageResult<string>) {
+      const inner = fakeFieldStore();
+      await inner.saveCapture(capture('c1', null, 'dim'), PIXELS);
+      let release = () => {};
+      const held = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      const store: FieldStore = {
+        ...inner,
+        setId: async () => {
+          await held;
+          return setId;
+        },
+      };
+      return { store, release: () => release() };
+    }
+
+    const captureButtons = () => [
+      screen.getByRole('button', { name: 'Link to a garment' }),
+      screen.getByRole('button', { name: 'Delete' }),
+    ];
+
+    it('keeps Delete and Link disabled while an export prepares', async () => {
+      const { store, release } = await holdExport({ ok: true, value: 'set' });
+      const user = setup(store);
+
+      await user.click(await screen.findByRole('button', { name: 'Export' }));
+      await screen.findByRole('button', { name: 'Preparing export…' });
+      for (const button of captureButtons()) expect(button).toBeDisabled();
+      release();
+      await screen.findByRole('button', { name: 'Share the export' });
+    });
+
+    it('enables Delete and Link again once the export is ready', async () => {
+      const { store, release } = await holdExport({ ok: true, value: 'set' });
+      const user = setup(store);
+
+      await user.click(await screen.findByRole('button', { name: 'Export' }));
+      release();
+      await screen.findByRole('button', { name: 'Share the export' });
+      for (const button of captureButtons()) expect(button).toBeEnabled();
+    });
+
+    it('enables Delete and Link again after the export fails', async () => {
+      const { store, release } = await holdExport({ ok: false, reason: 'test' });
+      const user = setup(store);
+
+      await user.click(await screen.findByRole('button', { name: 'Export' }));
+      release();
+      await waitFor(() =>
+        expect(screen.getByTestId('toast')).toHaveTextContent("Couldn't export the field set."),
+      );
+      expect(screen.getByRole('button', { name: 'Export' })).toBeEnabled();
+      for (const button of captureButtons()) expect(button).toBeEnabled();
+    });
   });
 
   it('opens the add screen', async () => {

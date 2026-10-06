@@ -206,6 +206,9 @@ function Ready({
   const shareButton = useRef<HTMLButtonElement>(null);
   // Set while a delete is out, so a second tap cannot run it twice.
   const deleting = useRef(false);
+  // The build reads the captures one at a time, so a delete or link landing
+  // mid-build fails it or leaves a file of the old set that is then dropped.
+  const preparing = exporting.status === 'preparing';
   const unlinked = captures.filter(isWaiting);
   const counts = new Map<string, number>();
   for (const { garmentId } of captures) {
@@ -288,9 +291,9 @@ function Ready({
       <div {...stylex.props(styles.actions)}>
         <Button label={ADD_GARMENT} onClick={onAdd} />
         <Button
-          label={exporting.status === 'preparing' ? PREPARING_EXPORT : EXPORT}
+          label={preparing ? PREPARING_EXPORT : EXPORT}
           variant="secondary"
-          disabled={captures.length === 0 || exporting.status === 'preparing'}
+          disabled={captures.length === 0 || preparing}
           onClick={() => void prepare()}
         />
         {prepared && (
@@ -368,11 +371,13 @@ function Ready({
                   <Button
                     label={LINK_TO_GARMENT}
                     variant="secondary"
+                    disabled={preparing}
                     onClick={() => setLinking(capture.id)}
                   />
                   <Button
                     label={DELETE}
                     variant="secondary"
+                    disabled={preparing}
                     onClick={() => void remove(capture.id)}
                   />
                 </li>
