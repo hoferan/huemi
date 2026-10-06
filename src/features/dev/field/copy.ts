@@ -26,3 +26,20 @@ export const SAVE_FAILED = "Couldn't save this garment.";
 
 export const captureCount = (n: number): string => (n === 1 ? '1 capture' : `${n} captures`);
 export const colorGroup = (n: number): string => `Color ${n}`;
+
+export const CAPTURE = 'Capture';
+export const LIGHT_GROUP = 'Light';
+export const DELETE = 'Delete';
+export const DELETE_GARMENT = 'Delete garment';
+export const KEEP_IT = 'Keep it';
+export const BACK_TO_GARMENT = 'Back to the garment';
+export const CAPTURE_FAILED = "Couldn't record this capture.";
+export const DELETE_CAPTURE_FAILED = "Couldn't delete this capture.";
+export const DELETE_GARMENT_FAILED = "Couldn't delete this garment.";
+
+export const captureTitle = (label: string): string => `Capture ${label}`;
+export const captured = (light: string): string => `Captured: ${light}.`;
+export const deleteGarmentTitle = (label: string, n: number): string =>
+  `Delete ${label} and its ${n} captures?`;
+export const garmentPath = (id: string): string =>
+  `/dev/field/garment?id=${encodeURIComponent(id)}`;
