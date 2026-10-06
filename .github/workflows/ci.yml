@@ -119,7 +119,7 @@ jobs:
       # src/features/entry/Entry.test.tsx pins that the taps then do nothing.
       - run: npm run build
         env:
-          VITE_DEV_MODE_HASH: db8bdc58a077d02fa147d1fb47846e7cc600aa9e9553f87264760b5f4b5b9f42
+          VITE_DEV_MODE_HASH: ffaaca00a0ad6dba9afc41fefad93144077262305dce6d54c73bdcc24e5c5870
       # `npm run e2e` runs `bddgen` before `playwright test`, so generation
       # from the .feature files happens here too rather than as a separate
       # CI step — the same command used locally.

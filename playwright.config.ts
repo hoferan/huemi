@@ -58,6 +58,6 @@ export default defineConfig({
     // passphrase scenario; stop it first. The value is the one in
     // e2e/devMode.ts, which this config cannot import (tsconfig.node.json has no
     // DOM types). CI sets it on its build step too.
-    env: { VITE_DEV_MODE_HASH: 'db8bdc58a077d02fa147d1fb47846e7cc600aa9e9553f87264760b5f4b5b9f42' },
+    env: { VITE_DEV_MODE_HASH: 'ffaaca00a0ad6dba9afc41fefad93144077262305dce6d54c73bdcc24e5c5870' },
   },
 });

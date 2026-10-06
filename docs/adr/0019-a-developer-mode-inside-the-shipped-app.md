@@ -30,8 +30,8 @@ The code lives in `src/features/dev/` and is tested and covered like any other
 feature. `src/dev/` stays the unbundled harness.
 
 Seven taps on the start screen's wordmark within three seconds open a sheet that
-asks for a passphrase. The build compares a SHA-256 of `huemi-dev:` and the
-passphrase with `VITE_DEV_MODE_HASH`. That value is set in Netlify's site settings
+asks for a passphrase. The build compares a PBKDF2-SHA256 of the passphrase,
+salted with `huemi-dev:` and run for 600,000 rounds, with `VITE_DEV_MODE_HASH`. That value is set in Netlify's site settings
 and never committed; `npm run devmode:hash` prints it for a passphrase typed at its
 prompt or piped to it. The dev server skips the sheet and turns the mode on straight
 away, and a production build with no hash ignores the taps. `unlockMethod` in
@@ -76,10 +76,11 @@ identical to one made with it off.
 
 ## Consequences
 
-The passphrase keeps casual visitors out and nobody else. The repository is
-public, the hash ships in the JavaScript bundle where anyone can run a dictionary
-against it, and the flag is a key anyone can set from the browser's console. That
-is acceptable because a stranger who gets in can act only on their own device:
+The passphrase only keeps casual visitors out. The repository is public, the hash
+ships in the JavaScript bundle where anyone can test guesses against it offline,
+and the flag is a key anyone can set from the browser's console. PBKDF2 makes each
+guess cost 600,000 rounds of SHA-256, so a long passphrase holds up, but a common
+word would still fall to a dictionary. That is acceptable because a stranger who gets in can act only on their own device:
 reset their own onboarding, clear their own saved outfits, unregister their own
 service worker. huemi holds nothing of anyone else's for them to reach (ADR 0013).
 A developer feature that ever touches shared data would need real authentication

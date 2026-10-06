@@ -4,14 +4,14 @@ import type { Page } from '@playwright/test';
 export const E2E_PASSPHRASE = 'e2e passphrase';
 
 /**
- * Lowercase hex SHA-256 of `huemi-dev:e2e passphrase`: the value
+ * The hash of `e2e passphrase`, as `hashPassphrase` computes it: the value
  * `VITE_DEV_MODE_HASH` takes in the build the browser suite runs against.
  * `playwright.config.ts` and the e2e job in `.github/workflows/ci.yml` repeat
  * it, since neither can import this file, so changing it means changing all
  * three. The passphrase scenarios fail if they drift apart.
  * `npm run devmode:hash` prints the hash of any passphrase.
  */
-export const E2E_DEV_MODE_HASH = 'db8bdc58a077d02fa147d1fb47846e7cc600aa9e9553f87264760b5f4b5b9f42';
+export const E2E_DEV_MODE_HASH = 'ffaaca00a0ad6dba9afc41fefad93144077262305dce6d54c73bdcc24e5c5870';
 
 /**
  * Turns developer mode on before any page script runs.

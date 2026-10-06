@@ -1,14 +1,37 @@
 /**
- * Mixed into the passphrase before hashing, so the published hash is not a
- * plain SHA-256 of the passphrase that a lookup table of common words covers.
+ * The salt, so the published hash matches no table precomputed for other
+ * sites. It is fixed and public, like the hash itself.
  */
-export const DEV_HASH_PREFIX = 'huemi-dev:';
+export const DEV_HASH_SALT = 'huemi-dev:';
 
-/** Lowercase hex SHA-256 of the prefix and the passphrase. */
+/**
+ * PBKDF2 rounds, OWASP's figure for PBKDF2-SHA256. The hash ships in the
+ * bundle, so anyone can test guesses against it offline; each guess costs this
+ * many SHA-256 rounds instead of one. One check on a phone takes a fraction of
+ * a second, which a person typing a passphrase does not notice.
+ */
+export const DEV_HASH_ITERATIONS = 600_000;
+
+/**
+ * Lowercase hex PBKDF2-SHA256 of the passphrase, 256 bits.
+ * `scripts/devmode-hash.mjs` computes the same value with node:crypto.
+ */
 export async function hashPassphrase(passphrase: string): Promise<string> {
-  const bytes = new TextEncoder().encode(DEV_HASH_PREFIX + passphrase);
-  const digest = await crypto.subtle.digest('SHA-256', bytes);
-  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
+  const encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey('raw', encoder.encode(passphrase), 'PBKDF2', false, [
+    'deriveBits',
+  ]);
+  const bits = await crypto.subtle.deriveBits(
+    {
+      name: 'PBKDF2',
+      hash: 'SHA-256',
+      salt: encoder.encode(DEV_HASH_SALT),
+      iterations: DEV_HASH_ITERATIONS,
+    },
+    key,
+    256,
+  );
+  return Array.from(new Uint8Array(bits), (byte) => byte.toString(16).padStart(2, '0')).join('');
 }
 
 /**

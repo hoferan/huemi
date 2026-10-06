@@ -13,13 +13,15 @@
 // spaces included, is part of the passphrase. That is why the prompt is better
 // than `echo` in a shell: cmd.exe's echo keeps the space before a pipe.
 //
-// The prefix repeats DEV_HASH_PREFIX from src/features/dev/passphrase.ts,
-// which this script does not import.
-import { createHash } from 'node:crypto';
+// The salt and the round count repeat DEV_HASH_SALT and DEV_HASH_ITERATIONS
+// from src/features/dev/passphrase.ts, which this script does not import. If
+// they drift, the hash it prints never unlocks.
+import { pbkdf2Sync } from 'node:crypto';
 import process from 'node:process';
 import { createInterface } from 'node:readline';
 
-const PREFIX = 'huemi-dev:';
+const SALT = 'huemi-dev:';
+const ITERATIONS = 600_000;
 
 // To stderr, so the only thing on stdout is the hash.
 if (process.stdin.isTTY) process.stderr.write('Passphrase: ');
@@ -30,8 +32,4 @@ for await (const line of createInterface({ input: process.stdin, crlfDelay: Infi
   break;
 }
 
-process.stdout.write(
-  `${createHash('sha256')
-    .update(PREFIX + passphrase)
-    .digest('hex')}\n`,
-);
+process.stdout.write(`${pbkdf2Sync(passphrase, SALT, ITERATIONS, 32, 'sha256').toString('hex')}\n`);
