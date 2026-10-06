@@ -83,10 +83,9 @@ The export is built in memory, as one string and then one compressed buffer. A l
 enough set runs past the longest string the browser will build, and the export fails
 with a toast instead of producing a partial file. Nothing splits an export yet.
 
-The export format is a contract with the files already copied to the developer's PC.
-The reader's benchmark (#114) decodes them with `decodeFieldExport` and combines them
-with `mergeFieldExports`. A change to the format needs a new version number and a
-reader that still accepts version 1.
-
-Every truth in the set comes from one person's eye in daylight, so it measures the
-reader against the developer, the only user milestone nine has.
+The export format is a contract with the files already copied to the developer's PC,
+so a change to it needs a new version number and a reader that still accepts
+version 1. The reader's benchmark (#114) will decode those files with
+`decodeFieldExport` and combine them with `mergeFieldExports`. Every truth in them
+comes from one person's eye in daylight, so the benchmark will measure the reader
+against the developer, the only user milestone nine has.
