@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { AppRoutes } from './routes';
@@ -166,6 +166,11 @@ describe('AppRoutes with developer mode on', () => {
         </MemoryRouter>
       </FieldStoreContext>,
     );
-    expect(await screen.findByRole('heading', { level: 1, name: heading })).toBeInTheDocument();
+    // An unknown id first shows the loading screen, which has the list's title
+    // too, and then redirects. `findByRole` can return that first heading just
+    // before the redirect removes it, so the query and the check run together.
+    await waitFor(() =>
+      expect(screen.getByRole('heading', { level: 1, name: heading })).toBeInTheDocument(),
+    );
   });
 });
