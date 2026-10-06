@@ -14,6 +14,8 @@ import { formatSavedDate } from '../../saved/formatSavedDate';
 import { ShareContext } from '../../share/ShareContext';
 import {
   ADD_GARMENT,
+  DELETE,
+  DELETE_CAPTURE_FAILED,
   EXPORT,
   EXPORTED,
   EXPORT_FAILED,
@@ -160,6 +162,15 @@ export function FieldList() {
               ),
             })
           }
+          // Functional, since the delete awaited the store and `loaded` may
+          // have moved on since the tap.
+          onDeleted={(id) =>
+            setLoaded((current) =>
+              current.status === 'ready'
+                ? { ...current, captures: current.captures.filter((c) => c.id !== id) }
+                : current,
+            )
+          }
         />
       )}
     </Screen>
@@ -173,6 +184,7 @@ function Ready({
   now,
   onAdd,
   onLinked,
+  onDeleted,
 }: {
   garments: FieldGarment[];
   captures: FieldCapture[];
@@ -180,6 +192,7 @@ function Ready({
   now: Date;
   onAdd: () => void;
   onLinked: (id: string, garmentId: string) => void;
+  onDeleted: (id: string) => void;
 }) {
   const store = use(FieldStoreContext);
   const share = use(ShareContext);
@@ -191,6 +204,8 @@ function Ready({
   // the person would read that as a failure.
   const sharing = useRef(false);
   const shareButton = useRef<HTMLButtonElement>(null);
+  // Set while a delete is out, so a second tap cannot run it twice.
+  const deleting = useRef(false);
   const unlinked = captures.filter(isWaiting);
   const counts = new Map<string, number>();
   for (const { garmentId } of captures) {
@@ -238,6 +253,16 @@ function Ready({
     } finally {
       setExporting(next);
     }
+  }
+
+  // No confirmation, the same as a capture's Delete on the garment page.
+  async function remove(id: string) {
+    if (deleting.current) return;
+    deleting.current = true;
+    const removed = await store.deleteCapture(id);
+    deleting.current = false;
+    if (removed.ok) onDeleted(id);
+    else toast(DELETE_CAPTURE_FAILED);
   }
 
   // Synchronous up to the share, which must start inside the click.
@@ -344,6 +369,11 @@ function Ready({
                     label={LINK_TO_GARMENT}
                     variant="secondary"
                     onClick={() => setLinking(capture.id)}
+                  />
+                  <Button
+                    label={DELETE}
+                    variant="secondary"
+                    onClick={() => void remove(capture.id)}
                   />
                 </li>
               );

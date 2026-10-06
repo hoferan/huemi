@@ -9,8 +9,8 @@ import type { Hex } from '../model/hex';
  *
  * `confirm.actions` sits under the confirm screen's buttons. `onSettle` adds
  * a listener for the color the user settles on and returns its unsubscribe.
- * Leaving for the picker settles nothing. `lowLight` is null for an uploaded
- * photo.
+ * A listener hears one settle at most. Leaving for the picker settles
+ * nothing. `lowLight` is null for an uploaded photo.
  */
 export type DevSlots = {
   'screen.badge': Record<string, never>;

@@ -255,8 +255,12 @@ function ConfirmForCapture({
   const corrected = reading.kind === 'single' && shown !== reading.color;
 
   function confirm(hex: Hex) {
-    // First, while the listeners are still mounted to hear it.
-    for (const listener of settleListeners.current) listener(hex);
+    // First, while the listeners are still mounted to hear it. Each hears
+    // once: a second tap that lands before the screen goes finds the set
+    // empty, so a double tap records one capture.
+    const listeners = [...settleListeners.current];
+    settleListeners.current.clear();
+    for (const listener of listeners) listener(hex);
     // `baseChosen` clears the capture. React Router 8 applies a navigation
     // inside a transition, so a plain dispatch would render on its own first,
     // and the guard in `Confirm` would send the user to the camera before

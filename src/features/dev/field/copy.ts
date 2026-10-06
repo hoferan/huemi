@@ -46,6 +46,7 @@ export const garmentPath = (id: string): string =>
 
 export const RECORD = 'Record';
 export const CAPTURE_RECORDED = 'Capture recorded.';
+export const CHOOSE_LIGHT = 'Choose the light to record.';
 export const LINK_TO_GARMENT = 'Link to a garment';
 export const LINK_FAILED = "Couldn't link this capture.";
 

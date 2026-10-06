@@ -7,34 +7,42 @@ import { tokens } from '../../../styles/tokens.stylex';
 import type { DevSlots } from '../../../ui/devSlots';
 import { clearOfToasts } from '../../../ui/toastClearance';
 import { readBuild } from '../menu/build';
-import { CAPTURE_FAILED, CAPTURE_RECORDED, RECORD } from './copy';
+import { CAPTURE_FAILED, CAPTURE_RECORDED, CHOOSE_LIGHT, RECORD } from './copy';
 import { FieldStoreContext } from './FieldStoreContext';
 import { LightChips } from './LightChips';
+import { persistFieldSet } from './persist';
 
-const KEY = 'huemi.field.recording';
-
-type Recording = { on: boolean; light: Light };
-
-const OFF: Recording = { on: false, light: 'other' };
+const ON_KEY = 'huemi.field.recording';
+const LIGHT_KEY = 'huemi.field.recording.light';
 
 // Read and written straight from here rather than through a storage port:
-// it is a developer's switch, and losing it costs one tap. Anything that
-// cannot be read back starts off.
-function load(): Recording {
+// it is a developer's switch, and losing it costs a tap. Anything that cannot
+// be read back starts off, or with no light.
+
+// In localStorage, so Record stays on from one visit to the next.
+function loadOn(): boolean {
   try {
-    const raw = localStorage.getItem(KEY);
-    if (raw === null) return OFF;
-    const value = JSON.parse(raw) as Partial<Recording>;
-    const light = LIGHTS.find((known) => known === value.light) ?? OFF.light;
-    return { on: value.on === true, light };
+    const raw = localStorage.getItem(ON_KEY);
+    return raw !== null && (JSON.parse(raw) as { on?: unknown }).on === true;
   } catch {
-    return OFF;
+    return false;
   }
 }
 
-function keep(recording: Recording) {
+// In sessionStorage: a new session is likely somewhere else, under another
+// light, so it is asked for again rather than carried over.
+function loadLight(): Light | null {
   try {
-    localStorage.setItem(KEY, JSON.stringify(recording));
+    const raw = sessionStorage.getItem(LIGHT_KEY);
+    return LIGHTS.find((known) => known === raw) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function keep(storage: () => Storage, key: string, value: string) {
+  try {
+    storage().setItem(key, value);
   } catch {
     // Private mode, say. The switch still works until the page goes.
   }
@@ -59,12 +67,15 @@ const styles = stylex.create({
     cursor: 'pointer',
   },
   pressed: { backgroundColor: tokens.ink, borderColor: tokens.ink, color: tokens.bg },
+  prompt: { margin: 0, color: tokens.ink2, fontSize: tokens.textBody, lineHeight: 1.5 },
 });
 
 /**
  * Records what the camera saw each time the user settles on a color in
  * normal use. Fills the confirm screen's `confirm.actions` slot. The capture
  * has no garment yet; the field recorder's list offers to link it to one.
+ * Nothing is recorded until a light is chosen, since a guessed one would
+ * mislabel every capture until someone noticed.
  *
  * The save is not awaited: the confirm screen has moved on to suggestions by
  * the time it lands, and the toast finds the user there.
@@ -72,26 +83,33 @@ const styles = stylex.create({
 export function RecordControl({ frame, lowLight, onSettle }: DevSlots['confirm.actions']) {
   const store = use(FieldStoreContext);
   const { dispatch } = useSession();
-  const [recording, setRecording] = useState(load);
-  const { on, light } = recording;
+  const [on, setOn] = useState(loadOn);
+  const [light, setLight] = useState(loadLight);
 
-  function change(next: Recording) {
-    setRecording(next);
-    keep(next);
+  function toggle() {
+    setOn(!on);
+    keep(() => localStorage, ON_KEY, JSON.stringify({ on: !on }));
+  }
+
+  function choose(next: Light) {
+    setLight(next);
+    keep(() => sessionStorage, LIGHT_KEY, next);
   }
 
   useEffect(() => {
-    if (!on) return;
+    if (!on || light === null) return;
+    const chosen: Light = light;
     async function record(settled: Hex) {
       const { pixels } = frame;
       let saved = false;
       try {
+        persistFieldSet();
         const capture: FieldCapture = {
           id: crypto.randomUUID(),
           source: 'flow',
           garmentId: null,
           settled,
-          light,
+          light: chosen,
           lowLight,
           width: pixels.width,
           height: pixels.height,
@@ -113,12 +131,13 @@ export function RecordControl({ frame, lowLight, onSettle }: DevSlots['confirm.a
       <button
         type="button"
         aria-pressed={on}
-        onClick={() => change({ on: !on, light })}
+        onClick={toggle}
         {...stylex.props(styles.toggle, on && styles.pressed)}
       >
         {RECORD}
       </button>
-      {on && <LightChips value={light} onChange={(next) => change({ on, light: next })} />}
+      {on && <LightChips value={light} onChange={choose} />}
+      {on && light === null && <p {...stylex.props(styles.prompt)}>{CHOOSE_LIGHT}</p>}
     </div>
   );
 }

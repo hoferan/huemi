@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Frame } from '../../../model/frame';
@@ -8,7 +8,11 @@ import { useSession } from '../../../session/useSession';
 import type { FieldStore } from '../../../storage/port';
 import { fakeFieldStore } from './fieldStore.testing';
 import { FieldStoreContext } from './FieldStoreContext';
+import { persistFieldSet } from './persist';
 import { RecordControl } from './RecordControl';
+
+// Asks once a page session, so the real one would answer only the first test.
+vi.mock('./persist', () => ({ persistFieldSet: vi.fn() }));
 
 const FRAME: Frame = {
   pixels: { width: 2, height: 1, data: new Uint8ClampedArray([1, 2, 3, 255, 4, 5, 6, 255]) },
@@ -56,7 +60,17 @@ async function captures(store: FieldStore) {
   return listed.value;
 }
 
-beforeEach(() => localStorage.clear());
+beforeEach(() => {
+  localStorage.clear();
+  sessionStorage.clear();
+  vi.mocked(persistFieldSet).mockClear();
+});
+
+// Turns Record on and picks the light, the two taps before anything records.
+async function turnOn(user: ReturnType<typeof userEvent.setup>, light = 'Lamp') {
+  await user.click(screen.getByRole('button', { name: 'Record' }));
+  await user.click(screen.getByRole('button', { name: light }));
+}
 
 describe('RecordControl', () => {
   it('records nothing while off', () => {
@@ -73,10 +87,9 @@ describe('RecordControl', () => {
 
   it('records a flow capture on settle while on', async () => {
     const { store, settle, user } = setup();
-    await user.click(screen.getByRole('button', { name: 'Record' }));
+    await turnOn(user);
     expect(screen.getByRole('button', { name: 'Record' })).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.getByRole('button', { name: 'Other' })).toHaveAttribute('aria-pressed', 'true');
-    await user.click(screen.getByRole('button', { name: 'Lamp' }));
+    expect(screen.getByRole('button', { name: 'Lamp' })).toHaveAttribute('aria-pressed', 'true');
     settle(NAVY);
 
     await waitFor(() => expect(screen.getByTestId('toast')).toHaveTextContent('Capture recorded.'));
@@ -94,6 +107,28 @@ describe('RecordControl', () => {
     });
     const pixels = await store.readPixels(capture!.id);
     expect(pixels.ok && [...pixels.value.data]).toEqual([...FRAME.pixels.data]);
+    expect(persistFieldSet).toHaveBeenCalled();
+  });
+
+  // A guessed light would mislabel every capture until someone noticed.
+  it('asks for the light before it records anything', async () => {
+    const store = fakeFieldStore();
+    const save = vi.spyOn(store, 'saveCapture');
+    const { settle, listeners, user } = setup({ store });
+    await user.click(screen.getByRole('button', { name: 'Record' }));
+    expect(screen.getByRole('button', { name: 'Record' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByText('Choose the light to record.')).toBeInTheDocument();
+    const chips = screen.getByRole('group', { name: 'Light' });
+    for (const chip of within(chips).getAllByRole('button')) {
+      expect(chip).toHaveAttribute('aria-pressed', 'false');
+    }
+    expect(listeners.size).toBe(0);
+    settle(NAVY);
+    expect(save).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole('button', { name: 'Dim' }));
+    expect(screen.queryByText('Choose the light to record.')).not.toBeInTheDocument();
+    expect(listeners.size).toBe(1);
   });
 
   it('carries null low light for an uploaded photo', async () => {
@@ -101,35 +136,38 @@ describe('RecordControl', () => {
       lowLight: null,
       frame: { ...FRAME, source: 'photo' },
     });
-    await user.click(screen.getByRole('button', { name: 'Record' }));
+    await turnOn(user);
     settle(NAVY);
     await waitFor(() => expect(screen.getByTestId('toast')).toHaveTextContent('Capture recorded.'));
     const [capture] = await captures(store);
     expect(capture!.lowLight).toBeNull();
   });
 
-  it('remembers being on and its light', async () => {
+  it('remembers being on, and its light for this session only', async () => {
     const first = setup();
-    await first.user.click(screen.getByRole('button', { name: 'Record' }));
-    await first.user.click(screen.getByRole('button', { name: 'Dim' }));
+    await turnOn(first.user, 'Dim');
     first.view.unmount();
-    expect(JSON.parse(localStorage.getItem('huemi.field.recording')!)).toEqual({
-      on: true,
-      light: 'dim',
-    });
+    expect(JSON.parse(localStorage.getItem('huemi.field.recording')!)).toEqual({ on: true });
+    expect(sessionStorage.getItem('huemi.field.recording.light')).toBe('dim');
 
+    // Later in the same session: on, in the same light, and listening.
     const second = setup();
     expect(screen.getByRole('button', { name: 'Record' })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByRole('button', { name: 'Dim' })).toHaveAttribute('aria-pressed', 'true');
     expect(second.listeners.size).toBe(1);
+    second.view.unmount();
+
+    // A new session is likely a new place, so the light is asked again.
+    sessionStorage.clear();
+    const third = setup();
+    expect(screen.getByRole('button', { name: 'Record' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByText('Choose the light to record.')).toBeInTheDocument();
+    expect(third.listeners.size).toBe(0);
 
     // And off again sticks too.
-    await second.user.click(screen.getByRole('button', { name: 'Record' }));
-    expect(second.listeners.size).toBe(0);
-    expect(JSON.parse(localStorage.getItem('huemi.field.recording')!)).toEqual({
-      on: false,
-      light: 'dim',
-    });
+    await third.user.click(screen.getByRole('button', { name: 'Record' }));
+    expect(JSON.parse(localStorage.getItem('huemi.field.recording')!)).toEqual({ on: false });
+    expect(screen.queryByRole('group', { name: 'Light' })).not.toBeInTheDocument();
   });
 
   it('starts off on anything it cannot read back', () => {
@@ -138,14 +176,16 @@ describe('RecordControl', () => {
     expect(screen.getByRole('button', { name: 'Record' })).toHaveAttribute('aria-pressed', 'false');
   });
 
-  it('falls back to other for a light it does not know', () => {
-    localStorage.setItem('huemi.field.recording', JSON.stringify({ on: true, light: 'moon' }));
-    setup();
+  it('asks again for a light it does not know', () => {
+    localStorage.setItem('huemi.field.recording', JSON.stringify({ on: true }));
+    sessionStorage.setItem('huemi.field.recording.light', 'moon');
+    const { listeners } = setup();
     expect(screen.getByRole('button', { name: 'Record' })).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.getByRole('button', { name: 'Other' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByText('Choose the light to record.')).toBeInTheDocument();
+    expect(listeners.size).toBe(0);
   });
 
-  it('keeps working when localStorage throws', async () => {
+  it('keeps working when storage throws', async () => {
     const get = vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
       throw new Error('denied');
     });
@@ -154,7 +194,7 @@ describe('RecordControl', () => {
     });
     try {
       const { user, listeners } = setup();
-      await user.click(screen.getByRole('button', { name: 'Record' }));
+      await turnOn(user);
       expect(screen.getByRole('button', { name: 'Record' })).toHaveAttribute(
         'aria-pressed',
         'true',
@@ -168,7 +208,7 @@ describe('RecordControl', () => {
 
   it('toasts when recording fails', async () => {
     const { settle, user } = setup({ store: fakeFieldStore({ failing: true }) });
-    await user.click(screen.getByRole('button', { name: 'Record' }));
+    await turnOn(user);
     settle(NAVY);
     await waitFor(() =>
       expect(screen.getByTestId('toast')).toHaveTextContent("Couldn't record this capture."),
@@ -183,7 +223,7 @@ describe('RecordControl', () => {
       throw new Error('no ids here');
     });
     const { settle, user } = setup({ store });
-    await user.click(screen.getByRole('button', { name: 'Record' }));
+    await turnOn(user);
     settle(NAVY);
     await waitFor(() =>
       expect(screen.getByTestId('toast')).toHaveTextContent("Couldn't record this capture."),

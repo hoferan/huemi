@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -461,7 +461,16 @@ describe('Confirm, recording', () => {
   beforeAll(async () => {
     await import('../dev/registry');
   });
-  beforeEach(() => localStorage.clear());
+  beforeEach(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+  });
+
+  // Record, then a light: nothing records before both.
+  async function turnOnRecord(user: ReturnType<typeof userEvent.setup>) {
+    await user.click(await screen.findByRole('button', { name: 'Record' }));
+    await user.click(screen.getByRole('button', { name: 'Lamp' }));
+  }
 
   const stripes = () => paint(100, 100, (_x, y) => (y % 10 < 6 ? NAVY : WHITE));
 
@@ -514,7 +523,7 @@ describe('Confirm, recording', () => {
   it('tells settle listeners the confirmed color before navigating', async () => {
     const { store, saves } = watched();
     const user = renderRecording(solid(NAVY), store);
-    await user.click(await screen.findByRole('button', { name: 'Record' }));
+    await turnOnRecord(user);
     await user.click(screen.getByRole('button', { name: LOOKS_RIGHT }));
     const where = await screen.findByText(/^\/suggest\?slot=top&hex=%23/);
     const base = /base=top:(#[0-9a-f]{6})/.exec(where.textContent)![1]!;
@@ -524,7 +533,7 @@ describe('Confirm, recording', () => {
   it('tells them the chosen color of several', async () => {
     const { store, saves } = watched();
     const user = renderRecording(stripes(), store);
-    await user.click(await screen.findByRole('button', { name: 'Record' }));
+    await turnOnRecord(user);
     const choices = within(screen.getByRole('group', { name: TITLE_SEVERAL })).getAllByRole(
       'button',
     );
@@ -536,10 +545,44 @@ describe('Confirm, recording', () => {
     expect(saves).toEqual([{ settled: base, onConfirm: true }]);
   });
 
+  it('records the corrected color, not the reading', async () => {
+    const reading = readColor(solid(NAVY));
+    if (reading.kind !== 'single') throw new Error('expected a single reading of navy');
+    const { store, saves } = watched();
+    const user = renderRecording(solid(NAVY), store);
+    await turnOnRecord(user);
+    await user.click(screen.getByRole('button', { name: NOT_QUITE }));
+    fireEvent.change(screen.getByRole('slider', { name: LIGHTER_DARKER }), {
+      target: { value: '0.1' },
+    });
+    await user.click(screen.getByRole('button', { name: USE_THIS }));
+    const where = await screen.findByText(/^\/suggest\?slot=top&hex=%23/);
+    const base = /base=top:(#[0-9a-f]{6})/.exec(where.textContent)![1]!;
+    expect(base).not.toBe(reading.color);
+    expect(saves).toEqual([{ settled: base, onConfirm: true }]);
+  });
+
+  // Both taps land before React renders again, so both run the same click
+  // handler with the screen still up.
+  it('records once when the confirm button is tapped twice', async () => {
+    const { store, saves } = watched();
+    const user = renderRecording(solid(NAVY), store);
+    await turnOnRecord(user);
+    const accept = screen.getByRole('button', { name: LOOKS_RIGHT });
+    act(() => {
+      accept.click();
+      accept.click();
+    });
+    await screen.findByText(/^\/suggest\?slot=top&hex=%23/);
+    expect(saves).toHaveLength(1);
+    const listed = await store.listCaptures();
+    expect(listed.ok && listed.value).toHaveLength(1);
+  });
+
   it('does not settle when leaving for the picker', async () => {
     const { store, saves } = watched();
     const user = renderRecording(solid(NAVY), store);
-    await user.click(await screen.findByRole('button', { name: 'Record' }));
+    await turnOnRecord(user);
     await user.click(screen.getByRole('link', { name: PICK_BY_HAND }));
     expect(await screen.findByText(/^\/color\?slot=top/)).toBeInTheDocument();
     expect(saves).toEqual([]);

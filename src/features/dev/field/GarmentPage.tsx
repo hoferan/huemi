@@ -100,7 +100,8 @@ function Loaded({ garment }: { garment: FieldGarment }) {
   const { dispatch } = useSession();
   const navigate = useNavigate();
   const [light, setLight] = useState<Light | null>(null);
-  const [shots, setShots] = useState<Shot[] | null>(null);
+  // Null while loading, and 'failed' when the store could not list them.
+  const [shots, setShots] = useState<Shot[] | 'failed' | null>(null);
   const [confirming, setConfirming] = useState(false);
   // Read once per visit, so render stays pure.
   const [now] = useState(() => new Date());
@@ -111,7 +112,11 @@ function Loaded({ garment }: { garment: FieldGarment }) {
     let current = true;
     void (async () => {
       const listed = await store.listCaptures();
-      const mine = listed.ok ? listed.value.filter((c) => c.garmentId === garment.id) : [];
+      if (!listed.ok) {
+        if (current) setShots('failed');
+        return;
+      }
+      const mine = listed.value.filter((c) => c.garmentId === garment.id);
       // The thumbnails need the frames, which the list leaves out.
       const loaded = await Promise.all(
         mine.map(async (capture) => {
@@ -135,7 +140,7 @@ function Loaded({ garment }: { garment: FieldGarment }) {
       dispatch({ type: 'toastShown', message: DELETE_CAPTURE_FAILED });
       return;
     }
-    setShots((all) => all?.filter((shot) => shot.capture.id !== id) ?? null);
+    setShots((all) => (Array.isArray(all) ? all.filter((shot) => shot.capture.id !== id) : all));
   }
 
   async function removeGarment() {
@@ -176,7 +181,8 @@ function Loaded({ garment }: { garment: FieldGarment }) {
         />
       </section>
 
-      {shots !== null && shots.length > 0 && (
+      {shots === 'failed' && <p {...stylex.props(styles.text)}>{STORE_FAILED}</p>}
+      {Array.isArray(shots) && shots.length > 0 && (
         <ul {...stylex.props(styles.list)}>
           {shots.map(({ capture, pixels }) => (
             <li key={capture.id} {...stylex.props(styles.item)}>
@@ -203,11 +209,11 @@ function Loaded({ garment }: { garment: FieldGarment }) {
         <Button
           label={DELETE_GARMENT}
           variant="quiet"
-          disabled={shots === null}
+          disabled={!Array.isArray(shots)}
           onClick={() => setConfirming(true)}
         />
       </div>
-      {confirming && shots !== null && (
+      {confirming && Array.isArray(shots) && (
         <Sheet
           open
           onOpenChange={(open) => {

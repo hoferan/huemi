@@ -1,7 +1,7 @@
 import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { FieldGarment } from '../../../model/field';
 import type { Frame, Pixels } from '../../../model/frame';
 import { parseHex } from '../../../model/hex';
@@ -14,6 +14,11 @@ import { SAMPLE_INTERVAL_MS, type CameraPort, type CameraResult } from '../../ca
 import { CaptureGarment } from './CaptureGarment';
 import { fakeFieldStore } from './fieldStore.testing';
 import { FieldStoreContext } from './FieldStoreContext';
+import { persistFieldSet } from './persist';
+
+// The helper asks once a page session, so the real one would answer only the
+// first test here. Its own test covers what it does with the browser.
+vi.mock('./persist', () => ({ persistFieldSet: vi.fn() }));
 
 function solid(value: number): Pixels {
   const data = new Uint8ClampedArray(16);
@@ -51,6 +56,10 @@ async function warnLowLight(attach: CameraPort['attach']) {
   // The hand-entry link appears with the warning.
   await screen.findByRole('link', { name: 'Back to the garment' });
 }
+
+beforeEach(() => {
+  vi.mocked(persistFieldSet).mockClear();
+});
 
 afterEach(() => {
   vi.useRealTimers();
@@ -122,6 +131,14 @@ describe('CaptureGarment', () => {
     expect(saved!.build).not.toBe('');
     expect(Number.isNaN(Date.parse(saved!.takenAt))).toBe(false);
     expect(value(await store.readPixels(saved!.id))).toEqual(dark.pixels);
+  });
+
+  it('asks the browser to keep the set when it saves', async () => {
+    const { user, store } = await setup();
+    expect(persistFieldSet).not.toHaveBeenCalled();
+    await user.click(await screen.findByRole('button', { name: 'Take photo' }));
+    await waitFor(async () => expect(value(await store.listCaptures())).toHaveLength(1));
+    expect(persistFieldSet).toHaveBeenCalled();
   });
 
   it('stays ready for the next capture', async () => {

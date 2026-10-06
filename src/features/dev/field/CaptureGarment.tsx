@@ -21,6 +21,7 @@ import {
   garmentPath,
 } from './copy';
 import { FieldStoreContext } from './FieldStoreContext';
+import { persistFieldSet } from './persist';
 import { useGarment } from './useGarment';
 
 const styles = stylex.create({
@@ -67,6 +68,7 @@ export function CaptureGarment() {
   async function onFrame({ pixels }: Frame, lowLight: boolean | null) {
     if (saving.current || !isLight(light)) return;
     saving.current = true;
+    persistFieldSet();
     const capture: FieldCapture = {
       id: crypto.randomUUID(),
       source: 'kit',

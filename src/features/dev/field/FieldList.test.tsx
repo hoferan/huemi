@@ -214,6 +214,87 @@ describe('FieldList', () => {
     expect(links).toBe(1);
   });
 
+  it('deletes a capture from normal use without linking it', async () => {
+    const store = fakeFieldStore();
+    await store.saveCapture({ ...capture('c1', null, 'dim'), width: 512, height: 384 }, PIXELS);
+    await store.saveCapture(
+      { ...capture('c2', null, 'lamp'), takenAt: '2026-10-06T10:00:00.000Z' },
+      PIXELS,
+    );
+    const user = setup(store);
+
+    const heading = await screen.findByRole('heading', { level: 2, name: 'From normal use' });
+    const section = heading.closest('section')!;
+    const dim = within(section)
+      .getAllByRole('listitem')
+      .find((item) => within(item).queryByText(/^Dim/))!;
+    await user.click(within(dim).getByRole('button', { name: 'Delete' }));
+
+    await waitFor(() => expect(within(section).getAllByRole('listitem')).toHaveLength(1));
+    expect(within(section).getByText(/^Lamp/)).toBeInTheDocument();
+    expect(screen.getByText('1 capture, about 0.0 MB')).toBeInTheDocument();
+    const listed = await store.listCaptures();
+    expect(listed.ok && listed.value.map((c) => c.id)).toEqual(['c2']);
+    expect((await store.readPixels('c1')).ok).toBe(false);
+    expect(screen.getByTestId('toast')).toHaveTextContent('');
+  });
+
+  it('drops the section once its last capture is deleted', async () => {
+    const store = fakeFieldStore();
+    await store.saveCapture(capture('c1', null, 'dim'), PIXELS);
+    const user = setup(store);
+
+    await user.click(await screen.findByRole('button', { name: 'Delete' }));
+    await waitFor(() =>
+      expect(screen.queryByRole('heading', { name: 'From normal use' })).not.toBeInTheDocument(),
+    );
+    expect(screen.getByRole('button', { name: 'Export' })).toBeDisabled();
+  });
+
+  it('toasts when a capture from normal use cannot be deleted, and keeps it', async () => {
+    const store = fakeFieldStore();
+    await store.saveCapture(capture('c1', null, 'dim'), PIXELS);
+    store.deleteCapture = () => Promise.resolve({ ok: false, reason: 'test' });
+    const user = setup(store);
+
+    await user.click(await screen.findByRole('button', { name: 'Delete' }));
+    await waitFor(() =>
+      expect(screen.getByTestId('toast')).toHaveTextContent("Couldn't delete this capture."),
+    );
+    expect(screen.getByRole('heading', { name: 'From normal use' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Delete' })).toBeInTheDocument();
+  });
+
+  it('deletes once when Delete is tapped twice', async () => {
+    const inner = fakeFieldStore();
+    await inner.saveCapture(capture('c1', null, 'dim'), PIXELS);
+    // Holds the delete until released, so the second tap lands mid-delete.
+    let release = () => {};
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let deletes = 0;
+    const store: FieldStore = {
+      ...inner,
+      deleteCapture: async (id) => {
+        deletes += 1;
+        await held;
+        return inner.deleteCapture(id);
+      },
+    };
+    const user = setup(store);
+
+    const remove = await screen.findByRole('button', { name: 'Delete' });
+    await user.click(remove);
+    await user.click(remove);
+    release();
+    await waitFor(() =>
+      expect(screen.queryByRole('heading', { name: 'From normal use' })).not.toBeInTheDocument(),
+    );
+    expect(deletes).toBe(1);
+    expect(screen.getByTestId('toast')).toHaveTextContent('');
+  });
+
   it('lists a waiting capture whose frame cannot be read', async () => {
     const store = fakeFieldStore();
     await store.saveCapture(capture('c1', null, 'dim'), PIXELS);

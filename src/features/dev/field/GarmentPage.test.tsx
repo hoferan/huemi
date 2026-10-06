@@ -89,6 +89,17 @@ describe('GarmentPage', () => {
     expect(await screen.findByText('The field store could not be opened.')).toBeInTheDocument();
   });
 
+  // An empty list would read as no captures, and the delete sheet would then
+  // count none when there may be many.
+  it('says so when the captures cannot be read, and holds back Delete garment', async () => {
+    const store = await seeded();
+    setup({ ...store, listCaptures: () => Promise.resolve({ ok: false, reason: 'x' }) });
+    expect(await screen.findByText('The field store could not be opened.')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: 'Navy coat' })).toBeInTheDocument();
+    expect(screen.queryAllByRole('listitem')).toEqual([]);
+    expect(screen.getByRole('button', { name: 'Delete garment' })).toBeDisabled();
+  });
+
   it('lists the captures newest first with their light and date', async () => {
     setup(await seeded());
     expect(await screen.findByRole('heading', { level: 1, name: 'Navy coat' })).toBeInTheDocument();
