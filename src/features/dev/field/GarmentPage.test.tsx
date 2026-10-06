@@ -139,6 +139,17 @@ describe('GarmentPage', () => {
     expect(value(await store.listCaptures())).toEqual([]);
   });
 
+  it('counts a single capture in the singular when deleting', async () => {
+    const store = fakeFieldStore();
+    await store.saveGarment(coat);
+    await store.saveCapture(capture('c1', 'daylight', '2026-09-01T10:00:00.000Z'), PIXELS);
+    const user = setup(store);
+    await user.click(await screen.findByRole('button', { name: 'Delete garment' }));
+    expect(
+      await screen.findByRole('dialog', { name: 'Delete Navy coat and its 1 capture?' }),
+    ).toBeInTheDocument();
+  });
+
   it('toasts when a capture cannot be deleted', async () => {
     const store = await seeded();
     const user = setup({

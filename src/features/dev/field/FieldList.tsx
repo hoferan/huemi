@@ -22,11 +22,13 @@ import {
   LIST_TITLE,
   MENU_BACK,
   NO_GARMENTS,
+  PREPARING_EXPORT,
+  SHARE_EXPORT,
   STORE_FAILED,
   captureCount,
   exportSize,
 } from './copy';
-import { exportFieldSet } from './exportFieldSet';
+import { buildFieldExport, deliverFieldExport, type ExportOutcome } from './exportFieldSet';
 import { FieldStoreContext } from './FieldStoreContext';
 import { LinkCapture } from './LinkCapture';
 
@@ -83,6 +85,14 @@ const styles = stylex.create({
 /** A capture from normal use that no garment has claimed yet. */
 const isWaiting = (capture: FieldCapture): boolean =>
   capture.source === 'flow' && capture.garmentId === null;
+
+/** Where an export is: nothing yet, being built, or built and waiting for its tap. */
+type Exporting =
+  | { status: 'idle' }
+  | { status: 'preparing' }
+  | { status: 'ready'; file: File; garments: FieldGarment[]; captures: FieldCapture[] };
+
+const IDLE: Exporting = { status: 'idle' };
 
 type Loaded =
   | { status: 'loading' }
@@ -176,9 +186,11 @@ function Ready({
   const { dispatch } = useSession();
   // The capture whose link sheet is open.
   const [linking, setLinking] = useState<string | null>(null);
-  // Set while an export is out, so a second tap cannot start another. The
-  // button stays enabled, so it keeps focus.
-  const exporting = useRef(false);
+  const [exporting, setExporting] = useState<Exporting>(IDLE);
+  // Set while the share sheet is up: Chrome rejects a second share then, and
+  // the person would read that as a failure.
+  const sharing = useRef(false);
+  const shareButton = useRef<HTMLButtonElement>(null);
   const unlinked = captures.filter(isWaiting);
   const counts = new Map<string, number>();
   for (const { garmentId } of captures) {
@@ -188,13 +200,62 @@ function Ready({
   // The frames as stored, before base64 and gzip change the size either way.
   const bytes = captures.reduce((sum, { width, height }) => sum + width * height * 4, 0);
 
-  async function runExport() {
-    if (exporting.current) return;
-    exporting.current = true;
-    const outcome = await exportFieldSet({ store, share });
-    exporting.current = false;
-    if (outcome === 'failed') dispatch({ type: 'toastShown', message: EXPORT_FAILED });
-    else if (outcome !== 'dismissed') dispatch({ type: 'toastShown', message: EXPORTED });
+  // A file built before a link, or before the lists were read again, holds
+  // the old set, so it is dropped and never shared.
+  const prepared =
+    exporting.status === 'ready' &&
+    exporting.garments === garments &&
+    exporting.captures === captures
+      ? exporting.file
+      : null;
+
+  // The sheet's button appears after Export went disabled, which dropped focus.
+  useEffect(() => {
+    if (prepared) shareButton.current?.focus();
+  }, [prepared]);
+
+  const toast = (message: string) => dispatch({ type: 'toastShown', message });
+
+  // The first tap builds the file. With a share sheet the second tap shares
+  // it, since the build's awaits use up the tap's user activation. Without
+  // one, a download needs no activation, so it happens straight away.
+  async function prepare() {
+    const set = { garments, captures };
+    setExporting({ status: 'preparing' });
+    let next: Exporting = IDLE;
+    try {
+      const file = await buildFieldExport({ store });
+      if (file === 'failed') {
+        toast(EXPORT_FAILED);
+      } else if (share.canShareFiles([file])) {
+        next = { status: 'ready', file, ...set };
+      } else {
+        await deliverFieldExport(share, file);
+        toast(EXPORTED);
+      }
+    } catch {
+      toast(EXPORT_FAILED);
+    } finally {
+      setExporting(next);
+    }
+  }
+
+  // Synchronous up to the share, which must start inside the click.
+  function send(file: File) {
+    if (sharing.current) return;
+    sharing.current = true;
+    void deliverFieldExport(share, file)
+      .catch((): ExportOutcome => 'failed')
+      .then((outcome) => {
+        sharing.current = false;
+        // A closed sheet keeps the file, so the person can try again.
+        if (outcome === 'failed') {
+          toast(EXPORT_FAILED);
+        } else if (outcome !== 'dismissed') {
+          toast(EXPORTED);
+          setExporting(IDLE);
+        }
+      });
   }
 
   return (
@@ -202,11 +263,14 @@ function Ready({
       <div {...stylex.props(styles.actions)}>
         <Button label={ADD_GARMENT} onClick={onAdd} />
         <Button
-          label={EXPORT}
+          label={exporting.status === 'preparing' ? PREPARING_EXPORT : EXPORT}
           variant="secondary"
-          disabled={captures.length === 0}
-          onClick={() => void runExport()}
+          disabled={captures.length === 0 || exporting.status === 'preparing'}
+          onClick={() => void prepare()}
         />
+        {prepared && (
+          <Button ref={shareButton} label={SHARE_EXPORT} onClick={() => send(prepared)} />
+        )}
         <p {...stylex.props(styles.text)}>{exportSize(captures.length, bytes)}</p>
       </div>
       {garments.length === 0 ? (

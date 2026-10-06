@@ -9,8 +9,9 @@ import { fakeCamera } from '../fakeCamera';
 const { Given, When, Then } = createBdd();
 
 // The export step starts the download and the checks after it read it, so
-// both are kept per page between steps.
-const downloads = new WeakMap<Page, Download>();
+// both are kept per page between steps, with the date the export was started
+// on, so a run across midnight still expects the right name.
+const downloads = new WeakMap<Page, { download: Download; date: string }>();
 const exports = new WeakMap<Page, FieldExport>();
 
 // The browser names the file by its own local date, and runs on this machine.
@@ -101,20 +102,22 @@ Then('the field recorder lists {int} capture(s) from normal use', async ({ page 
 
 When('I export the field set', async ({ page }) => {
   await openList(page);
+  const date = today();
   const [download] = await Promise.all([
     page.waitForEvent('download'),
     page.getByRole('button', { name: 'Export', exact: true }).click(),
   ]);
-  downloads.set(page, download);
+  downloads.set(page, { download, date });
 });
 
 Then(
   'the download {string} unzips to version {int} with {int} garment(s) and {int} capture(s)',
   async ({ page }, name: string, version: number, garments: number, captures: number) => {
-    const download = downloads.get(page);
-    expect(download, 'no export was downloaded').toBeDefined();
-    expect(download!.suggestedFilename()).toBe(name.replace('<today>', today()));
-    const json = gunzipSync(await readFile(await download!.path())).toString('utf8');
+    const started = downloads.get(page);
+    expect(started, 'no export was downloaded').toBeDefined();
+    const { download, date } = started!;
+    expect(download.suggestedFilename()).toBe(name.replace('<today>', date));
+    const json = gunzipSync(await readFile(await download.path())).toString('utf8');
     const raw = JSON.parse(json) as { version: unknown; garments: unknown[]; captures: unknown[] };
     expect(raw.version).toBe(version);
     expect(raw.garments).toHaveLength(garments);
@@ -133,12 +136,28 @@ Then("that capture's frame has width × height × 4 bytes", ({ page }) => {
   expect(capture!.pixels.data).toHaveLength(capture!.width * capture!.height * 4);
 });
 
+// The scene is one solid color, so the frame's centre should be it, give or
+// take what the video encoding does to it: each channel within 12.
+Then('the centre of that frame is {string}', ({ page }, hex: string) => {
+  const set = exports.get(page);
+  expect(set, 'no export was read').toBeDefined();
+  const { width, height, data } = set!.captures[0]!.pixels;
+  const at = (Math.floor(height / 2) * width + Math.floor(width / 2)) * 4;
+  const [r, g, b, alpha] = data.subarray(at, at + 4);
+  const actual = [r!, g!, b!];
+  const expected = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+  for (const [i, channel] of actual.entries()) {
+    expect(Math.abs(channel - expected[i]!), `rgb(${actual.join(', ')})`).toBeLessThanOrEqual(12);
+  }
+  expect(alpha).toBe(255);
+});
+
 When('I delete the garment {string}', async ({ page }, label: string) => {
   await openList(page);
   await page.getByRole('link', { name: label }).click();
   await page.getByRole('button', { name: 'Delete garment', exact: true }).click();
   await page
-    .getByRole('dialog', { name: `Delete ${label} and its 1 captures?` })
+    .getByRole('dialog', { name: `Delete ${label} and its 1 capture?` })
     .getByRole('button', { name: 'Delete', exact: true })
     .click();
   await expect(page).toHaveURL(/\/dev\/field$/);

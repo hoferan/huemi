@@ -244,7 +244,7 @@ describe('FieldList', () => {
     expect(screen.getByRole('button', { name: 'Export' })).toBeDisabled();
   });
 
-  it('exports the field set and says so', async () => {
+  it('downloads in one step without a share sheet', async () => {
     const store = fakeFieldStore();
     await store.saveCapture(capture('c1', 'g1'), PIXELS);
     const share = fakeSharePort({ canShareFiles: () => false });
@@ -256,37 +256,152 @@ describe('FieldList', () => {
       expect(screen.getByTestId('toast')).toHaveTextContent('Field set exported.'),
     );
     expect(share.calls.download.map((file) => file.type)).toEqual(['application/gzip']);
+    expect(share.calls.share).toEqual([]);
+    expect(screen.queryByRole('button', { name: 'Share the export' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Export' })).toBeEnabled();
   });
 
-  it('says so after a share too', async () => {
+  it('shows Preparing export… while building', async () => {
+    const inner = fakeFieldStore();
+    await inner.saveCapture(capture('c1', 'g1'), PIXELS);
+    // Holds the frame read until released, so the build stays in progress.
+    let release = () => {};
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const store: FieldStore = {
+      ...inner,
+      readPixels: async (id) => {
+        await held;
+        return inner.readPixels(id);
+      },
+    };
+    const share = fakeSharePort();
+    const user = setup(store, share);
+
+    await user.click(await screen.findByRole('button', { name: 'Export' }));
+    expect(screen.getByRole('button', { name: 'Preparing export…' })).toBeDisabled();
+    expect(screen.queryByRole('button', { name: 'Export' })).not.toBeInTheDocument();
+    release();
+    const send = await screen.findByRole('button', { name: 'Share the export' });
+    expect(send).toHaveFocus();
+    expect(screen.getByRole('button', { name: 'Export' })).toBeEnabled();
+    // The sheet opens only from the second tap.
+    expect(share.calls.share).toEqual([]);
+  });
+
+  it('shares inside the click with no await before it', async () => {
+    const store = fakeFieldStore();
+    await store.saveCapture(capture('c1', 'g1'), PIXELS);
+    // Set as a click starts and cleared once its handlers have run, so a share
+    // started after an await finds it false, as Safari would.
+    let inClick = false;
+    const mark = () => {
+      inClick = true;
+      queueMicrotask(() => {
+        inClick = false;
+      });
+    };
+    document.addEventListener('click', mark, { capture: true });
+    const started: boolean[] = [];
+    const share = fakeSharePort({
+      share: () => {
+        started.push(inClick);
+        return Promise.resolve('shared');
+      },
+    });
+    const user = setup(store, share);
+
+    try {
+      await user.click(await screen.findByRole('button', { name: 'Export' }));
+      await user.click(await screen.findByRole('button', { name: 'Share the export' }));
+      expect(started).toEqual([true]);
+    } finally {
+      document.removeEventListener('click', mark, { capture: true });
+    }
+  });
+
+  it('says so after a share and drops the prepared export', async () => {
     const store = fakeFieldStore();
     await store.saveCapture(capture('c1', 'g1'), PIXELS);
     const share = fakeSharePort();
     const user = setup(store, share);
 
     await user.click(await screen.findByRole('button', { name: 'Export' }));
+    await user.click(await screen.findByRole('button', { name: 'Share the export' }));
+    await waitFor(() =>
+      expect(screen.getByTestId('toast')).toHaveTextContent('Field set exported.'),
+    );
+    expect(share.calls.share.map(({ title }) => title)).toEqual(['huemi field set']);
+    expect(screen.queryByRole('button', { name: 'Share the export' })).not.toBeInTheDocument();
+  });
+
+  it('keeps the prepared export when the share sheet is closed', async () => {
+    const store = fakeFieldStore();
+    await store.saveCapture(capture('c1', 'g1'), PIXELS);
+    const share = fakeSharePort({ share: () => Promise.resolve('dismissed') });
+    const user = setup(store, share);
+
+    await user.click(await screen.findByRole('button', { name: 'Export' }));
+    const send = await screen.findByRole('button', { name: 'Share the export' });
+    await user.click(send);
+    // A second share starts only once the first has its outcome.
+    await user.click(send);
+    await waitFor(() => expect(share.calls.share).toHaveLength(2));
+    expect(share.calls.share[1]!.files).toEqual(share.calls.share[0]!.files);
+    expect(screen.getByTestId('toast')).toHaveTextContent('');
+  });
+
+  it('says when sharing fails and keeps the prepared export', async () => {
+    const store = fakeFieldStore();
+    await store.saveCapture(capture('c1', 'g1'), PIXELS);
+    const share = fakeSharePort({ share: () => Promise.resolve('failed') });
+    const user = setup(store, share);
+
+    await user.click(await screen.findByRole('button', { name: 'Export' }));
+    await user.click(await screen.findByRole('button', { name: 'Share the export' }));
+    await waitFor(() =>
+      expect(screen.getByTestId('toast')).toHaveTextContent("Couldn't export the field set."),
+    );
+    expect(screen.getByRole('button', { name: 'Share the export' })).toBeInTheDocument();
+  });
+
+  it('says when the share throws', async () => {
+    const store = fakeFieldStore();
+    await store.saveCapture(capture('c1', 'g1'), PIXELS);
+    const share = fakeSharePort({ share: () => Promise.reject(new Error('test')) });
+    const user = setup(store, share);
+
+    await user.click(await screen.findByRole('button', { name: 'Export' }));
+    await user.click(await screen.findByRole('button', { name: 'Share the export' }));
+    await waitFor(() =>
+      expect(screen.getByTestId('toast')).toHaveTextContent("Couldn't export the field set."),
+    );
+  });
+
+  it('shares once when tapped twice', async () => {
+    const store = fakeFieldStore();
+    await store.saveCapture(capture('c1', 'g1'), PIXELS);
+    // Holds the share sheet open until released, so the second tap lands while it is up.
+    let release = () => {};
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const share = fakeSharePort({ share: () => held.then(() => 'shared' as const) });
+    const user = setup(store, share);
+
+    await user.click(await screen.findByRole('button', { name: 'Export' }));
+    const send = await screen.findByRole('button', { name: 'Share the export' });
+    await user.click(send);
+    await user.click(send);
+    release();
     await waitFor(() =>
       expect(screen.getByTestId('toast')).toHaveTextContent('Field set exported.'),
     );
     expect(share.calls.share).toHaveLength(1);
   });
 
-  it('says nothing when the share sheet is closed', async () => {
-    const store = fakeFieldStore();
-    await store.saveCapture(capture('c1', 'g1'), PIXELS);
-    const share = fakeSharePort({ share: () => Promise.resolve('dismissed') });
-    const user = setup(store, share);
-
-    const button = await screen.findByRole('button', { name: 'Export' });
-    await user.click(button);
-    await waitFor(() => expect(share.calls.share).toHaveLength(1));
-    // A second export starts only once the first has its outcome.
-    await user.click(button);
-    await waitFor(() => expect(share.calls.share).toHaveLength(2));
-    expect(screen.getByTestId('toast')).toHaveTextContent('');
-  });
-
-  it('says when the export fails', async () => {
+  it('says when building fails', async () => {
     const store = fakeFieldStore();
     await store.saveCapture(capture('c1', 'g1'), PIXELS);
     store.readPixels = () => Promise.resolve({ ok: false, reason: 'test' });
@@ -297,28 +412,39 @@ describe('FieldList', () => {
     await waitFor(() =>
       expect(screen.getByTestId('toast')).toHaveTextContent("Couldn't export the field set."),
     );
-    expect(share.calls.share).toEqual([]);
+    expect(screen.getByRole('button', { name: 'Export' })).toBeEnabled();
+    expect(screen.queryByRole('button', { name: 'Share the export' })).not.toBeInTheDocument();
   });
 
-  it('exports once when tapped twice', async () => {
+  it('takes Export again after a build that throws', async () => {
     const store = fakeFieldStore();
     await store.saveCapture(capture('c1', 'g1'), PIXELS);
-    // Holds the share sheet open until released, so the second tap lands mid-export.
-    let release = () => {};
-    const held = new Promise<void>((resolve) => {
-      release = resolve;
-    });
-    const share = fakeSharePort({ share: () => held.then(() => 'shared' as const) });
-    const user = setup(store, share);
+    const user = setup(store);
+    await screen.findByRole('button', { name: 'Export' });
+    store.listGarments = () => Promise.reject(new Error('test'));
 
-    const button = await screen.findByRole('button', { name: 'Export' });
-    await user.click(button);
-    await user.click(button);
-    release();
+    await user.click(screen.getByRole('button', { name: 'Export' }));
     await waitFor(() =>
-      expect(screen.getByTestId('toast')).toHaveTextContent('Field set exported.'),
+      expect(screen.getByTestId('toast')).toHaveTextContent("Couldn't export the field set."),
     );
-    expect(share.calls.share).toHaveLength(1);
+    expect(screen.getByRole('button', { name: 'Export' })).toBeEnabled();
+  });
+
+  it('drops the prepared export when the set changes', async () => {
+    const store = fakeFieldStore();
+    await store.saveGarment(garment('g1', 'Navy coat', '2026-10-01T10:00:00.000Z', '#1f2a44'));
+    await store.saveCapture(capture('c1', null, 'dim'), PIXELS);
+    const user = setup(store);
+
+    await user.click(await screen.findByRole('button', { name: 'Export' }));
+    await screen.findByRole('button', { name: 'Share the export' });
+    // Linking changes what the set holds, so the file built before it is stale.
+    await user.click(screen.getByRole('button', { name: 'Link to a garment' }));
+    await user.click(screen.getByRole('button', { name: 'Navy coat' }));
+    await waitFor(() =>
+      expect(screen.queryByRole('button', { name: 'Share the export' })).not.toBeInTheDocument(),
+    );
+    expect(screen.getByRole('button', { name: 'Export' })).toBeEnabled();
   });
 
   it('opens the add screen', async () => {

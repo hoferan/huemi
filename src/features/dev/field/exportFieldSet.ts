@@ -15,25 +15,19 @@ export function exportFileName(now: Date): string {
 }
 
 /**
- * Everything the field recorder holds, as one gzipped file, to the share
- * sheet where it takes files and to a download otherwise. A frame that cannot
- * be read fails the whole export, so no capture leaves without its frame.
- *
- * The frames are read one at a time. The share comes after all that reading,
- * so Safari may already have dropped the tap's user activation and refuse the
- * sheet; that ends as `failed`.
+ * Everything the field recorder holds, as one gzipped file. A frame that
+ * cannot be read fails the whole export, so no capture leaves without its
+ * frame. The frames are read one at a time.
  */
-export async function exportFieldSet({
+export async function buildFieldExport({
   store,
-  share,
   compress = gzip,
   now = new Date(),
 }: {
   store: FieldStore;
-  share: SharePort;
   compress?: (bytes: Uint8Array<ArrayBuffer>) => Promise<Uint8Array<ArrayBuffer>>;
   now?: Date;
-}): Promise<ExportOutcome> {
+}): Promise<File | 'failed'> {
   const [garments, captures] = await Promise.all([store.listGarments(), store.listCaptures()]);
   if (!garments.ok || !captures.ok) return 'failed';
   const withFrames: FieldExport['captures'] = [];
@@ -56,8 +50,20 @@ export async function exportFieldSet({
   } catch {
     return 'failed';
   }
-  const file = new File([bytes], exportFileName(now), { type: 'application/gzip' });
+  return new File([bytes], exportFileName(now), { type: 'application/gzip' });
+}
+
+/**
+ * Sends a built export to the share sheet where it takes files, and to a
+ * download otherwise.
+ *
+ * Not async, for the reason `shareOutfit` gives: Safari refuses
+ * `navigator.share` once the tap's user activation has gone through an
+ * await, so the share starts before this returns. Building the file takes
+ * several awaits, which is why it is a separate step on a separate tap.
+ */
+export function deliverFieldExport(share: SharePort, file: File): Promise<ExportOutcome> {
   if (share.canShareFiles([file])) return share.share({ files: [file], title: EXPORT_TITLE });
   share.download(file);
-  return 'downloaded';
+  return Promise.resolve('downloaded');
 }

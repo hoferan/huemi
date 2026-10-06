@@ -3,7 +3,7 @@ import type { FieldCapture, FieldGarment } from '../../../model/field';
 import { decodeFieldExport } from '../../../model/fieldExport';
 import { parseHex } from '../../../model/hex';
 import { fakeSharePort } from '../../share/fakeShare.testing';
-import { exportFieldSet, exportFileName } from './exportFieldSet';
+import { buildFieldExport, deliverFieldExport, exportFileName } from './exportFieldSet';
 import { fakeFieldStore } from './fieldStore.testing';
 
 const NOW = new Date(2026, 9, 6, 23, 30);
@@ -50,79 +50,36 @@ describe('exportFileName', () => {
   });
 });
 
-describe('exportFieldSet', () => {
-  it('shares the file where the sheet takes it', async () => {
-    const share = fakeSharePort();
-    const outcome = await exportFieldSet({
-      store: await seeded(),
-      share,
-      compress: identity,
-      now: NOW,
-    });
+const file = () => new File(['x'], 'huemi-field-2026-10-06.json.gz', { type: 'application/gzip' });
 
-    expect(outcome).toBe('shared');
-    expect(share.calls.download).toEqual([]);
-    expect(share.calls.share).toHaveLength(1);
-    const [data] = share.calls.share;
-    expect(data!.title).toBe('huemi field set');
-    const [file] = data!.files!;
-    expect(file!.name).toBe('huemi-field-2026-10-06.json.gz');
-    expect(file!.type).toBe('application/gzip');
-  });
-
-  it('passes on a dismissed sheet', async () => {
-    const share = fakeSharePort({ share: () => Promise.resolve('dismissed') });
-    const outcome = await exportFieldSet({ store: await seeded(), share, compress: identity });
-    expect(outcome).toBe('dismissed');
-    expect(share.calls.download).toEqual([]);
-  });
-
-  it('downloads it otherwise', async () => {
-    const share = fakeSharePort({ canShareFiles: () => false });
-    const outcome = await exportFieldSet({
-      store: await seeded(),
-      share,
-      compress: identity,
-      now: NOW,
-    });
-
-    expect(outcome).toBe('downloaded');
-    expect(share.calls.share).toEqual([]);
-    expect(share.calls.download.map((file) => [file.name, file.type])).toEqual([
-      ['huemi-field-2026-10-06.json.gz', 'application/gzip'],
-    ]);
+describe('buildFieldExport', () => {
+  it('builds a gzip file named by the date', async () => {
+    const built = await buildFieldExport({ store: await seeded(), compress: identity, now: NOW });
+    expect(built).toBeInstanceOf(File);
+    const { name, type } = built as File;
+    expect([name, type]).toEqual(['huemi-field-2026-10-06.json.gz', 'application/gzip']);
   });
 
   it('reports a store failure', async () => {
-    const share = fakeSharePort();
-    const outcome = await exportFieldSet({
+    const built = await buildFieldExport({
       store: fakeFieldStore({ failing: true }),
-      share,
       compress: identity,
     });
-    expect(outcome).toBe('failed');
-    expect(share.calls.share).toEqual([]);
-    expect(share.calls.download).toEqual([]);
+    expect(built).toBe('failed');
   });
 
   it('reports a frame that cannot be read', async () => {
     const store = await seeded();
     store.readPixels = () => Promise.resolve({ ok: false, reason: 'test' });
-    const share = fakeSharePort();
-    expect(await exportFieldSet({ store, share, compress: identity })).toBe('failed');
-    expect(share.calls.share).toEqual([]);
+    expect(await buildFieldExport({ store, compress: identity })).toBe('failed');
   });
 
   it('reports a compression failure', async () => {
-    const share = fakeSharePort();
-    const outcome = await exportFieldSet({
+    const built = await buildFieldExport({
       store: await seeded(),
-      share,
       compress: () => Promise.reject(new Error('test')),
     });
-    expect(outcome).toBe('failed');
-    expect(share.calls.share).toEqual([]);
-    expect(share.calls.download).toEqual([]);
+    expect(built).toBe('failed');
   });
 
   it("exports a capture's exact pixels", async () => {
@@ -142,9 +99,8 @@ describe('exportFieldSet', () => {
       { width: 1, height: 1, data: new Uint8ClampedArray([9, 8, 7, 255]) },
     );
     let compressed: Uint8Array<ArrayBuffer> | undefined;
-    await exportFieldSet({
+    await buildFieldExport({
       store,
-      share: fakeSharePort(),
       compress: (bytes) => {
         compressed = bytes;
         return Promise.resolve(bytes);
@@ -159,5 +115,31 @@ describe('exportFieldSet', () => {
     expect(byId.get('c1')).toEqual({ ...CAPTURE, pixels: PIXELS });
     expect([...byId.get('c2')!.pixels.data]).toEqual([9, 8, 7, 255]);
     expect(byId.get('c2')!.lowLight).toBeNull();
+  });
+});
+
+describe('deliverFieldExport', () => {
+  it('shares the file where the sheet takes it', async () => {
+    const share = fakeSharePort();
+    const outcome = deliverFieldExport(share, file());
+    // Started before the function returned, with no await in between.
+    expect(share.calls.share).toHaveLength(1);
+    expect(await outcome).toBe('shared');
+    expect(share.calls.download).toEqual([]);
+    const [data] = share.calls.share;
+    expect(data!.title).toBe('huemi field set');
+    expect(data!.files!.map((f) => f.name)).toEqual(['huemi-field-2026-10-06.json.gz']);
+  });
+
+  it('passes on a dismissed sheet', async () => {
+    const share = fakeSharePort({ share: () => Promise.resolve('dismissed') });
+    expect(await deliverFieldExport(share, file())).toBe('dismissed');
+  });
+
+  it('downloads it otherwise', async () => {
+    const share = fakeSharePort({ canShareFiles: () => false });
+    expect(await deliverFieldExport(share, file())).toBe('downloaded');
+    expect(share.calls.share).toEqual([]);
+    expect(share.calls.download.map((f) => f.name)).toEqual(['huemi-field-2026-10-06.json.gz']);
   });
 });

@@ -44,6 +44,7 @@ Feature: Field recorder
     And I export the field set
     Then the download "huemi-field-<today>.json.gz" unzips to version 1 with 1 garment and 1 capture
     And that capture's frame has width × height × 4 bytes
+    And the centre of that frame is "#4a6285"
 
   Scenario: Deleting a garment removes its captures from the export
     Given I have seen the welcome screen

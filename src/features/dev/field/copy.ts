@@ -40,7 +40,7 @@ export const DELETE_GARMENT_FAILED = "Couldn't delete this garment.";
 export const captureTitle = (label: string): string => `Capture ${label}`;
 export const captured = (light: string): string => `Captured: ${light}.`;
 export const deleteGarmentTitle = (label: string, n: number): string =>
-  `Delete ${label} and its ${n} captures?`;
+  `Delete ${label} and its ${captureCount(n)}?`;
 export const garmentPath = (id: string): string =>
   `/dev/field/garment?id=${encodeURIComponent(id)}`;
 
@@ -52,5 +52,7 @@ export const LINK_FAILED = "Couldn't link this capture.";
 export const EXPORTED = 'Field set exported.';
 export const EXPORT_FAILED = "Couldn't export the field set.";
 export const EXPORT_TITLE = 'huemi field set';
+export const PREPARING_EXPORT = 'Preparing export…';
+export const SHARE_EXPORT = 'Share the export';
 export const exportSize = (n: number, bytes: number): string =>
   `${captureCount(n)}, about ${(bytes / 1_000_000).toFixed(1)} MB`;
