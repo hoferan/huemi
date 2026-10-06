@@ -19,8 +19,8 @@ function CameraForSlot({ slot }: { slot: Slot }) {
   const navigate = useNavigate();
   const { dispatch } = useSession();
 
-  function captured(frame: Frame) {
-    dispatch({ type: 'frameCaptured', slot, frame });
+  function captured(frame: Frame, lowLight: boolean | null) {
+    dispatch({ type: 'frameCaptured', slot, frame, lowLight });
     void navigate(`/confirm?slot=${slot}`);
   }
 

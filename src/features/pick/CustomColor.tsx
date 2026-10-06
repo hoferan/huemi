@@ -7,6 +7,7 @@ import type { Slot } from '../../model/types';
 import { tokens } from '../../styles/tokens.stylex';
 import { Button } from '../../ui/Button';
 import { Screen } from '../../ui/Screen';
+import { ColorSliders, type Hsl } from './ColorSliders';
 import { PICKER_TITLE } from './copy';
 import { useAnnounce } from '../../ui/useAnnounce';
 import { useChooseBase } from './useChooseBase';
@@ -18,12 +19,6 @@ const styles = stylex.create({
     borderRadius: tokens.radius,
     minHeight: '120px',
   }),
-  row: { display: 'flex', alignItems: 'center', gap: '12px' },
-  label: { color: tokens.ink2, fontSize: tokens.textBody, minWidth: '6rem' },
-  // The token, never a repeated literal, same as every other hit target
-  // (A11Y.md). `flexGrow` so the track actually uses the row's width instead
-  // of the browser's default handful of pixels.
-  slider: { minHeight: tokens.touchTarget, flexGrow: 1 },
   name: { color: tokens.ink, fontSize: tokens.textBody, margin: 0 },
 });
 
@@ -53,11 +48,9 @@ export function CustomColor() {
 function CustomColorForSlot({ slot }: { slot: Slot }) {
   const chooseBase = useChooseBase(slot);
   const announce = useAnnounce();
-  const [hue, setHue] = useState(210);
-  const [saturation, setSaturation] = useState(40);
-  const [lightness, setLightness] = useState(50);
+  const [hsl, setHsl] = useState<Hsl>({ hue: 210, saturation: 40, lightness: 50 });
 
-  const hex = hslToHex(hue, saturation, lightness);
+  const hex = hslToHex(hsl.hue, hsl.saturation, hsl.lightness);
   const name = colorName(hex);
 
   // Fires again whenever `name` itself differs from the value this effect
@@ -87,61 +80,8 @@ function CustomColorForSlot({ slot }: { slot: Slot }) {
       <p data-testid="custom-name" {...stylex.props(styles.name)}>
         {name}
       </p>
-      <SliderRow id="hue" label="Hue" min={0} max={359} value={hue} onChange={setHue} />
-      <SliderRow
-        id="saturation"
-        label="Saturation"
-        min={0}
-        max={100}
-        value={saturation}
-        onChange={setSaturation}
-      />
-      <SliderRow
-        id="lightness"
-        label="Lightness"
-        min={0}
-        max={100}
-        value={lightness}
-        onChange={setLightness}
-      />
+      <ColorSliders hsl={hsl} onChange={setHsl} idPrefix="" />
       <Button label="Use this color" onClick={() => chooseBase(hex)} />
     </Screen>
-  );
-}
-
-/**
- * The three sliders are otherwise identical apart from their range, so this
- * is one definition rather than three copies that could drift.
- */
-function SliderRow({
-  id,
-  label,
-  min,
-  max,
-  value,
-  onChange,
-}: {
-  id: string;
-  label: string;
-  min: number;
-  max: number;
-  value: number;
-  onChange: (value: number) => void;
-}) {
-  return (
-    <div {...stylex.props(styles.row)}>
-      <label htmlFor={id} {...stylex.props(styles.label)}>
-        {label}
-      </label>
-      <input
-        id={id}
-        type="range"
-        min={min}
-        max={max}
-        value={value}
-        onChange={(event) => onChange(Number(event.target.value))}
-        {...stylex.props(styles.slider)}
-      />
-    </div>
   );
 }

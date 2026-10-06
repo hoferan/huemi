@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 import { SessionProvider } from '../../session/SessionProvider';
 import { OutfitsProvider } from '../saved/OutfitsProvider';
 import { fakeOutfitStore } from '../saved/testing';
@@ -23,6 +23,12 @@ function renderRoute(on: boolean) {
 }
 
 describe('DevRoute', () => {
+  // Under the whole suite the first transform of the lazy menu can outlast
+  // findByRole's one-second wait, so it is loaded once before the tests.
+  beforeAll(async () => {
+    await import('./menu/DevMenu');
+  });
+
   it('renders not found while off', async () => {
     renderRoute(false);
     expect(await screen.findByRole('heading', { name: 'Page not found' })).toBeInTheDocument();

@@ -5,7 +5,9 @@ import { CheckPieces } from '../features/check/CheckPieces';
 import { CheckResult } from '../features/check/CheckResult';
 import { CheckTap } from '../features/check/CheckTap';
 import { Confirm } from '../features/confirm/Confirm';
+import { DevOnly } from '../features/dev/DevOnly';
 import { DevRoute } from '../features/dev/DevRoute';
+import { CaptureGarment, FieldList, GarmentPage, NewGarment } from '../features/dev/field/routes';
 import { Entry } from '../features/entry/Entry';
 import { Onboarding } from '../features/onboarding/Onboarding';
 import { OnboardingGate } from '../features/onboarding/OnboardingGate';
@@ -51,4 +53,36 @@ export const APP_ROUTES: readonly AppRoute[] = [
   { path: '/saved', element: <Saved /> },
   { path: '/shared', element: <Shared /> },
   { path: '/dev', element: <DevRoute /> },
+  {
+    path: '/dev/field',
+    element: (
+      <DevOnly>
+        <FieldList />
+      </DevOnly>
+    ),
+  },
+  {
+    path: '/dev/field/new',
+    element: (
+      <DevOnly>
+        <NewGarment />
+      </DevOnly>
+    ),
+  },
+  {
+    path: '/dev/field/garment',
+    element: (
+      <DevOnly>
+        <GarmentPage />
+      </DevOnly>
+    ),
+  },
+  {
+    path: '/dev/field/capture',
+    element: (
+      <DevOnly>
+        <CaptureGarment />
+      </DevOnly>
+    ),
+  },
 ];

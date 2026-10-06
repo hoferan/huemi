@@ -1,18 +1,24 @@
 import { useEffect } from 'react';
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { colorName } from '../../color/palette';
 import { readColor } from '../../color/read';
 import { NAVY, WHITE, busy, paint, solid } from '../../color/testing';
 import type { Pixels } from '../../model/frame';
 import { parseHex } from '../../model/hex';
 import type { Slot } from '../../model/types';
+import type { FieldStore } from '../../storage/port';
 import { SessionProvider } from '../../session/SessionProvider';
 import { useSession } from '../../session/useSession';
 import { Announcer } from '../../ui/Announcer';
 import { InitialLocationContext } from '../../ui/InitialLocationContext';
+import { DevModeProvider } from '../dev/DevModeProvider';
+import { DevSlotHost } from '../dev/DevSlotHost';
+import { fakeFieldStore } from '../dev/field/fieldStore.testing';
+import { FieldStoreContext } from '../dev/field/FieldStoreContext';
+import { fakeDevModeStore } from '../dev/testing';
 import { Confirm } from './Confirm';
 import {
   CAPTION_CORRECTED,
@@ -40,7 +46,12 @@ function Seed({ pixels, slot = 'top' }: { pixels: Pixels; slot?: Slot }) {
   const { dispatch } = useSession();
   const navigate = useNavigate();
   useEffect(() => {
-    dispatch({ type: 'frameCaptured', slot, frame: { pixels, source: 'camera' } });
+    dispatch({
+      type: 'frameCaptured',
+      slot,
+      frame: { pixels, source: 'camera' },
+      lowLight: false,
+    });
     void navigate('/confirm?slot=top');
   }, [dispatch, navigate, pixels, slot]);
   return null;
@@ -438,5 +449,150 @@ describe('Confirm back arrow', () => {
       'href',
       '/camera?slot=top',
     );
+  });
+});
+
+// Developer mode's Record control fills a slot under the actions, and hears
+// about the color the user settles on through `onSettle`. The slot is
+// rendered for real here, with the mode on and a fake field store.
+describe('Confirm, recording', () => {
+  // Under the whole suite the first transform of the lazy registry can outlast
+  // findByRole's one-second wait, so it is loaded once before the tests.
+  beforeAll(async () => {
+    await import('../dev/registry');
+  });
+  beforeEach(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+  });
+
+  // Record, then a light: nothing records before both.
+  async function turnOnRecord(user: ReturnType<typeof userEvent.setup>) {
+    await user.click(await screen.findByRole('button', { name: 'Record' }));
+    await user.click(screen.getByRole('button', { name: 'Lamp' }));
+  }
+
+  const stripes = () => paint(100, 100, (_x, y) => (y % 10 < 6 ? NAVY : WHITE));
+
+  // Notes whether the confirm screen was still up when each save started, so
+  // a save that only began after the navigation would show up as `false`.
+  function watched() {
+    const inner = fakeFieldStore();
+    const saves: { settled: string | null; onConfirm: boolean }[] = [];
+    const store: FieldStore = {
+      ...inner,
+      saveCapture: (capture, pixels) => {
+        saves.push({
+          settled: capture.settled,
+          onConfirm: [TITLE_SINGLE, TITLE_SEVERAL].some(
+            (name) => screen.queryByRole('heading', { level: 1, name }) !== null,
+          ),
+        });
+        return inner.saveCapture(capture, pixels);
+      },
+    };
+    return { store, saves };
+  }
+
+  function renderRecording(pixels: Pixels, store: FieldStore) {
+    render(
+      <MemoryRouter initialEntries={['/seed']}>
+        <SessionProvider>
+          <Announcer>
+            <DevModeProvider store={fakeDevModeStore(true)}>
+              <DevSlotHost>
+                <FieldStoreContext value={store}>
+                  <InitialLocationContext value={false}>
+                    <Routes>
+                      <Route path="/seed" element={<Seed pixels={pixels} />} />
+                      <Route path="/confirm" element={<Confirm />} />
+                      <Route path="/color" element={<Where />} />
+                      <Route path="/suggest" element={<Where />} />
+                    </Routes>
+                  </InitialLocationContext>
+                </FieldStoreContext>
+              </DevSlotHost>
+            </DevModeProvider>
+          </Announcer>
+        </SessionProvider>
+      </MemoryRouter>,
+    );
+    return userEvent.setup();
+  }
+
+  it('tells settle listeners the confirmed color before navigating', async () => {
+    const { store, saves } = watched();
+    const user = renderRecording(solid(NAVY), store);
+    await turnOnRecord(user);
+    await user.click(screen.getByRole('button', { name: LOOKS_RIGHT }));
+    const where = await screen.findByText(/^\/suggest\?slot=top&hex=%23/);
+    const base = /base=top:(#[0-9a-f]{6})/.exec(where.textContent)![1]!;
+    expect(saves).toEqual([{ settled: base, onConfirm: true }]);
+  });
+
+  it('tells them the chosen color of several', async () => {
+    const { store, saves } = watched();
+    const user = renderRecording(stripes(), store);
+    await turnOnRecord(user);
+    const choices = within(screen.getByRole('group', { name: TITLE_SEVERAL })).getAllByRole(
+      'button',
+    );
+    await user.click(choices[1]!);
+    await user.click(screen.getByRole('button', { name: /^Use / }));
+    const where = await screen.findByText(/^\/suggest/);
+    const base = /base=top:(#[0-9a-f]{6})/.exec(where.textContent)![1]!;
+    expect(colorName(parseHex(base))).not.toBe('Navy');
+    expect(saves).toEqual([{ settled: base, onConfirm: true }]);
+  });
+
+  it('records the corrected color, not the reading', async () => {
+    const reading = readColor(solid(NAVY));
+    if (reading.kind !== 'single') throw new Error('expected a single reading of navy');
+    const { store, saves } = watched();
+    const user = renderRecording(solid(NAVY), store);
+    await turnOnRecord(user);
+    await user.click(screen.getByRole('button', { name: NOT_QUITE }));
+    fireEvent.change(screen.getByRole('slider', { name: LIGHTER_DARKER }), {
+      target: { value: '0.1' },
+    });
+    await user.click(screen.getByRole('button', { name: USE_THIS }));
+    const where = await screen.findByText(/^\/suggest\?slot=top&hex=%23/);
+    const base = /base=top:(#[0-9a-f]{6})/.exec(where.textContent)![1]!;
+    expect(base).not.toBe(reading.color);
+    expect(saves).toEqual([{ settled: base, onConfirm: true }]);
+  });
+
+  // Both taps land before React renders again, so both run the same click
+  // handler with the screen still up.
+  it('records once when the confirm button is tapped twice', async () => {
+    const { store, saves } = watched();
+    const user = renderRecording(solid(NAVY), store);
+    await turnOnRecord(user);
+    const accept = screen.getByRole('button', { name: LOOKS_RIGHT });
+    act(() => {
+      accept.click();
+      accept.click();
+    });
+    await screen.findByText(/^\/suggest\?slot=top&hex=%23/);
+    expect(saves).toHaveLength(1);
+    const listed = await store.listCaptures();
+    expect(listed.ok && listed.value).toHaveLength(1);
+  });
+
+  it('does not settle when leaving for the picker', async () => {
+    const { store, saves } = watched();
+    const user = renderRecording(solid(NAVY), store);
+    await turnOnRecord(user);
+    await user.click(screen.getByRole('link', { name: PICK_BY_HAND }));
+    expect(await screen.findByText(/^\/color\?slot=top/)).toBeInTheDocument();
+    expect(saves).toEqual([]);
+    const listed = await store.listCaptures();
+    expect(listed.ok && listed.value).toEqual([]);
+  });
+
+  it('shows nothing under the actions while the mode is off', async () => {
+    renderWith(solid(NAVY));
+    await screen.findByRole('button', { name: LOOKS_RIGHT });
+    expect(screen.queryByRole('button', { name: 'Record' })).not.toBeInTheDocument();
   });
 });

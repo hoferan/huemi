@@ -1,4 +1,4 @@
-import { startTransition, useMemo, useRef, useState } from 'react';
+import { startTransition, useCallback, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { Redirect } from '../../ui/Redirect';
 import * as stylex from '@stylexjs/stylex';
@@ -6,13 +6,14 @@ import { needsBorder, readableForeground } from '../../color/contrast';
 import { withLightness } from '../../color/oklab';
 import { blockLabel, colorName } from '../../color/palette';
 import { readColor, tapRegion, type ColorReading } from '../../color/read';
-import type { Pixels } from '../../model/frame';
+import type { Frame } from '../../model/frame';
 import type { Hex } from '../../model/hex';
 import type { Slot } from '../../model/types';
 import { useSession } from '../../session/useSession';
 import { tokens } from '../../styles/tokens.stylex';
 import { blockText } from '../../ui/blockText';
 import { Button } from '../../ui/Button';
+import { DevSlot } from '../../ui/DevSlot';
 import { Screen } from '../../ui/Screen';
 import { selection } from '../../ui/selection';
 import { useAnnounce } from '../../ui/useAnnounce';
@@ -205,7 +206,9 @@ export function Confirm() {
   if (!state.capture || state.capture.slot !== slot) {
     return <Redirect to={`/camera?slot=${slot}`} />;
   }
-  return <ConfirmForCapture slot={slot} pixels={state.capture.frame.pixels} />;
+  return (
+    <ConfirmForCapture slot={slot} frame={state.capture.frame} lowLight={state.capture.lowLight} />
+  );
 }
 
 /**
@@ -213,7 +216,16 @@ export function Confirm() {
  * `Picker`: this TypeScript version does not carry the guard's narrowing into
  * closures, and `confirm` below needs `slot` as a `Slot`.
  */
-function ConfirmForCapture({ slot, pixels }: { slot: Slot; pixels: Pixels }) {
+function ConfirmForCapture({
+  slot,
+  frame,
+  lowLight,
+}: {
+  slot: Slot;
+  frame: Frame;
+  lowLight: boolean | null;
+}) {
+  const { pixels } = frame;
   const { dispatch } = useSession();
   const navigate = useNavigate();
   const announce = useAnnounce();
@@ -227,11 +239,28 @@ function ConfirmForCapture({ slot, pixels }: { slot: Slot; pixels: Pixels }) {
   const [shift, setShift] = useState(0);
   const [panelOpen, setPanelOpen] = useState(false);
   const toggle = useRef<HTMLButtonElement>(null);
+  // Listeners from whatever fills the `confirm.actions` slot, called with the
+  // color the user settles on. Empty unless developer mode is on.
+  const settleListeners = useRef(new Set<(hex: Hex) => void>());
+  // Stable, so a filler subscribing in an effect does not resubscribe on
+  // every render.
+  const onSettle = useCallback((listener: (hex: Hex) => void) => {
+    settleListeners.current.add(listener);
+    return () => {
+      settleListeners.current.delete(listener);
+    };
+  }, []);
 
   const shown = selected && shift !== 0 ? withLightness(selected, shift) : selected;
   const corrected = reading.kind === 'single' && shown !== reading.color;
 
   function confirm(hex: Hex) {
+    // First, while the listeners are still mounted to hear it. Each hears
+    // once: a second tap that lands before the screen goes finds the set
+    // empty, so a double tap records one capture.
+    const listeners = [...settleListeners.current];
+    settleListeners.current.clear();
+    for (const listener of listeners) listener(hex);
     // `baseChosen` clears the capture. React Router 8 applies a navigation
     // inside a transition, so a plain dispatch would render on its own first,
     // and the guard in `Confirm` would send the user to the camera before
@@ -388,6 +417,7 @@ function ConfirmForCapture({ slot, pixels }: { slot: Slot; pixels: Pixels }) {
         <Link to={`/color?slot=${slot}`} {...clearOfToasts} {...stylex.props(styles.link)}>
           {reading.kind === 'several' ? NEITHER : PICK_BY_HAND}
         </Link>
+        <DevSlot name="confirm.actions" context={{ frame, lowLight, onSettle }} />
       </div>
     </Screen>
   );

@@ -33,6 +33,14 @@ export const ROUTES: readonly string[] = [
   // The sweep sees it locked, as the not-found screen, and again with developer
   // mode on, as the menu. `e2e/features/devmode.feature` checks what the menu does.
   '/dev',
+  // The field recorder, locked and unlocked like /dev. Unlocked, an unknown
+  // garment id redirects to the list, so the last two show the list again.
+  // `e2e/features/field.feature` carries the checks onto a garment with a
+  // capture, the capture screen, and the list with a capture from normal use.
+  '/dev/field',
+  '/dev/field/new',
+  '/dev/field/garment?id=missing',
+  '/dev/field/capture?id=missing&light=dim',
   // A link that reads, so the sweep sees the screen rather than its redirect to
   // the start.
   '/shared?top=c39a3a&bottom=1f2a44&shoes=c9a57e&base=top',

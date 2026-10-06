@@ -16,7 +16,10 @@ const styles = stylex.create({
     paddingBlock: '12px',
     paddingInline: '20px',
     width: '100%',
-    cursor: 'pointer',
+    cursor: { default: 'pointer', ':disabled': 'not-allowed' },
+    // Dimmed so it reads as unavailable. WCAG exempts an inactive control from
+    // the contrast minimum, and axe skips one.
+    opacity: { default: 1, ':disabled': 0.5 },
   },
   secondary: {
     backgroundColor: 'transparent',
@@ -51,6 +54,7 @@ export function Button({
   onClick,
   variant = 'primary',
   type = 'button',
+  disabled,
   expanded,
   controls,
   ref,
@@ -59,6 +63,7 @@ export function Button({
   onClick?: () => void;
   variant?: 'primary' | 'secondary' | 'quiet';
   type?: 'button' | 'submit';
+  disabled?: boolean;
   expanded?: boolean;
   controls?: string;
   ref?: Ref<HTMLButtonElement>;
@@ -67,6 +72,7 @@ export function Button({
     <button
       ref={ref}
       type={type}
+      disabled={disabled}
       onClick={onClick}
       aria-expanded={expanded}
       aria-controls={controls}

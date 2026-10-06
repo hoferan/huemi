@@ -70,7 +70,10 @@ on the start screen's wordmark and a passphrase turn on a DEV chip and a menu at
 `/dev`, on the phone and offline (ADR 0019). Its code reaches a screen only through a
 `DevSlot` the screen places, typed by `DevSlots` in `src/ui/devSlots.ts`. A new
 developer feature adds a slot there and lists its component in
-`src/features/dev/registry.tsx`. The passphrase's hash is `VITE_DEV_MODE_HASH`, set in
+`src/features/dev/registry.tsx`. The field recorder at `/dev/field` records camera
+frames of real garments with their true colors, for measuring the color reader in real
+light. It keeps them on the device until someone deletes them there, and exports them
+as one file (ADR 0020). The passphrase's hash is `VITE_DEV_MODE_HASH`, set in
 Netlify's site settings and never committed, and `npm run devmode:hash` prints it for
 a passphrase typed at its prompt. ADR 0019 says how to set it in Netlify. Under
 `npm run dev` the taps turn the mode on without asking.

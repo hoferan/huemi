@@ -49,7 +49,7 @@ describe('a developer chunk that fails to load', () => {
     expect(screen.queryByRole('link', { name: 'Developer mode' })).not.toBeInTheDocument();
   });
 
-  it('says the menu did not load and offers a reload', async () => {
+  it('says the screen did not load and offers a reload', async () => {
     render(
       <MemoryRouter initialEntries={['/dev']}>
         <DevModeProvider store={fakeDevModeStore(true)}>
@@ -58,7 +58,7 @@ describe('a developer chunk that fails to load', () => {
       </MemoryRouter>,
     );
     expect(await screen.findByRole('heading', { name: 'Developer mode' })).toBeInTheDocument();
-    expect(screen.getByText("The developer menu didn't load.")).toBeInTheDocument();
+    expect(screen.getByText("This developer screen didn't load.")).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Reload' })).toHaveAttribute('href', '/dev');
   });
 });
