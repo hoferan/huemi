@@ -50,3 +50,10 @@ Feature: Share
     And I share the outfit
     Then the share sheet opened
     And no message appears
+
+  Scenario: Developer mode leaves a share unchanged
+    Given my phone can share files
+    When I open the suggestions for a mustard top
+    And I share the outfit
+    And developer mode is turned on and I share the same outfit again
+    Then the two shares are identical

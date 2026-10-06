@@ -5,8 +5,9 @@ type Props = { children: ReactNode };
 type State = { failed: boolean };
 
 /**
- * The one error boundary in the app, at the root. React has no hook form, so
- * this is the only class component in the codebase.
+ * The app's error boundary, at the root. React has no hook form, so this and
+ * `DevErrorBoundary`, which keeps a developer chunk that fails to load from
+ * reaching it, are the only class components in the codebase.
  *
  * It says nothing about what went wrong. An error message from a render
  * failure is for a developer, and the console already has it; the screen is

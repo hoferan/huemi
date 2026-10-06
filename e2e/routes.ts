@@ -30,6 +30,9 @@ export const ROUTES: readonly string[] = [
   '/check/result',
   '/suggest?slot=top&hex=%23c39a3a',
   '/saved',
+  // The sweep sees it locked, as the not-found screen, and again with developer
+  // mode on, as the menu. `e2e/features/devmode.feature` checks what the menu does.
+  '/dev',
   // A link that reads, so the sweep sees the screen rather than its redirect to
   // the start.
   '/shared?top=c39a3a&bottom=1f2a44&shoes=c9a57e&base=top',

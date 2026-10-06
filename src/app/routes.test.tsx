@@ -117,6 +117,8 @@ describe('AppRoutes', () => {
     '/suggest?slot=top&hex=%23c39a3a': 'Goes with it',
     '/saved': 'Saved outfits',
     '/shared?top=c39a3a&bottom=1f2a44&shoes=c9a57e&base=top': 'An outfit for you',
+    // Developer mode is off here, so /dev is the not-found screen.
+    '/dev': 'Page not found',
   };
 
   it.each(covered)('serves a real screen at %s', async (route) => {

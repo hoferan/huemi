@@ -65,6 +65,16 @@ table of hex values (ADR 0006). It is a development instrument: Vite builds only
 `index.html`, so nothing under `src/dev/` reaches the bundle, and it is excluded from
 coverage because what it is for is judgement no assertion replaces.
 
+`src/features/dev/` is the developer mode, and unlike the harness it ships. Seven taps
+on the start screen's wordmark and a passphrase turn on a DEV chip and a menu at
+`/dev`, on the phone and offline (ADR 0019). Its code reaches a screen only through a
+`DevSlot` the screen places, typed by `DevSlots` in `src/ui/devSlots.ts`. A new
+developer feature adds a slot there and lists its component in
+`src/features/dev/registry.tsx`. The passphrase's hash is `VITE_DEV_MODE_HASH`, set in
+Netlify's site settings and never committed, and `npm run devmode:hash` prints it for
+a passphrase typed at its prompt. ADR 0019 says how to set it in Netlify. Under
+`npm run dev` the taps turn the mode on without asking.
+
 ## Conventions
 
 Whitespace and encoding come from `.editorconfig`: UTF-8, LF, two-space indent,

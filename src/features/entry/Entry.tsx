@@ -1,11 +1,17 @@
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import * as stylex from '@stylexjs/stylex';
 import { Camera, Palette } from 'lucide-react';
+import { useSession } from '../../session/useSession';
 import { tokens } from '../../styles/tokens.stylex';
 import { Button } from '../../ui/Button';
 import { HOME } from '../../ui/home';
+import { DevSlot } from '../../ui/DevSlot';
 import { Screen } from '../../ui/Screen';
 import { CHECK_ENTRY } from '../check/copy';
+import { UnlockSheet } from '../dev/UnlockSheet';
+import { useDevMode } from '../dev/useDevMode';
+import { useTapUnlock } from '../dev/useTapUnlock';
 import { InstallButton } from '../install/InstallButton';
 import { clearOfToasts } from '../../ui/toastClearance';
 import { WayIn } from './WayIn';
@@ -16,7 +22,11 @@ const styles = stylex.create({
     fontFamily: tokens.fontHeading,
     fontSize: tokens.textBody,
     margin: 0,
+    // Seven rapid taps must not select the word or zoom the page on a phone.
+    userSelect: 'none',
+    touchAction: 'manipulation',
   },
+  brand: { display: 'flex', alignItems: 'center' },
   header: { display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
   saved: {
     display: 'inline-flex',
@@ -61,19 +71,44 @@ const styles = stylex.create({
  */
 export function Entry() {
   const navigate = useNavigate();
+  const { dispatch } = useSession();
+  const { on, method, unlock } = useDevMode();
+  const [asking, setAsking] = useState(false);
+
+  const onWordmarkTap = useTapUnlock(() => {
+    if (on) return;
+    if (method === 'direct') {
+      unlock();
+      dispatch({ type: 'toastShown', message: 'Developer mode on' });
+    } else if (method === 'passphrase') {
+      setAsking(true);
+    }
+  });
 
   return (
     <Screen
       title={HOME.title}
       header={
         <div {...stylex.props(styles.header)}>
-          <p {...stylex.props(styles.wordmark)}>huemi</p>
+          <div {...stylex.props(styles.brand)}>
+            {/*
+              Seven quick taps unlock the developer mode. It is a hidden gesture
+              for the developer, so it must not show up as a control to anyone
+              else: no role, no focus stop, no pointer cursor.
+            */}
+            {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions */}
+            <p onClick={onWordmarkTap} {...stylex.props(styles.wordmark)}>
+              huemi
+            </p>
+            <DevSlot name="screen.badge" context={{}} />
+          </div>
           <Link to="/saved" {...stylex.props(styles.saved)}>
             Saved
           </Link>
         </div>
       }
     >
+      {asking && <UnlockSheet open onOpenChange={setAsking} />}
       <div {...clearOfToasts} {...stylex.props(styles.actions)}>
         <WayIn
           icon={Camera}

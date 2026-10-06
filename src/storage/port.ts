@@ -30,3 +30,12 @@ export interface PreferenceStore {
   hasOnboarded(): Promise<boolean>;
   setOnboarded(value: boolean): Promise<void>;
 }
+
+/**
+ * Synchronous, unlike the other ports: it is read during the first render so a
+ * deep link to /dev never flashes the not-found screen while a promise settles.
+ */
+export interface DevModeStore {
+  isOn(): boolean;
+  setOn(on: boolean): void;
+}
