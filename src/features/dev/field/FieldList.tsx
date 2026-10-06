@@ -4,14 +4,17 @@ import * as stylex from '@stylexjs/stylex';
 import { needsBorder } from '../../../color/contrast';
 import { colorName } from '../../../color/palette';
 import { LIGHT_LABELS, type FieldCapture, type FieldGarment } from '../../../model/field';
+import type { Pixels } from '../../../model/frame';
 import { tokens } from '../../../styles/tokens.stylex';
 import { Button } from '../../../ui/Button';
 import { Screen } from '../../../ui/Screen';
+import { FramePhoto } from '../../confirm/FramePhoto';
 import { formatSavedDate } from '../../saved/formatSavedDate';
 import {
   ADD_GARMENT,
   EXPORT,
   FROM_NORMAL_USE,
+  LINK_TO_GARMENT,
   LIST_TITLE,
   MENU_BACK,
   NO_GARMENTS,
@@ -19,6 +22,7 @@ import {
   captureCount,
 } from './copy';
 import { FieldStoreContext } from './FieldStoreContext';
+import { LinkCapture } from './LinkCapture';
 
 const styles = stylex.create({
   actions: { display: 'flex', flexDirection: 'column', gap: '12px' },
@@ -53,12 +57,36 @@ const styles = stylex.create({
   section: { display: 'flex', flexDirection: 'column', gap: '12px' },
   heading: { fontFamily: tokens.fontHeading, fontSize: '1.25rem', margin: 0 },
   text: { margin: 0, color: tokens.ink2, fontSize: tokens.textBody, lineHeight: 1.5 },
+  // A capture waiting for its garment, laid out like the garment page's.
+  item: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: '12px',
+    padding: '10px',
+    borderWidth: '1px',
+    borderStyle: 'solid',
+    borderColor: tokens.line,
+    borderRadius: tokens.radius,
+  },
+  thumb: { display: 'flex', flexDirection: 'column', width: '96px', flexShrink: 0 },
+  settled: { width: '48px', height: '48px', flexShrink: 0, borderRadius: tokens.radiusMedia },
+  waiting: { flexGrow: 1, display: 'flex', flexDirection: 'column', fontSize: tokens.textBody },
 });
+
+/** A capture from normal use that no garment has claimed yet. */
+const isWaiting = (capture: FieldCapture): boolean =>
+  capture.source === 'flow' && capture.garmentId === null;
 
 type Loaded =
   | { status: 'loading' }
   | { status: 'error' }
-  | { status: 'ready'; garments: FieldGarment[]; captures: FieldCapture[] };
+  | {
+      status: 'ready';
+      garments: FieldGarment[];
+      captures: FieldCapture[];
+      frames: ReadonlyMap<string, Pixels>;
+    };
 
 /**
  * The field recorder's start: every garment as its true colors, how many
@@ -75,14 +103,24 @@ export function FieldList() {
 
   useEffect(() => {
     let current = true;
-    void Promise.all([store.listGarments(), store.listCaptures()]).then(([garments, captures]) => {
-      if (!current) return;
-      setLoaded(
-        garments.ok && captures.ok
-          ? { status: 'ready', garments: garments.value, captures: captures.value }
-          : { status: 'error' },
+    void (async () => {
+      const [garments, captures] = await Promise.all([store.listGarments(), store.listCaptures()]);
+      if (!garments.ok || !captures.ok) {
+        if (current) setLoaded({ status: 'error' });
+        return;
+      }
+      // The waiting captures show their frames, which the list leaves out.
+      const frames = new Map<string, Pixels>();
+      await Promise.all(
+        captures.value.filter(isWaiting).map(async ({ id }) => {
+          const read = await store.readPixels(id);
+          if (read.ok) frames.set(id, read.value);
+        }),
       );
-    });
+      if (current) {
+        setLoaded({ status: 'ready', garments: garments.value, captures: captures.value, frames });
+      }
+    })();
     return () => {
       current = false;
     };
@@ -95,8 +133,17 @@ export function FieldList() {
         <Ready
           garments={loaded.garments}
           captures={loaded.captures}
+          frames={loaded.frames}
           now={now}
           onAdd={() => void navigate('/dev/field/new')}
+          onLinked={(id, garmentId) =>
+            setLoaded({
+              ...loaded,
+              captures: loaded.captures.map((capture) =>
+                capture.id === id ? { ...capture, garmentId } : capture,
+              ),
+            })
+          }
         />
       )}
     </Screen>
@@ -106,17 +153,21 @@ export function FieldList() {
 function Ready({
   garments,
   captures,
+  frames,
   now,
   onAdd,
+  onLinked,
 }: {
   garments: FieldGarment[];
   captures: FieldCapture[];
+  frames: ReadonlyMap<string, Pixels>;
   now: Date;
   onAdd: () => void;
+  onLinked: (id: string, garmentId: string) => void;
 }) {
-  const unlinked = captures.filter(
-    (capture) => capture.source === 'flow' && capture.garmentId === null,
-  );
+  // The capture whose link sheet is open.
+  const [linking, setLinking] = useState<string | null>(null);
+  const unlinked = captures.filter(isWaiting);
   const counts = new Map<string, number>();
   for (const { garmentId } of captures) {
     if (garmentId !== null) counts.set(garmentId, (counts.get(garmentId) ?? 0) + 1);
@@ -170,13 +221,49 @@ function Ready({
         <section {...stylex.props(styles.section)}>
           <h2 {...stylex.props(styles.heading)}>{FROM_NORMAL_USE}</h2>
           <ul {...stylex.props(styles.list)}>
-            {unlinked.map((capture) => (
-              <li key={capture.id} {...stylex.props(styles.text)}>
-                {`${LIGHT_LABELS[capture.light]}, ${formatSavedDate(capture.takenAt, now)}`}
-              </li>
-            ))}
+            {unlinked.map((capture) => {
+              const pixels = frames.get(capture.id);
+              const { settled } = capture;
+              return (
+                <li key={capture.id} {...stylex.props(styles.item)}>
+                  <span {...stylex.props(styles.thumb)}>
+                    {pixels && <FramePhoto pixels={pixels} fit="cover" />}
+                  </span>
+                  {settled && (
+                    // Named in the text beside it.
+                    <span
+                      aria-hidden="true"
+                      {...stylex.props(
+                        styles.settled,
+                        styles.fill(settled),
+                        needsBorder(settled) && styles.hairline,
+                      )}
+                    />
+                  )}
+                  <span {...stylex.props(styles.waiting)}>
+                    {settled && <span>{colorName(settled)}</span>}
+                    <span {...stylex.props(styles.detail)}>
+                      {`${LIGHT_LABELS[capture.light]}, ${formatSavedDate(capture.takenAt, now)}`}
+                    </span>
+                  </span>
+                  <Button
+                    label={LINK_TO_GARMENT}
+                    variant="secondary"
+                    onClick={() => setLinking(capture.id)}
+                  />
+                </li>
+              );
+            })}
           </ul>
         </section>
+      )}
+      {linking !== null && (
+        <LinkCapture
+          captureId={linking}
+          garments={garments}
+          onLinked={(garmentId) => onLinked(linking, garmentId)}
+          onClose={() => setLinking(null)}
+        />
       )}
     </>
   );

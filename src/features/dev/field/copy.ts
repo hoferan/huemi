@@ -43,3 +43,8 @@ export const deleteGarmentTitle = (label: string, n: number): string =>
   `Delete ${label} and its ${n} captures?`;
 export const garmentPath = (id: string): string =>
   `/dev/field/garment?id=${encodeURIComponent(id)}`;
+
+export const RECORD = 'Record';
+export const CAPTURE_RECORDED = 'Capture recorded.';
+export const LINK_TO_GARMENT = 'Link to a garment';
+export const LINK_FAILED = "Couldn't link this capture.";
