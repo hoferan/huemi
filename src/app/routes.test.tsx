@@ -1,10 +1,14 @@
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { AppRoutes } from './routes';
 import { APP_ROUTES } from './routeTable';
 import { OutfitsProvider } from '../features/saved/OutfitsProvider';
 import { fakeOutfitStore } from '../features/saved/testing';
+import { DevModeProvider } from '../features/dev/DevModeProvider';
+import { fakeFieldStore } from '../features/dev/field/fieldStore.testing';
+import { FieldStoreContext } from '../features/dev/field/FieldStoreContext';
+import { fakeDevModeStore } from '../features/dev/testing';
 import { ONBOARDED_KEY } from '../storage/localPreferences';
 import { SessionProvider } from '../session/SessionProvider';
 import { Announcer } from '../ui/Announcer';
@@ -117,14 +121,51 @@ describe('AppRoutes', () => {
     '/suggest?slot=top&hex=%23c39a3a': 'Goes with it',
     '/saved': 'Saved outfits',
     '/shared?top=c39a3a&bottom=1f2a44&shoes=c9a57e&base=top': 'An outfit for you',
-    // Developer mode is off here, so /dev is the not-found screen.
+    // Developer mode is off here, so /dev and the field recorder are the
+    // not-found screen.
     '/dev': 'Page not found',
+    '/dev/field': 'Page not found',
+    '/dev/field/new': 'Page not found',
+    '/dev/field/garment?id=missing': 'Page not found',
+    '/dev/field/capture?id=missing&light=dim': 'Page not found',
   };
 
   it.each(covered)('serves a real screen at %s', async (route) => {
     const heading = REAL_HEADINGS[route];
     if (!heading) throw new Error(`No expected heading recorded for ${route}`);
     at(route);
+    expect(await screen.findByRole('heading', { level: 1, name: heading })).toBeInTheDocument();
+  });
+});
+
+// The same routes with the mode on, against an empty store. A garment or a
+// light that does not exist sends the visitor to the list.
+describe('AppRoutes with developer mode on', () => {
+  // Under the whole suite the first transform of the lazy chunk can outlast
+  // findByRole's one-second wait, so it is loaded once before the tests.
+  beforeAll(async () => {
+    await import('../features/dev/field/screens');
+  });
+
+  const FIELD_HEADINGS: Record<string, string> = {
+    '/dev/field': 'Field recorder',
+    '/dev/field/new': 'Add garment',
+    '/dev/field/garment?id=missing': 'Field recorder',
+    '/dev/field/capture?id=missing&light=dim': 'Field recorder',
+  };
+
+  it.each(Object.entries(FIELD_HEADINGS))('serves %s', async (route, heading) => {
+    render(
+      <FieldStoreContext value={fakeFieldStore()}>
+        <MemoryRouter initialEntries={[route]}>
+          <SessionProvider>
+            <DevModeProvider store={fakeDevModeStore(true)}>
+              <AppRoutes />
+            </DevModeProvider>
+          </SessionProvider>
+        </MemoryRouter>
+      </FieldStoreContext>,
+    );
     expect(await screen.findByRole('heading', { level: 1, name: heading })).toBeInTheDocument();
   });
 });

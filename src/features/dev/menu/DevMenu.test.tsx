@@ -215,6 +215,12 @@ describe('DevMenu', () => {
     expect(await screen.findByText('No saved outfits.')).toBeInTheDocument();
   });
 
+  it('opens the field recorder', async () => {
+    const { user } = setup();
+    await user.click(screen.getByRole('button', { name: 'Open the field recorder' }));
+    expect(screen.getByTestId('where')).toHaveTextContent(/^\/dev\/field$/);
+  });
+
   it('locks and goes home', async () => {
     const { user, devStore } = setup();
     await user.click(screen.getByRole('button', { name: 'Lock developer mode' }));

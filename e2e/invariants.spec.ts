@@ -27,6 +27,15 @@ test.beforeEach(async ({ page }) => {
   await fakeCamera(page, 'bright');
 });
 
+// Locked, the not-found screen. Unlocked, the field recorder's list once the
+// store has answered, which is when its buttons appear.
+const fieldList = (page: Page) =>
+  expect(
+    page
+      .getByRole('heading', { name: 'Page not found' })
+      .or(page.getByRole('button', { name: 'Add garment' })),
+  ).toBeVisible();
+
 // Screens that settle after their first render, and the sign that they have.
 // `/camera` renders an empty viewfinder until the camera answers, and a check
 // that ran then would pass without ever measuring the shutter.
@@ -45,6 +54,12 @@ const READY: Readonly<Record<string, (page: Page) => Promise<void>>> = {
   '/check/result': (page) => expect(page.getByRole('button', { name: 'Take photo' })).toBeVisible(),
   // Locked, the not-found screen; unlocked, the menu, which is a lazy chunk.
   '/dev': (page) => expect(page.locator('main h1')).toBeVisible(),
+  // The same for the field recorder, whose list also waits on IndexedDB. The
+  // garment page and the capture screen redirect to it for an unknown id.
+  '/dev/field': fieldList,
+  '/dev/field/new': (page) => expect(page.locator('main h1')).toBeVisible(),
+  '/dev/field/garment?id=missing': fieldList,
+  '/dev/field/capture?id=missing&light=dim': fieldList,
 };
 
 // Onboarding has no bar and so no developer chip (see `src/ui/Screen.tsx`).

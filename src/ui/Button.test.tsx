@@ -18,6 +18,16 @@ describe('Button', () => {
     expect(onClick).toHaveBeenCalledTimes(1);
   });
 
+  it('can be disabled, and then ignores clicks', async () => {
+    const user = userEvent.setup();
+    const onClick = vi.fn();
+    render(<Button label="Export" onClick={onClick} disabled />);
+    const button = screen.getByRole('button', { name: 'Export' });
+    expect(button).toBeDisabled();
+    await user.click(button);
+    expect(onClick).not.toHaveBeenCalled();
+  });
+
   it('is a primary button unless told otherwise', () => {
     render(<Button label="Go" onClick={() => {}} />);
     expect(screen.getByRole('button', { name: 'Go' })).not.toHaveAttribute('aria-expanded');

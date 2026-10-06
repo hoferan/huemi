@@ -143,6 +143,15 @@ export default function DevMenu({ worker = browserWorker }: { worker?: WorkerPor
         />
       </section>
 
+      <section {...stylex.props(styles.section)}>
+        <h2 {...stylex.props(styles.heading)}>Field recorder</h2>
+        <Button
+          label="Open the field recorder"
+          variant="secondary"
+          onClick={() => void navigate('/dev/field')}
+        />
+      </section>
+
       <Button
         label="Lock developer mode"
         onClick={() => {
