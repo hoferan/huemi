@@ -169,3 +169,56 @@ Then('Export is disabled', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Export', exact: true })).toBeDisabled();
   await expect(page.getByText('0 captures, about 0.0 MB', { exact: true })).toBeVisible();
 });
+
+When('I link the capture from normal use to {string}', async ({ page }, label: string) => {
+  await openList(page);
+  const waiting = page.getByRole('heading', { level: 2, name: 'From normal use' });
+  await page
+    .locator('section', { has: waiting })
+    .getByRole('button', { name: 'Link to a garment', exact: true })
+    .click();
+  await page
+    .getByRole('dialog', { name: 'Link to a garment' })
+    .getByRole('button', { name: label, exact: true })
+    .click();
+  // The sheet hides the page from the accessibility tree while it is open, so
+  // the heading counts as gone before the link lands. The sheet closing and
+  // the card's count are what say the store has answered.
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(waiting).toHaveCount(0);
+  await expect(page.getByRole('link', { name: label })).toContainText('1 capture');
+});
+
+When('I delete the one capture of {string}', async ({ page }, label: string) => {
+  await openList(page);
+  await page.getByRole('link', { name: label }).click();
+  const captures = page.getByRole('listitem');
+  await expect(captures).toHaveCount(1);
+  await captures.getByRole('button', { name: 'Delete', exact: true }).click();
+  await expect(captures).toHaveCount(0);
+});
+
+// Read from the database itself, so a frame the screens no longer list but
+// the store still holds would show here.
+Then('the field store holds {int} frame(s)', async ({ page }, n: number) => {
+  const count = await page.evaluate(
+    () =>
+      new Promise<number>((resolve, reject) => {
+        const open = indexedDB.open('huemi-field');
+        open.onerror = () => reject(open.error ?? new Error('open failed'));
+        open.onsuccess = () => {
+          const db = open.result;
+          const request = db.transaction('frames').objectStore('frames').count();
+          request.onsuccess = () => {
+            db.close();
+            resolve(request.result);
+          };
+          request.onerror = () => {
+            db.close();
+            reject(request.error ?? new Error('count failed'));
+          };
+        };
+      }),
+  );
+  expect(count).toBe(n);
+});

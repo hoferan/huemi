@@ -53,5 +53,29 @@ Feature: Field recorder
     And my browser has no share sheet
     When I add the garment "grey hoodie" with one color
     And I capture it in "Lamp"
-    And I delete the garment "grey hoodie"
+    Then the field store holds 1 frame
+    When I delete the garment "grey hoodie"
     Then Export is disabled
+    And the field store holds 0 frames
+
+  Scenario: A capture from normal use, once linked, survives a reload
+    Given I have seen the welcome screen
+    And developer mode is on
+    And my camera sees a garment
+    When I add the garment "grey hoodie" with one color
+    And I photograph a top and turn on Record in "Dim"
+    And I accept the reading
+    Then the toast says "Capture recorded."
+    When I link the capture from normal use to "grey hoodie"
+    And I reload the page
+    Then the garment "grey hoodie" has 1 capture
+
+  Scenario: A capture deleted on its garment's page stays deleted
+    Given I have seen the welcome screen
+    And developer mode is on
+    And my camera sees a garment
+    When I add the garment "grey hoodie" with one color
+    And I capture it in "Lamp"
+    And I delete the one capture of "grey hoodie"
+    And I reload the page
+    Then the garment "grey hoodie" has 0 captures
