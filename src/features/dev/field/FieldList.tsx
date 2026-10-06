@@ -1,18 +1,22 @@
-import { use, useEffect, useState } from 'react';
+import { use, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import * as stylex from '@stylexjs/stylex';
 import { needsBorder } from '../../../color/contrast';
 import { colorName } from '../../../color/palette';
 import { LIGHT_LABELS, type FieldCapture, type FieldGarment } from '../../../model/field';
 import type { Pixels } from '../../../model/frame';
+import { useSession } from '../../../session/useSession';
 import { tokens } from '../../../styles/tokens.stylex';
 import { Button } from '../../../ui/Button';
 import { Screen } from '../../../ui/Screen';
 import { FramePhoto } from '../../confirm/FramePhoto';
 import { formatSavedDate } from '../../saved/formatSavedDate';
+import { ShareContext } from '../../share/ShareContext';
 import {
   ADD_GARMENT,
   EXPORT,
+  EXPORTED,
+  EXPORT_FAILED,
   FROM_NORMAL_USE,
   LINK_TO_GARMENT,
   LIST_TITLE,
@@ -20,7 +24,9 @@ import {
   NO_GARMENTS,
   STORE_FAILED,
   captureCount,
+  exportSize,
 } from './copy';
+import { exportFieldSet } from './exportFieldSet';
 import { FieldStoreContext } from './FieldStoreContext';
 import { LinkCapture } from './LinkCapture';
 
@@ -165,19 +171,43 @@ function Ready({
   onAdd: () => void;
   onLinked: (id: string, garmentId: string) => void;
 }) {
+  const store = use(FieldStoreContext);
+  const share = use(ShareContext);
+  const { dispatch } = useSession();
   // The capture whose link sheet is open.
   const [linking, setLinking] = useState<string | null>(null);
+  // Set while an export is out, so a second tap cannot start another. The
+  // button stays enabled, so it keeps focus.
+  const exporting = useRef(false);
   const unlinked = captures.filter(isWaiting);
   const counts = new Map<string, number>();
   for (const { garmentId } of captures) {
     if (garmentId !== null) counts.set(garmentId, (counts.get(garmentId) ?? 0) + 1);
   }
 
+  // The frames as stored, before base64 and gzip change the size either way.
+  const bytes = captures.reduce((sum, { width, height }) => sum + width * height * 4, 0);
+
+  async function runExport() {
+    if (exporting.current) return;
+    exporting.current = true;
+    const outcome = await exportFieldSet({ store, share });
+    exporting.current = false;
+    if (outcome === 'failed') dispatch({ type: 'toastShown', message: EXPORT_FAILED });
+    else if (outcome !== 'dismissed') dispatch({ type: 'toastShown', message: EXPORTED });
+  }
+
   return (
     <>
       <div {...stylex.props(styles.actions)}>
         <Button label={ADD_GARMENT} onClick={onAdd} />
-        <Button label={EXPORT} variant="secondary" disabled />
+        <Button
+          label={EXPORT}
+          variant="secondary"
+          disabled={captures.length === 0}
+          onClick={() => void runExport()}
+        />
+        <p {...stylex.props(styles.text)}>{exportSize(captures.length, bytes)}</p>
       </div>
       {garments.length === 0 ? (
         <p {...stylex.props(styles.text)}>{NO_GARMENTS}</p>

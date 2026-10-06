@@ -35,6 +35,8 @@ export const ROUTES: readonly string[] = [
   '/dev',
   // The field recorder, locked and unlocked like /dev. Unlocked, an unknown
   // garment id redirects to the list, so the last two show the list again.
+  // `e2e/features/field.feature` carries the checks onto a garment with a
+  // capture, the capture screen, and the list with a capture from normal use.
   '/dev/field',
   '/dev/field/new',
   '/dev/field/garment?id=missing',

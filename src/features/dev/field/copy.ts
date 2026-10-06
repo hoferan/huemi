@@ -48,3 +48,9 @@ export const RECORD = 'Record';
 export const CAPTURE_RECORDED = 'Capture recorded.';
 export const LINK_TO_GARMENT = 'Link to a garment';
 export const LINK_FAILED = "Couldn't link this capture.";
+
+export const EXPORTED = 'Field set exported.';
+export const EXPORT_FAILED = "Couldn't export the field set.";
+export const EXPORT_TITLE = 'huemi field set';
+export const exportSize = (n: number, bytes: number): string =>
+  `${captureCount(n)}, about ${(bytes / 1_000_000).toFixed(1)} MB`;
