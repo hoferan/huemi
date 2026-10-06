@@ -107,6 +107,58 @@ describe('NewGarment', () => {
     await waitFor(async () => expect(value(await store.listGarments())[0]?.truth).toHaveLength(1));
   });
 
+  it('saves once when Save is tapped twice', async () => {
+    const inner = fakeFieldStore();
+    // Holds every save open until released, so the second tap lands mid-save.
+    let release = () => {};
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let saves = 0;
+    const store: FieldStore = {
+      ...inner,
+      saveGarment: async (garment) => {
+        saves += 1;
+        await held;
+        return inner.saveGarment(garment);
+      },
+    };
+    const { user } = setup(store);
+    await user.type(screen.getByRole('textbox', { name: 'Label' }), 'Navy coat');
+    await user.click(screen.getByRole('button', { name: 'Save garment' }));
+    await user.click(screen.getByRole('button', { name: 'Save garment' }));
+    release();
+
+    await waitFor(() =>
+      expect(screen.getByTestId('where')).toHaveTextContent(/^\/dev\/field\/garment\?id=/),
+    );
+    expect(saves).toBe(1);
+    expect(value(await inner.listGarments())).toHaveLength(1);
+  });
+
+  it('saves on a second try after a failed save', async () => {
+    const inner = fakeFieldStore();
+    let failed = false;
+    const store: FieldStore = {
+      ...inner,
+      saveGarment: (garment) => {
+        if (failed) return inner.saveGarment(garment);
+        failed = true;
+        return Promise.resolve({ ok: false, reason: 'quota' });
+      },
+    };
+    const { user } = setup(store);
+    await user.type(screen.getByRole('textbox', { name: 'Label' }), 'Navy coat');
+    await user.click(screen.getByRole('button', { name: 'Save garment' }));
+    await waitFor(() =>
+      expect(screen.getByTestId('toast')).toHaveTextContent("Couldn't save this garment."),
+    );
+    await user.click(screen.getByRole('button', { name: 'Save garment' }));
+
+    await waitFor(() => expect(screen.getByTestId('where')).toBeInTheDocument());
+    expect(value(await inner.listGarments())).toHaveLength(1);
+  });
+
   it('will not save without a label', async () => {
     const { user, store } = setup();
     const field = screen.getByRole('textbox', { name: 'Label' });

@@ -24,7 +24,7 @@ function ChunkFailed() {
   const { pathname, search } = useLocation();
   return (
     <Screen title="Developer mode" back={HOME}>
-      <p {...stylex.props(styles.text)}>The developer menu didn&apos;t load.</p>
+      <p {...stylex.props(styles.text)}>This developer screen didn&apos;t load.</p>
       <a href={pathname + search} {...stylex.props(styles.link)}>
         Reload
       </a>

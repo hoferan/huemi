@@ -93,6 +93,9 @@ export function NewGarment() {
   const navigate = useNavigate();
   const id = useId();
   const field = useRef<HTMLInputElement>(null);
+  // Set while a save is out, so a second tap on Save cannot store the garment
+  // twice under two ids.
+  const saving = useRef(false);
   const [label, setLabel] = useState('');
   const [several, setSeveral] = useState(false);
   // All the colors made so far, so switching to one color and back keeps them.
@@ -111,6 +114,7 @@ export function NewGarment() {
 
   async function submit(event: FormEvent) {
     event.preventDefault();
+    if (saving.current) return;
     const trimmed = label.trim();
     if (trimmed === '') return complain('label');
     if (several && shown.length < 2) return complain('colors');
@@ -121,8 +125,11 @@ export function NewGarment() {
       truth: shown.map(toHex),
       createdAt: new Date().toISOString(),
     };
+    saving.current = true;
     const saved = await store.saveGarment(garment);
     if (!saved.ok) {
+      // Open again, so the person can retry.
+      saving.current = false;
       dispatch({ type: 'toastShown', message: SAVE_FAILED });
       return;
     }

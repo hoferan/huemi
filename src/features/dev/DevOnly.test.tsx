@@ -46,7 +46,7 @@ describe('DevOnly', () => {
   it('contains a failed lazy child', async () => {
     renderAt('/dev/field/garment?id=g1', true, <Broken />);
     expect(await screen.findByRole('heading', { name: 'Developer mode' })).toBeInTheDocument();
-    expect(screen.getByText("The developer menu didn't load.")).toBeInTheDocument();
+    expect(screen.getByText("This developer screen didn't load.")).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Reload' })).toHaveAttribute(
       'href',
       '/dev/field/garment?id=g1',
@@ -87,7 +87,7 @@ describe('DevOnly', () => {
         </DevModeProvider>
       </MemoryRouter>,
     );
-    await screen.findByText("The developer menu didn't load.");
+    await screen.findByText("This developer screen didn't load.");
     await userEvent.click(screen.getByRole('button', { name: 'go' }));
     expect(await screen.findByRole('heading', { name: 'The next screen' })).toBeInTheDocument();
   });
