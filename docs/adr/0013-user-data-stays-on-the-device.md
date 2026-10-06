@@ -4,6 +4,8 @@ Status: Accepted, 2026-09-24. The correction log it describes was removed by
 [ADR 0017](0017-collect-no-training-data-on-the-device.md).
 [ADR 0018](0018-sharing-is-the-user-handing-data-on.md) records why sharing an
 outfit leaves this record in force.
+[ADR 0020](0020-field-captures-are-stored-on-the-device.md) amends it for field
+captures, the camera frames developer mode records.
 
 ## Context
 
