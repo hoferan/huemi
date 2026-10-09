@@ -1,4 +1,4 @@
-import type { FieldExport, FieldGarment, Light } from '../model/field';
+import { LIGHTS, type FieldExport, type FieldGarment, type Light } from '../model/field';
 import type { Hex } from '../model/hex';
 import { oklabDistance } from './oklab';
 import { colorsIn, defaultRegion, explain, type ColorReading } from './read';
@@ -96,4 +96,95 @@ export function scoreFieldSet(data: FieldExport): { scores: CaptureScore[]; skip
     scores.push({ id, light, lowLight, width, height, ...truth, ...scoreCapture(capture, truth) });
   }
   return { scores, skipped };
+}
+
+/** How the reader did across a group of captures. */
+export type Summary = {
+  count: number;
+  /** Over the captures that have a distance; null when none has. */
+  median: number | null;
+  p90: number | null;
+  worst: number | null;
+  /** The share of captures where one or several was the right call. */
+  verdictRight: number;
+  /** Captures further off than `WRONG_AT`, or with no reading to measure. */
+  wrong: number;
+  /**
+   * The share of `wrong` that the viewfinder's low-light warning or an
+   * unclear verdict flagged to the user. Null when nothing was wrong.
+   */
+  caught: number | null;
+};
+
+// Nearest rank, so the median of an even count is the lower middle, as the
+// reader's own median is.
+const percentile = (sorted: readonly number[], p: number): number | null =>
+  sorted.length ? sorted[Math.ceil(p * sorted.length) - 1]! : null;
+
+export function summarize(scores: readonly CaptureScore[]): Summary {
+  const distances = scores
+    .flatMap((s) => (s.distance === null ? [] : [s.distance]))
+    .sort((a, b) => a - b);
+  const wrong = scores.filter((s) => s.distance === null || s.distance > WRONG_AT);
+  const caught = wrong.filter((s) => s.lowLight === true || s.reading.kind === 'unclear');
+  return {
+    count: scores.length,
+    median: percentile(distances, 0.5),
+    p90: percentile(distances, 0.9),
+    worst: distances.at(-1) ?? null,
+    verdictRight: scores.length ? scores.filter((s) => s.verdictRight).length / scores.length : 0,
+    wrong: wrong.length,
+    caught: wrong.length ? caught.length / wrong.length : null,
+  };
+}
+
+const distanceText = (n: number | null) => (n === null ? '–' : n.toFixed(3));
+const shareText = (n: number | null) => (n === null ? '–' : `${Math.round(n * 100)}%`);
+
+// One table: a heading, the column names, then a row per light that has
+// captures, in the order of LIGHTS, and a row for all of them.
+function table(heading: string, scores: readonly CaptureScore[], full: boolean): string[] {
+  if (!scores.length) return [heading, 'none'];
+  const columns = ['light', 'n', 'median', 'p90', 'worst'].concat(
+    full ? ['verdict', 'wrong', 'caught'] : [],
+  );
+  const cells = (label: string, s: Summary) =>
+    [
+      label,
+      String(s.count),
+      distanceText(s.median),
+      distanceText(s.p90),
+      distanceText(s.worst),
+    ].concat(full ? [shareText(s.verdictRight), String(s.wrong), shareText(s.caught)] : []);
+  const groups: [string, readonly CaptureScore[]][] = LIGHTS.map(
+    (light): [string, readonly CaptureScore[]] => [light, scores.filter((s) => s.light === light)],
+  ).filter(([, group]) => group.length);
+  groups.push(['all', scores]);
+  const rows = [columns, ...groups.map(([label, group]) => cells(label, summarize(group)))];
+  const widths = columns.map((_, i) => Math.max(...rows.map((r) => r[i]!.length)));
+  const line = (r: string[]) =>
+    r.map((cell, i) => (i === 0 ? cell.padEnd(widths[i]!) : cell.padStart(widths[i]!))).join('  ');
+  return [heading, ...rows.map(line)];
+}
+
+/**
+ * The benchmark's printout: the reader against the garments' true colors,
+ * per light, then against the colors settled in normal use, which went
+ * through the same camera and so only show distance.
+ */
+export function fieldReport(scores: readonly CaptureScore[], skipped: number): string {
+  return [
+    ...table(
+      "Against the garment's true colors",
+      scores.filter((s) => s.source === 'garment'),
+      true,
+    ),
+    '',
+    ...table(
+      'Against the color settled in use (weaker truth)',
+      scores.filter((s) => s.source === 'settled'),
+      false,
+    ),
+    ...(skipped ? ['', `Skipped ${skipped} captures with nothing to score against.`] : []),
+  ].join('\n');
 }
