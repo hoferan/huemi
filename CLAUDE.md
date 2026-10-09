@@ -83,8 +83,9 @@ panel shows each suggested piece's rank and its score split into terms, and what
 each color ranked above it out of the outfit. Its readout lives in
 `src/features/dev/engine/`. Both panels open from the same chip, `DevOverlay`. The
 passphrase's hash is `VITE_DEV_MODE_HASH`, set in Netlify's site settings and never
-committed, and `npm run devmode:hash` prints it for a passphrase typed at its prompt. ADR 0019 says how to set it in Netlify. Under
-`npm run dev` the taps turn the mode on without asking.
+committed, and `npm run devmode:hash` prints it for a passphrase typed at its prompt.
+ADR 0019 says how to set it in Netlify. Under `npm run dev` the taps turn the mode on
+without asking.
 
 ## Conventions
 

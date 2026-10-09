@@ -156,7 +156,7 @@ describe('byScoreThenName', () => {
 });
 
 describe('rateTerms', () => {
-  // Exact equality, not closeness: `rate` is defined as this sum, so a breakdown
+  // Exact equality on purpose. `rate` is defined as this sum, so a breakdown
   // that differed in the last bit would be explaining some other score.
   it('adds up to rate exactly', () => {
     for (const base of PALETTE) {

@@ -37,7 +37,7 @@ Then('the engine panel leaves the button {string} uncovered', async ({ page }, n
   expect(await isUncovered(page.getByRole('button', { name, exact: true }))).toBe(true);
 });
 
-// Closed, the chip sits in a corner of the first block, and that block's slot
+// Closed, the chip sits at the top of the first block, and that block's slot
 // label has to stay readable beside it. Measured against the text itself
 // rather than its element, which spans the whole block, so a chip over the
 // start of the word cannot slip past a hit test at the element's centre.

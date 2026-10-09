@@ -145,8 +145,8 @@ export function rateTerms(base: Hex, candidate: Hex, slot: Slot, baseSlot: Slot)
  * harness can show the number beside the color it belongs to, and so the corpus
  * can record what the engine thought at the time. `rateTerms` has the breakdown.
  *
- * The terms are added in the order the score always used, so moving them into
- * `rateTerms` changed no result, not even in the last bit.
+ * Keep the four terms in this order. Floating-point addition is not
+ * associative, and this is the order behind every score the corpus recorded.
  */
 export function rate(base: Hex, candidate: Hex, slot: Slot, baseSlot: Slot): number {
   const t = rateTerms(base, candidate, slot, baseSlot);
