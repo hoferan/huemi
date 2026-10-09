@@ -185,6 +185,8 @@ export function fieldReport(scores: readonly CaptureScore[], skipped: number): s
       scores.filter((s) => s.source === 'settled'),
       false,
     ),
-    ...(skipped ? ['', `Skipped ${skipped} captures with nothing to score against.`] : []),
+    ...(skipped
+      ? ['', `Skipped ${skipped} capture${skipped === 1 ? '' : 's'} with nothing to score against.`]
+      : []),
   ].join('\n');
 }

@@ -242,6 +242,7 @@ describe('fieldReport', () => {
     expect(fieldReport([scoreOf()], 2).trimEnd()).toMatch(
       /Skipped 2 captures with nothing to score against\.$/,
     );
+    expect(fieldReport([scoreOf()], 1)).toContain('Skipped 1 capture with');
     expect(fieldReport([scoreOf()], 0)).not.toContain('Skipped');
   });
 });
