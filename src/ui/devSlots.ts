@@ -26,7 +26,7 @@ import type { Slot } from '../model/types';
  *
  * `check.overlay` sits over the check result's blocks, leaving its sentences
  * below uncovered. `pieces` is the outfit those sentences describe, swaps
- * included, and `observations` are the sentences themselves.
+ * included, and `observations` are what the sentences are written from.
  */
 export type DevSlots = {
   'screen.badge': Record<string, never>;

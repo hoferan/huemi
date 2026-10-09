@@ -14,7 +14,7 @@ export type CheckReadout = { observations: string[]; pieces: string[] };
 
 const chromaText = (value: number): string => value.toFixed(3);
 
-/** "Navy bottom", the way the check's sentences name a piece. */
+/** "Navy bottom": a piece's color and its slot. */
 const phrase = (piece: WornPiece): string =>
   `${colorName(piece.hex)} ${SLOT_LABELS[piece.slot].toLowerCase()}`;
 
@@ -39,8 +39,8 @@ function observationLine(
       const carried = measured.find((piece) => piece.slot === heaviest.slot)!.carried;
       return `${observation.kind}: ${chromaLine} · most from ${phrase(heaviest)} (${chromaText(carried)})`;
     }
-    // Every colored piece with the color it carries: the sentence names the
-    // heaviest warm piece and the heaviest cool one.
+    // A mixed sentence names the heaviest warm piece and the heaviest cool
+    // one, so every colored piece shows the color it carries.
     case 'temperature':
       return `${observation.kind}: ${colored
         .map((piece) => `${phrase(piece)} ${piece.temperature} (${chromaText(piece.carried)})`)

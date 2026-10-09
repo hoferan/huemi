@@ -16,9 +16,10 @@ const styles = stylex.create({
  * warmth.
  *
  * ADR 0014 still holds. The check shows a user no number, because the engine's
- * total has no calibrated scale and a flag would point at good outfits as often
- * as bad ones. These are measurements for the developer reading the engine,
- * shown only in developer mode, and none of them is a verdict.
+ * total has no calibrated scale, and a flag built on color or on warm against
+ * cool would point at good outfits more often than bad ones. These are
+ * measurements for the developer reading the engine, shown only in developer
+ * mode, and none of them is a verdict.
  */
 export function CheckEnginePanel({ pieces, observations }: DevSlots['check.overlay']) {
   const readout = useMemo(() => checkReadout(pieces, observations), [pieces, observations]);
