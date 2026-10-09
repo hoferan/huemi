@@ -4,15 +4,9 @@ import { tokens } from '../styles/tokens.stylex';
 import type { Frame } from '../model/frame';
 import { browserCamera } from '../features/camera/browserCamera';
 import { FRAME_MAX_SIDE } from '../features/camera/port';
-import { LOW_LIGHT, meanLightness } from '../features/camera/lightness';
-import {
-  colorsIn,
-  decide,
-  defaultRegion,
-  tapRegion,
-  READ_TUNING,
-  type Region,
-} from '../color/read';
+import { drawRegion } from '../features/dev/reader/drawRegion';
+import { fmt, lightText, readout, ruleText, verdictText } from '../features/dev/reader/readout';
+import { defaultRegion, tapRegion, type Region } from '../color/read';
 import { colorName } from '../color/palette';
 import { readableForeground } from '../color/contrast';
 
@@ -41,28 +35,6 @@ const styles = stylex.create({
   dropped: { opacity: 0.45 },
 });
 
-const fmt = (n: number) => n.toFixed(3);
-
-// The circle is drawn over the frame, at frame resolution, so what is marked
-// is exactly what readColor samples.
-function draw(canvas: HTMLCanvasElement, frame: Frame, region: Region) {
-  const { width, height, data } = frame.pixels;
-  canvas.width = width;
-  canvas.height = height;
-  const context = canvas.getContext('2d');
-  if (!context) return;
-  context.putImageData(new ImageData(new Uint8ClampedArray(data), width, height), 0, 0);
-  context.lineWidth = 2;
-  context.strokeStyle = '#ffffff';
-  context.beginPath();
-  context.arc(region.cx, region.cy, region.r, 0, Math.PI * 2);
-  context.stroke();
-  context.strokeStyle = '#000000';
-  context.beginPath();
-  context.arc(region.cx, region.cy, region.r + 2, 0, Math.PI * 2);
-  context.stroke();
-}
-
 export default function Read() {
   const canvas = useRef<HTMLCanvasElement>(null);
   const [frame, setFrame] = useState<Frame | null>(null);
@@ -70,7 +42,7 @@ export default function Read() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (canvas.current && frame && region) draw(canvas.current, frame, region);
+    if (canvas.current && frame && region) drawRegion(canvas.current, frame.pixels, region);
   }, [frame, region]);
 
   const choose = async (file: File | undefined) => {
@@ -93,8 +65,11 @@ export default function Read() {
     setRegion(tapRegion(frame.pixels, x, y));
   };
 
-  const found = frame && region ? colorsIn(frame.pixels, region) : [];
-  const reading = decide(found);
+  // The confirm screen's reader panel works from the same readout, so the
+  // two agree on every photo.
+  const read = frame && region ? readout(frame.pixels, region) : null;
+  const found = read?.found ?? [];
+  const reading = read?.decision.reading ?? { kind: 'unclear' };
   const offered = new Set(
     reading.kind === 'several'
       ? reading.colors.map((c) => c.color)
@@ -102,7 +77,6 @@ export default function Read() {
         ? [reading.color]
         : [],
   );
-  const lightness = frame ? meanLightness(frame.pixels) : null;
 
   return (
     <div {...stylex.props(styles.wrap)}>
@@ -119,17 +93,12 @@ export default function Read() {
         )}
       </div>
       {error && <p>{error}</p>}
-      {frame && (
+      {read && (
         <>
           <canvas ref={canvas} onClick={tap} {...stylex.props(styles.canvas)} />
-          <p {...stylex.props(styles.verdict)}>
-            {reading.kind}
-            {reading.kind === 'single' && ` · ${colorName(reading.color)}`}
-          </p>
+          <p {...stylex.props(styles.verdict)}>{verdictText(reading)}</p>
           <p {...stylex.props(styles.numbers)}>
-            mean lightness {lightness === null ? '–' : fmt(lightness)} (dark below{' '}
-            {LOW_LIGHT.darkBelow}) · single ≥ {READ_TUNING.singleMin} · part ≥ {READ_TUNING.partMin}{' '}
-            · covered ≥ {READ_TUNING.coveredMin}
+            {ruleText(read.decision)} · {lightText(read.lightness, null)}
           </p>
           <div {...stylex.props(styles.groups)}>
             {found.map(({ color, share }) => {

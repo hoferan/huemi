@@ -115,3 +115,24 @@ Feature: Confirming the color
     And I press "Not quite"
     Then the screen has no detectable accessibility violations
     And every link and button is at least 44 by 44
+
+  # Developer mode's reader panel. It covers the photo and the reading beside
+  # it, and leaves the buttons below free, so a reading can still be accepted
+  # or corrected with the numbers open.
+  Scenario: Developer mode shows the reader over the photo
+    Given developer mode is on
+    And my camera shows a plain garment
+    When I open the camera for the top
+    And I take a photo
+    And I press "Reader · single"
+    Then the reader panel covers the photo in "#f3f1ee" on "#1c1b1a"
+    And the reader panel leaves "Looks right" uncovered
+
+  Scenario: The open reader panel passes the accessibility checks
+    Given developer mode is on
+    And my camera shows a plain garment
+    When I open the camera for the top
+    And I take a photo
+    And I press "Reader · single"
+    Then the screen has no detectable accessibility violations
+    And every link and button is at least 44 by 44
