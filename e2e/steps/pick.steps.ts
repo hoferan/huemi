@@ -18,8 +18,9 @@ Given('I open the garment choice', async ({ page }) => {
 // squeezed to make that happen.
 Then('the choices fill the screen, each at least {int} tall', async ({ page }, min: number) => {
   const main = page.getByRole('main');
-  const choices = await main.getByRole('button').all();
-  expect(choices.length).toBeGreaterThan(0);
+  const buttons = main.getByRole('button');
+  await expect.poll(() => buttons.count()).toBeGreaterThan(0);
+  const choices = await buttons.all();
   for (const choice of choices) {
     expect((await choice.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(min);
   }

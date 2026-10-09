@@ -106,8 +106,9 @@ Then('the screen has no detectable accessibility violations', async ({ page }) =
 });
 
 Then('every link and button is at least 44 by 44', async ({ page }) => {
-  const controls = await page.getByRole('link').or(page.getByRole('button')).all();
-  expect(controls.length).toBeGreaterThan(0);
+  const targets = page.getByRole('link').or(page.getByRole('button'));
+  await expect.poll(() => targets.count()).toBeGreaterThan(0);
+  const controls = await targets.all();
   for (const control of controls) {
     const box = await control.boundingBox();
     expect(box).not.toBeNull();
