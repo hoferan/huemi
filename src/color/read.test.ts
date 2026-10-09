@@ -7,6 +7,7 @@ import {
   colorsIn,
   decide,
   defaultRegion,
+  explain,
   readColor,
   tapRegion,
   type ColorShare,
@@ -206,5 +207,63 @@ describe('decide', () => {
         share('#5d6b52', 0.2),
       ]).kind,
     ).toBe('unclear');
+  });
+});
+
+// What the developer mode's reader panel shows: the verdict and the threshold
+// that settled it. `decide` is `explain`'s reading, so the two cannot drift.
+describe('explain', () => {
+  const share = (hex: string, s: number): ColorShare => ({ color: hex as Hex, share: s });
+
+  it('settles nothing found on nothing', () => {
+    expect(explain([])).toEqual({
+      reading: { kind: 'unclear' },
+      rule: 'nothing',
+      largest: 0,
+      parts: 0,
+      covered: 0,
+    });
+  });
+
+  it('settles a single color on singleMin', () => {
+    const found = [share('#2b3a5c', 0.82), share('#ecebe6', 0.18)];
+    expect(explain(found)).toEqual({
+      reading: { kind: 'single', color: '#2b3a5c' },
+      rule: 'singleMin',
+      largest: 0.82,
+      parts: 2,
+      covered: 1,
+    });
+  });
+
+  it('settles one part on its own on partMin', () => {
+    const found = [share('#2b3a5c', 0.6), share('#ecebe6', 0.1), share('#a8413a', 0.1)];
+    const decision = explain(found);
+    expect(decision.reading).toEqual({ kind: 'unclear' });
+    expect(decision.rule).toBe('partMin');
+    expect(decision.parts).toBe(1);
+  });
+
+  it('settles parts that cover too little on coveredMin', () => {
+    const found = [
+      share('#2b3a5c', 0.4),
+      share('#ecebe6', 0.2),
+      share('#a8413a', 0.2),
+      share('#5d6b52', 0.2),
+    ];
+    const decision = explain(found);
+    expect(decision.reading).toEqual({ kind: 'unclear' });
+    expect(decision.rule).toBe('coveredMin');
+    expect(decision.parts).toBe(READ_TUNING.maxParts);
+    expect(decision.covered).toBeCloseTo(0.8);
+  });
+
+  it('settles several on coveredMin', () => {
+    const found = [share('#2b3a5c', 0.5), share('#ecebe6', 0.4), share('#a8413a', 0.1)];
+    const decision = explain(found);
+    expect(decision.reading).toEqual(decide(found));
+    expect(decision.reading.kind).toBe('several');
+    expect(decision.rule).toBe('coveredMin');
+    expect(decision.covered).toBeCloseTo(0.9);
   });
 });

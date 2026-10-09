@@ -73,7 +73,10 @@ developer feature adds a slot there and lists its component in
 `src/features/dev/registry.tsx`. The field recorder at `/dev/field` records camera
 frames of real garments with their true colors, for measuring the color reader in real
 light. It keeps them on the device until someone deletes them there, and exports them
-as one file (ADR 0020). The passphrase's hash is `VITE_DEV_MODE_HASH`, set in
+as one file (ADR 0020). Over the confirm screen's photo, a reader panel shows what
+the color reader saw: the circle it sampled, each cluster's share, and the threshold
+behind the verdict. Its readout and drawing live in `src/features/dev/reader/`, which
+the harness's Read mode also uses. The passphrase's hash is `VITE_DEV_MODE_HASH`, set in
 Netlify's site settings and never committed, and `npm run devmode:hash` prints it for
 a passphrase typed at its prompt. ADR 0019 says how to set it in Netlify. Under
 `npm run dev` the taps turn the mode on without asking.

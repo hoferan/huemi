@@ -116,3 +116,43 @@ Then(
     );
   },
 );
+
+// Found through its toggle's `aria-controls`, the way a screen reader finds it.
+async function readerPanel(page: import('@playwright/test').Page) {
+  const toggle = page.getByRole('button', { name: /^Reader · / });
+  const id = await toggle.getAttribute('aria-controls');
+  if (!id) throw new Error('the reader toggle controls nothing');
+  return page.locator(`[id="${id}"]`);
+}
+
+// StyleX emits no CSS under Vitest (ADR 0002), so the panel's colors and the
+// box it covers can only be checked here. The hexes are written out for the
+// reason CLOSER is.
+Then(
+  'the reader panel covers the photo in {string} on {string}',
+  async ({ page }, fg: string, bg: string) => {
+    const panel = await readerPanel(page);
+    await expect(panel).toHaveCSS('background-color', hexToRgb(bg));
+    await expect(panel).toHaveCSS('color', hexToRgb(fg));
+    const box = await panel.boundingBox();
+    const photo = await page.getByRole('img', { name: 'Your photo' }).boundingBox();
+    if (!box || !photo) throw new Error('the reader panel or the photo has not been laid out');
+    expect(box.x).toBeLessThanOrEqual(photo.x);
+    expect(box.y).toBeLessThanOrEqual(photo.y);
+    expect(box.x + box.width).toBeGreaterThanOrEqual(photo.x + photo.width);
+    expect(box.y + box.height).toBeGreaterThanOrEqual(photo.y + photo.height);
+  },
+);
+
+// What a tap at the button's centre would land on, which is the button only
+// if nothing is drawn over it.
+Then('the reader panel leaves {string} uncovered', async ({ page }, name: string) => {
+  await readerPanel(page);
+  const button = page.getByRole('button', { name, exact: true });
+  const hit = await button.evaluate((element) => {
+    const { x, y, width, height } = element.getBoundingClientRect();
+    const top = document.elementFromPoint(x + width / 2, y + height / 2);
+    return top !== null && element.contains(top);
+  });
+  expect(hit).toBe(true);
+});

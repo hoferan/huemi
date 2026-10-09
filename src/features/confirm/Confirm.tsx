@@ -5,7 +5,7 @@ import * as stylex from '@stylexjs/stylex';
 import { needsBorder, readableForeground } from '../../color/contrast';
 import { withLightness } from '../../color/oklab';
 import { blockLabel, colorName } from '../../color/palette';
-import { readColor, tapRegion, type ColorReading } from '../../color/read';
+import { defaultRegion, readColor, tapRegion, type ColorReading } from '../../color/read';
 import type { Frame } from '../../model/frame';
 import type { Hex } from '../../model/hex';
 import type { Slot } from '../../model/types';
@@ -65,8 +65,9 @@ const styles = stylex.create({
   body: { display: 'flex', flexDirection: 'column', gap: '16px', flex: '1', minHeight: 0 },
   // `minHeight: 0` lets the pair give up height when the correction panel
   // opens below it, so the panel pushes the photo up instead of the page
-  // growing a scrollbar.
-  pair: { display: 'flex', gap: '8px', flex: '1', minHeight: 0 },
+  // growing a scrollbar. Positioned, so the `confirm.overlay` slot can cover
+  // the pair.
+  pair: { position: 'relative', display: 'flex', gap: '8px', flex: '1', minHeight: 0 },
   block: {
     flex: '1',
     minWidth: 0,
@@ -251,6 +252,13 @@ function ConfirmForCapture({
     };
   }, []);
 
+  // The circle the last reading came from, for the `confirm.overlay` slot. A
+  // tap sets `tap` whether or not it read anything, and nothing clears it.
+  const region = useMemo(
+    () => (tap ? tapRegion(pixels, tap.x, tap.y) : defaultRegion(pixels)),
+    [pixels, tap],
+  );
+
   const shown = selected && shift !== 0 ? withLightness(selected, shift) : selected;
   const corrected = reading.kind === 'single' && shown !== reading.color;
 
@@ -356,6 +364,7 @@ function ConfirmForCapture({
               <span {...stylex.props(blockText.name)}>{colorName(shown)}</span>
             </div>
           )}
+          <DevSlot name="confirm.overlay" context={{ frame, region, lowLight }} />
         </div>
         {reading.kind === 'unclear' && (
           <p {...stylex.props(styles.unclearBody)}>{missed ? STILL_UNCLEAR : UNCLEAR_BODY}</p>

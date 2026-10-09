@@ -151,17 +151,45 @@ export function colorsIn(pixels: Pixels, region: Region = defaultRegion(pixels))
     }));
 }
 
-/** The verdict from area shares, largest first. */
-export function decide(found: readonly ColorShare[]): ColorReading {
-  const [first] = found;
-  if (!first) return { kind: 'unclear' };
-  if (first.share >= READ_TUNING.singleMin) return { kind: 'single', color: first.color };
+/**
+ * A verdict with the numbers behind it, for developer mode's reader panel.
+ *
+ * `rule` names the threshold in `READ_TUNING` that settled the verdict:
+ * `singleMin` for a single color; `partMin` when fewer than two colors reach
+ * it; `coveredMin` for several, and for parts that cover too little; and
+ * `nothing` when the region gave no samples. `parts` counts the colors at or
+ * above `partMin`, up to `maxParts`, and `covered` is their combined share.
+ */
+export type Decision = {
+  reading: ColorReading;
+  rule: 'nothing' | 'singleMin' | 'partMin' | 'coveredMin';
+  largest: number;
+  parts: number;
+  covered: number;
+};
 
+/** The verdict from area shares, largest first, and why. */
+export function explain(found: readonly ColorShare[]): Decision {
   const parts = found.filter((c) => c.share >= READ_TUNING.partMin).slice(0, READ_TUNING.maxParts);
   const covered = parts.reduce((sum, c) => sum + c.share, 0);
-  return parts.length >= 2 && covered >= READ_TUNING.coveredMin
-    ? { kind: 'several', colors: parts }
-    : { kind: 'unclear' };
+  const numbers = { largest: found[0]?.share ?? 0, parts: parts.length, covered };
+  const [first] = found;
+  if (!first) return { reading: { kind: 'unclear' }, rule: 'nothing', ...numbers };
+  if (first.share >= READ_TUNING.singleMin) {
+    return { reading: { kind: 'single', color: first.color }, rule: 'singleMin', ...numbers };
+  }
+  if (parts.length < 2) return { reading: { kind: 'unclear' }, rule: 'partMin', ...numbers };
+  return {
+    reading:
+      covered >= READ_TUNING.coveredMin ? { kind: 'several', colors: parts } : { kind: 'unclear' },
+    rule: 'coveredMin',
+    ...numbers,
+  };
+}
+
+/** The verdict from area shares, largest first. */
+export function decide(found: readonly ColorShare[]): ColorReading {
+  return explain(found).reading;
 }
 
 /** Reads the garment's color from a region of the frame. Never throws. */

@@ -596,3 +596,58 @@ describe('Confirm, recording', () => {
     expect(screen.queryByRole('button', { name: 'Record' })).not.toBeInTheDocument();
   });
 });
+
+// Developer mode's reader panel fills the slot over the photo, and reads the
+// circle the screen's own reading came from.
+describe('Confirm, reader panel', () => {
+  beforeAll(async () => {
+    await import('../dev/registry');
+  });
+
+  function renderDev(pixels: Pixels) {
+    render(
+      <MemoryRouter initialEntries={['/seed']}>
+        <SessionProvider>
+          <Announcer>
+            <DevModeProvider store={fakeDevModeStore(true)}>
+              <DevSlotHost>
+                <FieldStoreContext value={fakeFieldStore()}>
+                  <InitialLocationContext value={false}>
+                    <Routes>
+                      <Route path="/seed" element={<Seed pixels={pixels} />} />
+                      <Route path="/confirm" element={<Confirm />} />
+                    </Routes>
+                  </InitialLocationContext>
+                </FieldStoreContext>
+              </DevSlotHost>
+            </DevModeProvider>
+          </Announcer>
+        </SessionProvider>
+      </MemoryRouter>,
+    );
+  }
+
+  it('reads the default circle before any tap', async () => {
+    renderDev(paint(100, 100, busy));
+    expect(await screen.findByRole('button', { name: 'Reader · unclear' })).toBeInTheDocument();
+  });
+
+  // The patch reads single only around the tap; the default circle over the
+  // same frame is unclear, so a panel still reading it would say so.
+  it('reads the circle around the last tap', async () => {
+    const patched = paint(100, 100, (x, y) => (x < 40 && y < 40 ? NAVY : busy(x, y)));
+    renderDev(patched);
+    await screen.findByRole('button', { name: 'Reader · unclear' });
+    const photo = screen.getByRole('img', { name: 'Your photo' });
+    photo.getBoundingClientRect = () => ({ left: 0, top: 0, width: 100, height: 100 }) as DOMRect;
+    fireEvent.click(photo, { clientX: 20, clientY: 20 });
+    await screen.findByRole('heading', { level: 1, name: TITLE_SINGLE });
+    expect(await screen.findByRole('button', { name: 'Reader · single' })).toBeInTheDocument();
+  });
+
+  it('is not there while the mode is off', async () => {
+    renderWith(solid(NAVY));
+    await screen.findByRole('button', { name: LOOKS_RIGHT });
+    expect(screen.queryByRole('button', { name: /^Reader/ })).not.toBeInTheDocument();
+  });
+});
