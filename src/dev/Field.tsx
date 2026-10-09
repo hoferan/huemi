@@ -100,7 +100,9 @@ function Row({ score }: { score: CaptureScore }) {
           <span {...stylex.props(wrong && styles.wrong)}>
             distance {score.distance === null ? '–' : score.distance.toFixed(3)}
           </span>{' '}
-          · {verdictText(score.reading)} · verdict {score.verdictRight ? 'right' : 'wrong'} ·{' '}
+          · {verdictText(score.reading)} ·{' '}
+          {/* A settled color is one color whatever the garment, so it cannot judge the verdict. */}
+          {score.source === 'garment' && `verdict ${score.verdictRight ? 'right' : 'wrong'} · `}
           {LIGHT_LABELS[score.light]} · {viewfinder}
         </p>
         <Blocks label="True" colors={score.truth} />

@@ -6,10 +6,13 @@ import { colorsIn, defaultRegion, explain, type ColorReading } from './read';
 /**
  * How far off, in OKLab, a reading has to be before it counts as wrong.
  *
- * It starts at the clusterer's `mergeDistance`, the distance at which the
- * reader itself treats two colors as one. It is written out as a literal so
- * that retuning the clusterer leaves the yardstick where it is. M10 decides
- * whether it stays.
+ * It starts at the same number as the clusterer's `mergeDistance`, but the
+ * two are measured differently: the clusterer weighs lightness at 0.35, so
+ * it merges colors up to about 0.17 apart in lightness alone, while this is
+ * plain OKLab distance. A reading 0.07 too light counts as wrong here even
+ * though the reader would not have told the two apart. It is written out as
+ * a literal so that retuning the clusterer leaves the yardstick where it is.
+ * M10 decides whether it stays.
  */
 export const WRONG_AT = 0.06;
 
@@ -59,17 +62,23 @@ function scoreCapture(capture: Capture, truth: NonNullable<ReturnType<typeof tru
   const { reading } = explain(found);
   // An unclear reading offers nothing, so it is scored by the largest color
   // it found: what the reader would have said had it been made to choose.
-  // Without that, an unclear reading could never count as a miss it caught.
+  // That way an unclear reading whose best guess was close counts as right,
+  // and only one that was also off counts as a miss it caught.
   const scored =
     reading.kind === 'single'
       ? [reading.color]
       : reading.kind === 'several'
         ? reading.colors.map((c) => c.color)
         : found.slice(0, 1).map((c) => c.color);
-  // Each color is matched to the truth color nearest it, and the worst
-  // match stands for the reading.
-  const distance = scored.length
-    ? Math.max(...scored.map((c) => Math.min(...truth.truth.map((t) => oklabDistance(c, t)))))
+  // Each color is matched to the truth color nearest it. Against a garment,
+  // every part offered has to be one of its colors, so the worst match
+  // stands for the reading. A settled color is the one part the user chose
+  // from what was offered, so there the best match does.
+  const matches = scored.map((c) => Math.min(...truth.truth.map((t) => oklabDistance(c, t))));
+  const distance = matches.length
+    ? truth.source === 'settled'
+      ? Math.min(...matches)
+      : Math.max(...matches)
     : null;
   const verdictRight =
     (reading.kind === 'single' && truth.truth.length === 1) ||

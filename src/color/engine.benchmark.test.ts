@@ -1,8 +1,9 @@
 /// <reference types="node" />
-// The app's tsconfig sets types to vite/client alone, so browser code cannot
-// reach for node APIs by accident. This file is the one exception: it reads a
-// dataset off disk and never ships. The reference is scoped here rather than
-// widened in tsconfig.json so that exception stays visible.
+// The app's tsconfig sets types to vite/client alone. This file reads a
+// dataset off disk and never ships, so it asks for node's types here, where
+// the reason is visible, instead of in tsconfig.json. A reference reaches
+// every file tsc checks alongside it, though, so it is a label and not a
+// fence: `src/color/fieldFiles.ts` and `src/dev/fieldData.ts` carry one too.
 
 import { existsSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';

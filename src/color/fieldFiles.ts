@@ -1,8 +1,8 @@
 /// <reference types="node" />
-// The app's tsconfig sets types to vite/client alone, so browser code cannot
-// reach for node APIs by accident. This file is an exception, like
-// `engine.benchmark.test.ts`: it reads the field exports off disk for the
-// reader's benchmark and for the harness, and nothing in the app imports it.
+// Reads the field exports off disk for the reader's benchmark and for the
+// harness, so it needs node's types. Nothing in the app imports it. The
+// reference makes node's globals visible to every file tsc checks with it, so
+// it does not fence node out of the rest of `src/`; nothing does today.
 
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';

@@ -121,6 +121,14 @@ describe('scoreFieldSet', () => {
     expect(scores[0]!.label).toBeNull();
   });
 
+  it('scores an unlinked capture by the offered part the user settled on', () => {
+    const { scores } = scoreFieldSet(
+      set([], [capture(stripes(), { source: 'flow', garmentId: null, settled: navy })]),
+    );
+    expect(scores[0]!.reading.kind).toBe('several');
+    expect(scores[0]!.distance).toBeLessThan(0.02);
+  });
+
   it('skips a capture whose garment is gone, and one with no truth at all', () => {
     const { scores, skipped } = scoreFieldSet(
       set(
