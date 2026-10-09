@@ -4,7 +4,14 @@ import type { CheckSlot } from '../model/types';
 import { TUNING } from './engine';
 import { PALETTE } from './palette';
 import { chromaLoad } from './score';
-import { alternativesFor, checkOutfit, type Observation, type WornPieces } from './check';
+import {
+  TONAL_LIMIT,
+  alternativesFor,
+  checkOutfit,
+  measureOutfit,
+  type Observation,
+  type WornPieces,
+} from './check';
 
 /** A palette color by name, so every fixture has a name `colorName` returns exactly. */
 const hex = (name: string): Hex => {
@@ -216,5 +223,73 @@ describe('alternativesFor', () => {
   it('falls back to name order with nothing else worn', () => {
     const names = alternativesFor({}, 'top').map((o) => o.name);
     expect(names).toEqual([...names].sort((a, b) => a.localeCompare(b)));
+  });
+});
+
+describe('measureOutfit', () => {
+  it('measures a Cream top over Navy trousers', () => {
+    const measures = measureOutfit(outfit({ top: 'Cream', bottom: 'Navy' }))!;
+    expect(measures.load).toBeCloseTo(0.065, 3);
+    expect(measures.budget).toBe(TUNING.chromaBudget);
+    expect(measures.lightnessGap).toBeCloseTo(0.62, 2);
+    expect(measures.tonalLimit).toBe(TONAL_LIMIT);
+    expect(TONAL_LIMIT).toBeCloseTo(0.19, 10);
+    const [top, bottom] = measures.pieces;
+    expect(top).toMatchObject({ slot: 'top', temperature: 'warm', namedNeutral: false });
+    expect(bottom).toMatchObject({ slot: 'bottom', temperature: 'cool', namedNeutral: false });
+    expect(bottom!.carried).toBeCloseTo(0.04, 3);
+  });
+
+  it('measures nothing under two pieces', () => {
+    expect(measureOutfit(outfit({ top: 'Navy' }))).toBeNull();
+  });
+
+  // Every palette color as a top over every palette color as trousers, with
+  // grey shoes. Between them they produce every kind of observation, which
+  // the first assertion checks, so the agreement below covers each one.
+  it('agrees with checkOutfit on every observation', () => {
+    const seen = new Set<string>();
+    for (const top of PALETTE) {
+      for (const bottom of PALETTE) {
+        const pieces: WornPieces = { top: top.hex, bottom: bottom.hex, shoes: hex('Grey') };
+        const observations = checkOutfit(pieces)!;
+        const measures = measureOutfit(pieces)!;
+        const colored = measures.pieces.filter((piece) => !piece.namedNeutral);
+        for (const observation of observations) {
+          seen.add(`${observation.term}:${observation.kind}`);
+          if (observation.term === 'color') {
+            const kind =
+              colored.length === 0
+                ? 'neutral'
+                : measures.load > measures.budget
+                  ? 'colorful'
+                  : 'quiet';
+            expect(observation.kind).toBe(kind);
+          }
+          if (observation.term === 'lightness') {
+            expect(observation.kind).toBe(
+              measures.lightnessGap <= measures.tonalLimit ? 'tonal' : 'contrast',
+            );
+          }
+          if (observation.term === 'temperature') {
+            const warm = colored.some((piece) => piece.temperature === 'warm');
+            const cool = colored.some((piece) => piece.temperature === 'cool');
+            expect(observation.kind).toBe(!cool ? 'warm' : !warm ? 'cool' : 'mixed');
+          }
+        }
+        const told = observations.some((observation) => observation.term === 'temperature');
+        expect(told).toBe(colored.length >= 2);
+      }
+    }
+    expect([...seen].sort()).toEqual([
+      'color:colorful',
+      'color:neutral',
+      'color:quiet',
+      'lightness:contrast',
+      'lightness:tonal',
+      'temperature:cool',
+      'temperature:mixed',
+      'temperature:warm',
+    ]);
   });
 });
