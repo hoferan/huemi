@@ -45,8 +45,11 @@ export function hexToRgb(hex: string): string {
 Then(
   'the steps fill the screen above {string}, each at least {int} tall',
   async ({ page }, button: string, min: number) => {
-    const steps = await page.getByRole('main').getByRole('listitem').all();
-    expect(steps).toHaveLength(3);
+    // `all()` reads the list as it stands and does not wait for it, so the
+    // count is asserted first to give the welcome screen time to render.
+    const items = page.getByRole('main').getByRole('listitem');
+    await expect(items).toHaveCount(3);
+    const steps = await items.all();
     for (const step of steps) {
       expect((await step.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(min);
     }
