@@ -1,6 +1,6 @@
 import type { Hex } from '../model/hex';
 import { CHECK_SLOTS, SLOT_AREA, type CheckSlot, type Suggestion } from '../model/types';
-import { chroma, temperature } from './classify';
+import { chroma, temperature, type Temperature } from './classify';
 import { TUNING, byScoreThenName, rate } from './engine';
 import { hexToOklch } from './oklab';
 import { PALETTE, namesAsNeutral } from './palette';
@@ -81,16 +81,24 @@ function temperatureObservation(present: WornPiece[]): Observation | null {
 }
 
 /**
- * The boundary is the fitted lightness curve's own width. ADR 0010 found
- * tonal outfits over-represented in real data and the rest of the range
+ * Where a tonal outfit ends: the fitted lightness curve's own width. ADR 0010
+ * found tonal outfits over-represented in real data and the rest of the range
  * roughly flat, so neither side is worth more than a description.
  */
-function lightnessObservation(present: WornPiece[]): Observation {
+export const TONAL_LIMIT = TUNING.tonalLightness + TUNING.spreadLightness;
+
+/** The lightest and the darkest piece. Ties go to the one higher up the body. */
+function extremes(present: WornPiece[]): { lightest: WornPiece; darkest: WornPiece } {
   const l = (piece: WornPiece) => hexToOklch(piece.hex).l;
-  const lightest = present.reduce((best, piece) => (l(piece) > l(best) ? piece : best));
-  const darkest = present.reduce((best, piece) => (l(piece) < l(best) ? piece : best));
-  const tonal = TUNING.tonalLightness + TUNING.spreadLightness;
-  if (lightnessContrast(lightest.hex, darkest.hex) <= tonal) {
+  return {
+    lightest: present.reduce((best, piece) => (l(piece) > l(best) ? piece : best)),
+    darkest: present.reduce((best, piece) => (l(piece) < l(best) ? piece : best)),
+  };
+}
+
+function lightnessObservation(present: WornPiece[]): Observation {
+  const { lightest, darkest } = extremes(present);
+  if (lightnessContrast(lightest.hex, darkest.hex) <= TONAL_LIMIT) {
     return { term: 'lightness', kind: 'tonal', pieces: present };
   }
   return { term: 'lightness', kind: 'contrast', pieces: [lightest, darkest] };
@@ -119,6 +127,54 @@ export function checkOutfit(pieces: WornPieces): Observation[] | null {
     ...(warmth ? [warmth] : []),
     lightnessObservation(present),
   ];
+}
+
+export type MeasuredPiece = {
+  slot: CheckSlot;
+  hex: Hex;
+  chroma: number;
+  /** Its chroma weighted by the area of its slot. */
+  carried: number;
+  lightness: number;
+  temperature: Temperature;
+  /** Named as a neutral, which keeps it out of the color and warmth sentences. */
+  namedNeutral: boolean;
+};
+
+export type OutfitMeasures = {
+  load: number;
+  budget: number;
+  /** Between the lightest piece and the darkest. */
+  lightnessGap: number;
+  tonalLimit: number;
+  /** Head to toe. */
+  pieces: MeasuredPiece[];
+};
+
+/**
+ * The numbers `checkOutfit` reads its sentences from, for developer mode's
+ * engine panel. Each comes from the helper its sentence uses, so the panel
+ * shows the measurement behind the sentence on screen and no other. Null under
+ * two pieces, like `checkOutfit`.
+ */
+export function measureOutfit(pieces: WornPieces): OutfitMeasures | null {
+  const present = worn(pieces);
+  if (present.length < 2) return null;
+  const { lightest, darkest } = extremes(present);
+  return {
+    load: chromaLoad(pieces),
+    budget: TUNING.chromaBudget,
+    lightnessGap: lightnessContrast(lightest.hex, darkest.hex),
+    tonalLimit: TONAL_LIMIT,
+    pieces: present.map((piece) => ({
+      ...piece,
+      chroma: chroma(piece.hex),
+      carried: carried(piece),
+      lightness: hexToOklch(piece.hex).l,
+      temperature: temperature(piece.hex),
+      namedNeutral: namesAsNeutral(piece.hex),
+    })),
+  };
 }
 
 /**
