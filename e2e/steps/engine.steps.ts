@@ -68,3 +68,8 @@ Then('the engine chip leaves {string} tappable', async ({ page }, name: string) 
   await expect(page.getByRole('button', { name: 'Engine', exact: true })).toBeVisible();
   expect(await isUncovered(page.getByRole('button', { name, exact: true }))).toBe(true);
 });
+
+Then('the engine panel leaves the text {string} uncovered', async ({ page }, text: string) => {
+  await enginePanel(page);
+  expect(await isUncovered(page.getByText(text, { exact: true }))).toBe(true);
+});

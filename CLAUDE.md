@@ -80,12 +80,13 @@ the color reader saw: the circle it sampled, each cluster's share, and the thres
 behind the verdict. Its readout and drawing live in `src/features/dev/reader/`, which
 the harness's Read mode also uses. Over the suggestions screen's blocks, an engine
 panel shows each suggested piece's rank and its score split into terms, and what keeps
-each color ranked above it out of the outfit. Its readout lives in
-`src/features/dev/engine/`. Both panels open from the same chip, `DevOverlay`. The
-passphrase's hash is `VITE_DEV_MODE_HASH`, set in Netlify's site settings and never
-committed, and `npm run devmode:hash` prints it for a passphrase typed at its prompt.
-ADR 0019 says how to set it in Netlify. Under `npm run dev` the taps turn the mode on
-without asking.
+each color ranked above it out of the outfit. Over the check result's blocks, another
+shows the measurement and threshold behind each sentence. Their readouts live in
+`src/features/dev/engine/`, and all three panels use the same chip-and-panel shell,
+`DevOverlay`. The passphrase's hash is `VITE_DEV_MODE_HASH`, set in Netlify's site
+settings and never committed, and `npm run devmode:hash` prints it for a passphrase
+typed at its prompt. ADR 0019 says how to set it in Netlify. Under `npm run dev` the
+taps turn the mode on without asking.
 
 ## Conventions
 

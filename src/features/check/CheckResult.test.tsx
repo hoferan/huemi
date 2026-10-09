@@ -8,6 +8,8 @@ import type { CheckSlot } from '../../model/types';
 import { SessionProvider } from '../../session/SessionProvider';
 import { useSession } from '../../session/useSession';
 import { Announcer } from '../../ui/Announcer';
+import { DevSlotContext } from '../../ui/DevSlotContext';
+import type { DevSlotRenderer, DevSlots } from '../../ui/devSlots';
 import { InitialLocationContext } from '../../ui/InitialLocationContext';
 import { checkOutfit } from '../../color/check';
 import { fakeSharePort, type FakeSharePort } from '../share/fakeShare.testing';
@@ -50,24 +52,31 @@ const OUTFIT: Seeded[] = [
   { slot: 'shoes', hex: burgundy },
 ];
 
-function renderWith(pieces: Seeded[] = OUTFIT, start = true, port = fakeSharePort()) {
+function renderWith(
+  pieces: Seeded[] = OUTFIT,
+  start = true,
+  port = fakeSharePort(),
+  slots: DevSlotRenderer | null = null,
+) {
   render(
-    <ShareContext value={port}>
-      <MemoryRouter initialEntries={['/seed']}>
-        <SessionProvider>
-          <Announcer>
-            <InitialLocationContext value={false}>
-              <Routes>
-                <Route path="/seed" element={<Seed pieces={pieces} start={start} />} />
-                <Route path="/check/result" element={<CheckResult />} />
-                <Route path="/check/pieces" element={<Where label="list" />} />
-                <Route path="/check" element={<Where label="camera" />} />
-              </Routes>
-            </InitialLocationContext>
-          </Announcer>
-        </SessionProvider>
-      </MemoryRouter>
-    </ShareContext>,
+    <DevSlotContext value={slots}>
+      <ShareContext value={port}>
+        <MemoryRouter initialEntries={['/seed']}>
+          <SessionProvider>
+            <Announcer>
+              <InitialLocationContext value={false}>
+                <Routes>
+                  <Route path="/seed" element={<Seed pieces={pieces} start={start} />} />
+                  <Route path="/check/result" element={<CheckResult />} />
+                  <Route path="/check/pieces" element={<Where label="list" />} />
+                  <Route path="/check" element={<Where label="camera" />} />
+                </Routes>
+              </InitialLocationContext>
+            </Announcer>
+          </SessionProvider>
+        </MemoryRouter>
+      </ShareContext>
+    </DevSlotContext>,
   );
 }
 
@@ -143,6 +152,25 @@ describe('CheckResult', () => {
     expect(screen.getByRole('list', { name: 'How it works together' })).toHaveTextContent(
       'Warm and cool together',
     );
+  });
+
+  // The engine panel explains the sentences on screen, so it has to be handed
+  // the outfit they describe, swaps included.
+  it('hands developer mode the swapped outfit the sentences describe', async () => {
+    const seen: DevSlots['check.overlay'][] = [];
+    const recorder: DevSlotRenderer = (name, context) => {
+      if (name === 'check.overlay') seen.push(context as DevSlots['check.overlay']);
+      return null;
+    };
+    const user = userEvent.setup();
+    renderWith(OUTFIT, true, fakeSharePort(), recorder);
+    await user.click(await screen.findByRole('button', { name: 'Bottom: Rust, swap' }));
+    await user.click(
+      within(await screen.findByRole('dialog')).getByRole('button', { name: /^Navy, / }),
+    );
+    const last = seen.at(-1)!;
+    expect(last.pieces.bottom).toBe(navy);
+    expect(last.observations).toEqual(checkOutfit(last.pieces));
   });
 
   it('gives focus back to the block', async () => {

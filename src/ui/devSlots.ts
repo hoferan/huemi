@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import type { Frame } from '../model/frame';
 import type { Hex } from '../model/hex';
+import type { Observation, WornPieces } from '../color/check';
 import type { Region } from '../color/read';
 import type { Slot } from '../model/types';
 
@@ -22,6 +23,10 @@ import type { Slot } from '../model/types';
  * below them, so Shuffle stays usable while it is open. `pieces` is the whole
  * outfit on screen, the base included. It holds plain hexes rather than the
  * session's picks because `ui` may not import `session`.
+ *
+ * `check.overlay` sits over the check result's blocks, leaving its sentences
+ * below uncovered. `pieces` is the outfit those sentences describe, swaps
+ * included, and `observations` are the sentences themselves.
  */
 export type DevSlots = {
   'screen.badge': Record<string, never>;
@@ -32,6 +37,7 @@ export type DevSlots = {
   };
   'confirm.overlay': { frame: Frame; region: Region; lowLight: boolean | null };
   'suggest.overlay': { baseSlot: Slot; pieces: Partial<Record<Slot, Hex>> };
+  'check.overlay': { pieces: WornPieces; observations: Observation[] };
 };
 export type DevSlotName = keyof DevSlots;
 export type DevSlotRenderer = <K extends DevSlotName>(name: K, context: DevSlots[K]) => ReactNode;

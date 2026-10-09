@@ -176,3 +176,30 @@ Feature: Capturing an outfit to check
     Then the picture shows the blocks on screen, head to toe
     And the picture has text between the blocks and the wordmark
     And the share's link has no base
+
+  # Developer mode's engine panel covers the blocks and leaves the sentences
+  # below it readable, so each one can be read beside its numbers.
+  Scenario: Developer mode shows the engine over the checked outfit
+    Given developer mode is on
+    And my camera shows an outfit
+    When I open the outfit check
+    And I follow the link "Enter the colors"
+    And I set "Top: not set" to "Cream"
+    And I set "Bottom: not set" to "Navy"
+    And I press "How does it work together?"
+    Then the engine chip leaves "Top" uncovered
+    When I press "Engine"
+    Then the engine panel covers every block in "#f3f1ee" on "#1c1b1a"
+    And the engine panel leaves the text "Warm and cool together: the cream top and the navy trousers." uncovered
+
+  Scenario: The open engine panel on the check passes the accessibility checks
+    Given developer mode is on
+    And my camera shows an outfit
+    When I open the outfit check
+    And I follow the link "Enter the colors"
+    And I set "Top: not set" to "Cream"
+    And I set "Bottom: not set" to "Navy"
+    And I press "How does it work together?"
+    And I press "Engine"
+    Then the screen has no detectable accessibility violations
+    And every link and button is at least 44 by 44

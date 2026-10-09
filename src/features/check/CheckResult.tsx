@@ -8,6 +8,7 @@ import { checkedPieces } from '../../session/select';
 import { useSession } from '../../session/useSession';
 import { tokens } from '../../styles/tokens.stylex';
 import { Button } from '../../ui/Button';
+import { DevSlot } from '../../ui/DevSlot';
 import { Screen } from '../../ui/Screen';
 import { Sheet } from '../../ui/Sheet';
 import { ShareButton } from '../share/ShareButton';
@@ -29,7 +30,11 @@ import { clearOfToasts } from '../../ui/toastClearance';
 // why the ignore has to bracket the whole object.
 /* v8 ignore start */
 const styles = stylex.create({
+  // Positioned, so the `check.overlay` slot can cover the blocks, and
+  // isolated, so the panel's z-index stays inside this box.
   blocks: {
+    position: 'relative',
+    isolation: 'isolate',
     display: 'flex',
     flexDirection: 'column',
     gap: '4px',
@@ -135,6 +140,7 @@ export function CheckResult() {
             />
           );
         })}
+        <DevSlot name="check.overlay" context={{ pieces, observations }} />
       </div>
       <p {...stylex.props(styles.hint)}>{SWAP_HINT}</p>
       <ul aria-label={CHECK_TITLE} {...stylex.props(styles.list)}>
