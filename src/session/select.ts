@@ -101,7 +101,6 @@ export function composeOutfit(
 ): Partial<Record<Slot, SlotPick>> {
   const picks: Partial<Record<Slot, SlotPick>> = {};
   const pieces: Partial<Record<Slot, Hex>> = { [base.slot]: base.hex };
-  const names = new Set<string>([colorName(base.hex)]);
 
   // Pre-register all fixed slots so that free slots can see and avoid them,
   // regardless of order in SLOTS.
@@ -111,7 +110,6 @@ export function composeOutfit(
     if (!held) continue;
     picks[slot] = held;
     pieces[slot] = held.hex;
-    names.add(colorName(held.hex));
   }
 
   for (const slot of SLOTS) {
@@ -124,10 +122,8 @@ export function composeOutfit(
     const offset = Math.floor(random() * list.length) % list.length;
     const rotated = list.map((_, index) => list[(offset + index) % list.length]!);
 
-    const fresh = rotated.filter((entry) => !names.has(colorName(entry.hex)));
-    const within = fresh.find(
-      (entry) => chromaLoad({ ...pieces, [slot]: entry.hex }) <= TUNING.chromaBudget,
-    );
+    const fresh = rotated.filter((entry) => nameTakenBy(pieces, entry.hex) === null);
+    const within = fresh.find((entry) => loadWith(pieces, slot, entry.hex) <= TUNING.chromaBudget);
     // Reachable: a chromatic base in a large slot spends the whole budget by
     // itself, and then nothing can bring the outfit back under it. The quietest
     // colour is the least bad answer, not the highest-ranked one.
@@ -143,10 +139,46 @@ export function composeOutfit(
 
     picks[slot] = { hex: chosen.hex, cursor: list.indexOf(chosen) };
     pieces[slot] = chosen.hex;
-    names.add(colorName(chosen.hex));
   }
 
   return picks;
+}
+
+/**
+ * The slot whose piece already has `hex`'s name, first in `SLOTS` order, or
+ * null. The composer's first rule, and the engine panel's.
+ */
+export function nameTakenBy(pieces: Partial<Record<Slot, Hex>>, hex: Hex): Slot | null {
+  const name = colorName(hex);
+  return SLOTS.find((slot) => pieces[slot] && colorName(pieces[slot]) === name) ?? null;
+}
+
+/** The outfit's chroma with `hex` in `slot`. The composer's second rule weighs this. */
+export function loadWith(pieces: Partial<Record<Slot, Hex>>, slot: Slot, hex: Hex): number {
+  return chromaLoad({ ...pieces, [slot]: hex });
+}
+
+export type WhyNot =
+  { kind: 'name'; slot: Slot } | { kind: 'budget'; load: number } | { kind: 'fits' };
+
+/**
+ * What keeps `hex` out of `slot` in the outfit on screen, by the composer's own
+ * two rules in its order: a name already shown, then the chroma budget.
+ *
+ * It looks at the outfit as it stands, with `slot` emptied, and does not replay
+ * the composer's walk. After a shuffle the walk started from a random offset,
+ * and after a Next press the user moved past colors on purpose, so a replay
+ * would explain an outfit that isn't there. Those are also the cases that
+ * leave a higher-ranked color reading `fits`: nothing rules it out, and the
+ * pick came from the rotation or from the user.
+ */
+export function whyNotChosen(pieces: Partial<Record<Slot, Hex>>, slot: Slot, hex: Hex): WhyNot {
+  const others = { ...pieces };
+  delete others[slot];
+  const taken = nameTakenBy(others, hex);
+  if (taken) return { kind: 'name', slot: taken };
+  const load = loadWith(others, slot, hex);
+  return load > TUNING.chromaBudget ? { kind: 'budget', load } : { kind: 'fits' };
 }
 
 /**
