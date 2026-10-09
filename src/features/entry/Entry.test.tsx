@@ -1,7 +1,7 @@
 import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router';
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 import { SessionProvider } from '../../session/SessionProvider';
 import { useSession } from '../../session/useSession';
 import { DevModeProvider } from '../dev/DevModeProvider';
@@ -58,6 +58,14 @@ function renderWithMode(env: { dev: boolean; hash: string | undefined }, on = fa
 const SEVEN_TAPS = 7;
 
 describe('Entry', () => {
+  // The chip arrives in developer mode's lazy chunk. Loading it here first
+  // keeps the chip test about where the chip sits: under the full suite's
+  // load, the chunk's first import in a worker can outlast `findByRole`'s
+  // one-second wait.
+  beforeAll(async () => {
+    await import('../dev/registry');
+  });
+
   it('leads with what to do', () => {
     renderAt();
     expect(
