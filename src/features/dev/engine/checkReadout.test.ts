@@ -26,6 +26,11 @@ describe('checkReadout', () => {
     });
   });
 
+  // Like `checkOutfit`, it has nothing to say about one piece.
+  it('reads nothing from an outfit of one piece', () => {
+    expect(checkReadout(outfit({ top: 'Navy' }), [])).toEqual({ observations: [], pieces: [] });
+  });
+
   it('says over the budget for a colorful outfit', () => {
     const [color] = readout(outfit({ top: 'Rust', bottom: 'Mustard' })).observations;
     expect(color).toMatch(/^colorful: chroma 0\.\d{3} over 0\.120 · most from /);
