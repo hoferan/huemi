@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { parseHex, type Hex } from '../model/hex';
-import type { Slot } from '../model/types';
+import { SLOTS, type Slot } from '../model/types';
 import { PALETTE } from './palette';
 
-import { byScoreThenName, rate, suggest } from './engine';
+import { TUNING, byScoreThenName, isNearDuplicate, rate, rateTerms, suggest } from './engine';
 
 const NAVY = parseHex('#1f2a44');
 const RUST = parseHex('#a4522d');
@@ -152,5 +152,60 @@ describe('byScoreThenName', () => {
 
   it('is zero only when both agree', () => {
     expect(byScoreThenName(ranked('Rust', 1), ranked('Rust', 1))).toBe(0);
+  });
+});
+
+describe('rateTerms', () => {
+  // Exact equality on purpose. `rate` is defined as this sum, so a breakdown
+  // that differed in the last bit would be explaining some other score.
+  it('adds up to rate exactly', () => {
+    for (const base of PALETTE) {
+      for (const candidate of PALETTE) {
+        for (const slot of SLOTS) {
+          for (const baseSlot of SLOTS) {
+            const t = rateTerms(base.hex, candidate.hex, slot, baseSlot);
+            expect(t.lightness + t.chroma + t.temperature + t.hue).toBe(
+              rate(base.hex, candidate.hex, slot, baseSlot),
+            );
+          }
+        }
+      }
+    }
+  });
+
+  it('keeps each term within its weight', () => {
+    for (const base of PALETTE) {
+      for (const candidate of PALETTE) {
+        const t = rateTerms(base.hex, candidate.hex, 'bottom', 'top');
+        expect(t.lightness).toBeGreaterThanOrEqual(0);
+        expect(t.lightness).toBeLessThanOrEqual(TUNING.weightLightness);
+        expect(t.chroma).toBeGreaterThanOrEqual(0);
+        expect(t.chroma).toBeLessThanOrEqual(TUNING.weightChroma);
+        expect(t.temperature).toBeGreaterThanOrEqual(0);
+        expect(t.temperature).toBeLessThanOrEqual(TUNING.weightTemperature);
+        expect(t.hue).toBeGreaterThanOrEqual(0);
+        expect(t.hue).toBeLessThanOrEqual(TUNING.weightHue);
+      }
+    }
+  });
+
+  it('breaks down a Light grey bottom under a Mustard top', () => {
+    const t = rateTerms(parseHex('#c39a3a'), parseHex('#e6e5e2'), 'bottom', 'top');
+    expect(t.lightness).toBeCloseTo(0.249, 3);
+    expect(t.chroma).toBeCloseTo(0.8, 3);
+    expect(t.temperature).toBeCloseTo(0.5, 3);
+    expect(t.hue).toBeCloseTo(0.3, 3);
+    expect(t.hueGap).toBeNull();
+    expect(t.temperatures).toEqual(['warm', 'neutral']);
+  });
+});
+
+describe('isNearDuplicate', () => {
+  it('catches White against Light grey', () => {
+    expect(isNearDuplicate(WHITE, parseHex('#e6e5e2'))).toBe(true);
+  });
+
+  it('leaves a real pairing alone', () => {
+    expect(isNearDuplicate(parseHex('#c39a3a'), parseHex('#e6e5e2'))).toBe(false);
   });
 });

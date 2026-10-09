@@ -1,6 +1,7 @@
 import { expect } from '@playwright/test';
 import { createBdd } from 'playwright-bdd';
 import { fakeCamera } from '../fakeCamera';
+import { isUncovered, overlayPanel } from '../overlay';
 import { hexToRgb } from './entry.steps';
 
 const { Given, When, Then } = createBdd();
@@ -117,13 +118,7 @@ Then(
   },
 );
 
-// Found through its toggle's `aria-controls`, the way a screen reader finds it.
-async function readerPanel(page: import('@playwright/test').Page) {
-  const toggle = page.getByRole('button', { name: /^Reader · / });
-  const id = await toggle.getAttribute('aria-controls');
-  if (!id) throw new Error('the reader toggle controls nothing');
-  return page.locator(`[id="${id}"]`);
-}
+const readerPanel = (page: import('@playwright/test').Page) => overlayPanel(page, /^Reader · /);
 
 // StyleX emits no CSS under Vitest (ADR 0002), so the panel's colors and the
 // box it covers can only be checked here. The hexes are written out for the
@@ -144,15 +139,7 @@ Then(
   },
 );
 
-// What a tap at the button's centre would land on, which is the button only
-// if nothing is drawn over it.
 Then('the reader panel leaves {string} uncovered', async ({ page }, name: string) => {
   await readerPanel(page);
-  const button = page.getByRole('button', { name, exact: true });
-  const hit = await button.evaluate((element) => {
-    const { x, y, width, height } = element.getBoundingClientRect();
-    const top = document.elementFromPoint(x + width / 2, y + height / 2);
-    return top !== null && element.contains(top);
-  });
-  expect(hit).toBe(true);
+  expect(await isUncovered(page.getByRole('button', { name, exact: true }))).toBe(true);
 });

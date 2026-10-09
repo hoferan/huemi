@@ -10,6 +10,7 @@ import type { SlotPick } from '../../session/types';
 import { useSession } from '../../session/useSession';
 import { durations, tokens } from '../../styles/tokens.stylex';
 import { BaseBlock } from '../../ui/BaseBlock';
+import { DevSlot } from '../../ui/DevSlot';
 import { Screen } from '../../ui/Screen';
 import { PICKER_TITLE } from '../pick/copy';
 import { outfitPieces } from '../saved/buildOutfit';
@@ -31,7 +32,18 @@ const SHUFFLE_MS = Number.parseInt(durations.shuffle, 10);
 
 const styles = stylex.create({
   header: { display: 'flex', justifyContent: 'flex-end', gap: '8px' },
-  blocks: { display: 'flex', flexDirection: 'column', gap: '8px', flexGrow: 1 },
+  // Positioned, so the `suggest.overlay` slot can cover the blocks, and
+  // isolated, so the panel's z-index stays inside this box. Without that the
+  // panel paints over the sticky footer once the page scrolls, and Shuffle
+  // disappears under it.
+  blocks: {
+    position: 'relative',
+    isolation: 'isolate',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '8px',
+    flexGrow: 1,
+  },
   // The base is the ground every suggestion is made against, so it reads
   // larger. The proportion is the prototype's.
   base: { flexGrow: 1.6 },
@@ -207,6 +219,10 @@ export function Suggestions() {
             />
           );
         })}
+        <DevSlot
+          name="suggest.overlay"
+          context={{ baseSlot: base.slot, pieces: outfitPieces(base, picks) }}
+        />
       </div>
       <div {...clearOfToasts} {...stylex.props(styles.footer)}>
         <p {...stylex.props(styles.hint)}>

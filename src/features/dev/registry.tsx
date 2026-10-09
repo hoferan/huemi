@@ -1,6 +1,7 @@
 import type { ComponentType } from 'react';
 import type { DevSlotName, DevSlots } from '../../ui/devSlots';
 import { DevBadge } from './DevBadge';
+import { SuggestEnginePanel } from './engine/SuggestEnginePanel';
 import { RecordControl } from './field/RecordControl';
 import { ReaderPanel } from './reader/ReaderPanel';
 
@@ -12,6 +13,7 @@ const FILLERS: { [K in DevSlotName]: readonly ComponentType<DevSlots[K]>[] } = {
   'screen.badge': [DevBadge],
   'confirm.actions': [RecordControl],
   'confirm.overlay': [ReaderPanel],
+  'suggest.overlay': [SuggestEnginePanel],
 };
 
 export function SlotFillers<K extends DevSlotName>({

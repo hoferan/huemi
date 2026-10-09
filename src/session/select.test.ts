@@ -1,11 +1,19 @@
 import { describe, expect, it } from 'vitest';
 import { suggest, TUNING } from '../color/engine';
 import { chroma } from '../color/classify';
-import { colorName } from '../color/palette';
+import { PALETTE, colorName } from '../color/palette';
 import { chromaLoad } from '../color/score';
 import { parseHex, type Hex } from '../model/hex';
 import { SLOTS, type Slot } from '../model/types';
-import { advance, checkedPieces, composeOutfit, locate, positionLabel } from './select';
+import {
+  advance,
+  checkedPieces,
+  composeOutfit,
+  locate,
+  positionLabel,
+  shownNames,
+  whyNotChosen,
+} from './select';
 import type { Base, SlotPick } from './types';
 
 const base = { slot: 'bottom', hex: parseHex('#1f2a44') } as const;
@@ -190,5 +198,85 @@ describe('checkedPieces', () => {
     expect(checkedPieces({ photo: null, pieces: { top: { hex: navy } }, swaps: {} })).toEqual({
       top: navy,
     });
+  });
+});
+
+describe('shownNames', () => {
+  it('maps each name on screen to the first slot showing it, head to toe', () => {
+    const shown = shownNames({
+      top: parseHex('#8a8a8a'),
+      shoes: parseHex('#8a8a8a'),
+      bottom: parseHex('#c9ad86'),
+    });
+    expect([...shown]).toEqual([
+      ['Grey', 'top'],
+      ['Tan', 'bottom'],
+    ]);
+  });
+});
+
+describe('whyNotChosen', () => {
+  // The outfit `composeOutfit` seeds for a Mustard top.
+  const mustard: Partial<Record<Slot, Hex>> = {
+    outerwear: parseHex('#8a8a8a'),
+    top: parseHex('#c39a3a'),
+    bottom: parseHex('#e6e5e2'),
+    shoes: parseHex('#c9ad86'),
+    accessory: parseHex('#b58a5a'),
+  };
+
+  it('names the slot that already shows a color', () => {
+    expect(whyNotChosen(mustard, 'bottom', parseHex('#8a8a8a'))).toEqual({
+      kind: 'name',
+      slot: 'outerwear',
+    });
+    expect(whyNotChosen(mustard, 'bottom', parseHex('#c9ad86'))).toEqual({
+      kind: 'name',
+      slot: 'shoes',
+    });
+    expect(whyNotChosen(mustard, 'bottom', parseHex('#b58a5a'))).toEqual({
+      kind: 'name',
+      slot: 'accessory',
+    });
+  });
+
+  it('gives the outfit chroma a color would bring', () => {
+    const cream = whyNotChosen(mustard, 'bottom', parseHex('#e9dfc9'));
+    expect(cream.kind).toBe('budget');
+    expect(cream.kind === 'budget' && cream.load).toBeCloseTo(0.136, 3);
+    const mauve = whyNotChosen(mustard, 'bottom', parseHex('#ab6983'));
+    expect(mauve.kind === 'budget' && mauve.load).toBeCloseTo(0.183, 3);
+  });
+
+  it('lets the pick itself fit', () => {
+    expect(whyNotChosen(mustard, 'bottom', parseHex('#e6e5e2'))).toEqual({ kind: 'fits' });
+  });
+
+  // Holds against the finished outfit, not only at the step the composer
+  // took, because later picks only add names and only add chroma.
+  it('agrees with the composer for every seeded outfit', () => {
+    let within = 0;
+    let over = 0;
+    for (const color of PALETTE) {
+      for (const baseSlot of SLOTS) {
+        const picks = composeOutfit({ slot: baseSlot, hex: color.hex }, {}, () => 0);
+        const pieces: Partial<Record<Slot, Hex>> = { [baseSlot]: color.hex };
+        for (const slot of SLOTS) if (picks[slot]) pieces[slot] = picks[slot].hex;
+        const inBudget = chromaLoad(pieces) <= TUNING.chromaBudget;
+        if (inBudget) within += 1;
+        else over += 1;
+        for (const slot of SLOTS) {
+          const pick = picks[slot];
+          if (slot === baseSlot || !pick) continue;
+          const ranked = suggest(color.hex, slot, baseSlot);
+          for (const above of ranked.slice(0, pick.cursor)) {
+            expect(whyNotChosen(pieces, slot, above.hex).kind).not.toBe('fits');
+          }
+          expect(whyNotChosen(pieces, slot, pick.hex).kind).toBe(inBudget ? 'fits' : 'budget');
+        }
+      }
+    }
+    expect(within).toBe(103);
+    expect(over).toBe(2);
   });
 });

@@ -24,7 +24,9 @@ export function isNeutral(hex: Hex): boolean {
   return chroma(hex) < NEUTRAL_CHROMA;
 }
 
-export function temperature(hex: Hex): 'warm' | 'cool' | 'neutral' {
+export type Temperature = 'warm' | 'cool' | 'neutral';
+
+export function temperature(hex: Hex): Temperature {
   const { c, h } = hexToOklch(hex);
   if (c < NEUTRAL_CHROMA) return 'neutral';
   return h >= WARM_FROM || h < WARM_TO ? 'warm' : 'cool';

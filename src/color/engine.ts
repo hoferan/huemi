@@ -2,7 +2,7 @@ import type { Hex } from '../model/hex';
 import type { Slot, Suggestion } from '../model/types';
 import { PALETTE } from './palette';
 import { oklabDistance } from './oklab';
-import { NEUTRAL_CHROMA, chroma, temperature } from './classify';
+import { NEUTRAL_CHROMA, chroma, temperature, type Temperature } from './classify';
 import { chromaLoad, hueContrast, lightnessContrast } from './score';
 
 /**
@@ -98,19 +98,59 @@ function hueScore(base: Hex, candidate: Hex): number {
 }
 
 /**
+ * The four terms `rate()` adds, each already multiplied by its weight, and the
+ * measurements they were read from. Developer mode's engine panel shows these,
+ * and it works from the same function `rate` does, so the breakdown always adds
+ * up to the score the ranking used.
+ */
+export type RateTerms = {
+  /** At most `TUNING.weightLightness`. */
+  lightness: number;
+  /** At most `TUNING.weightChroma`. */
+  chroma: number;
+  /** At most `TUNING.weightTemperature`. */
+  temperature: number;
+  /** At most `TUNING.weightHue`. */
+  hue: number;
+  lightnessGap: number;
+  /** The chroma of the two pieces together, weighted by area. */
+  pairLoad: number;
+  /** Null when either color is neutral. */
+  hueGap: number | null;
+  /** How much say hue and temperature get, from 0 to 1. */
+  strength: number;
+  /** The base's, then the candidate's. */
+  temperatures: [Temperature, Temperature];
+};
+
+export function rateTerms(base: Hex, candidate: Hex, slot: Slot, baseSlot: Slot): RateTerms {
+  const lightnessGap = lightnessContrast(base, candidate);
+  const pairLoad = chromaLoad({ [baseSlot]: base, [slot]: candidate });
+  return {
+    lightness:
+      TUNING.weightLightness * band(lightnessGap, TUNING.tonalLightness, TUNING.spreadLightness),
+    chroma: TUNING.weightChroma * within(pairLoad, TUNING.chromaBudget, TUNING.spreadChroma),
+    temperature: TUNING.weightTemperature * temperatureScore(base, candidate),
+    hue: TUNING.weightHue * hueScore(base, candidate),
+    lightnessGap,
+    pairLoad,
+    hueGap: hueContrast(base, candidate),
+    strength: chromaticStrength(base, candidate),
+    temperatures: [temperature(base), temperature(candidate)],
+  };
+}
+
+/**
  * How well one color works in one slot against the locked base. Exported so the
  * harness can show the number beside the color it belongs to, and so the corpus
- * can record what the engine thought at the time.
+ * can record what the engine thought at the time. `rateTerms` has the breakdown.
+ *
+ * Keep the four terms in this order. Floating-point addition is not
+ * associative, and this is the order behind every score the corpus recorded.
  */
 export function rate(base: Hex, candidate: Hex, slot: Slot, baseSlot: Slot): number {
-  const load = chromaLoad({ [baseSlot]: base, [slot]: candidate });
-  return (
-    TUNING.weightLightness *
-      band(lightnessContrast(base, candidate), TUNING.tonalLightness, TUNING.spreadLightness) +
-    TUNING.weightChroma * within(load, TUNING.chromaBudget, TUNING.spreadChroma) +
-    TUNING.weightTemperature * temperatureScore(base, candidate) +
-    TUNING.weightHue * hueScore(base, candidate)
-  );
+  const t = rateTerms(base, candidate, slot, baseSlot);
+  return t.lightness + t.chroma + t.temperature + t.hue;
 }
 
 type Ranked = { suggestion: Suggestion; score: number };
@@ -143,6 +183,11 @@ export function byScoreThenName(a: Ranked, b: Ranked): number {
  */
 const NEAR_DUPLICATE = 0.06;
 
+/** Whether `hex` is too close to the base to count as a suggestion at all. */
+export function isNearDuplicate(base: Hex, hex: Hex): boolean {
+  return oklabDistance(base, hex) < NEAR_DUPLICATE;
+}
+
 /**
  * Colors for one slot against a locked base, best first.
  *
@@ -157,7 +202,7 @@ export function suggest(base: Hex, slot: Slot, baseSlot: Slot): Suggestion[] {
     .map((color) => ({
       suggestion: { hex: color.hex, name: color.name, slot },
       score: rate(base, color.hex, slot, baseSlot),
-      duplicate: oklabDistance(base, color.hex) < NEAR_DUPLICATE,
+      duplicate: isNearDuplicate(base, color.hex),
     }))
     .sort((a, b) => Number(a.duplicate) - Number(b.duplicate) || byScoreThenName(a, b))
     .map((ranked) => ranked.suggestion);
