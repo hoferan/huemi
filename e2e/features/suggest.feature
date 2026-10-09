@@ -68,9 +68,21 @@ Feature: Suggestions
     Then the engine panel covers every block in "#f3f1ee" on "#1c1b1a"
     And the engine panel leaves the button "Shuffle" uncovered
 
+  # On a short screen the page scrolls and the footer sticks over the blocks,
+  # so the panel must not paint over it.
+  Scenario: Shuffle stays usable over the engine panel on a short screen
+    Given developer mode is on
+    And my screen is 390 by 440
+    When I open the suggestions for a mustard top
+    And I press "Engine"
+    Then the engine panel leaves the button "Shuffle" uncovered
+
+  # After a shuffle the panel usually holds more than it can show, and a
+  # scrolling region has to be reachable from the keyboard.
   Scenario: The open engine panel passes the accessibility checks
     Given developer mode is on
     When I open the suggestions for a mustard top
     And I press "Engine"
+    And I shuffle
     Then the screen has no detectable accessibility violations
     And every link and button is at least 44 by 44

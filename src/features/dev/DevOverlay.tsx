@@ -77,8 +77,21 @@ export function DevOverlay({
       >
         {label} <span aria-hidden="true">{open ? '▾' : '▸'}</span>
       </button>
+      {/*
+        A region the keyboard can reach, because the panel scrolls once its
+        contents outgrow it and a scrolling box nobody can focus cannot be
+        scrolled without a pointer. That is the case jsx-a11y's tabindex rule
+        does not know about and axe's scrollable-region-focusable asks for.
+      */}
       {open && (
-        <div id={id} {...stylex.props(styles.panel)}>
+        <div
+          id={id}
+          role="region"
+          aria-label={label}
+          // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
+          tabIndex={0}
+          {...stylex.props(styles.panel)}
+        >
           {children}
         </div>
       )}

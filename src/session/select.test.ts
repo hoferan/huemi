@@ -11,6 +11,7 @@ import {
   composeOutfit,
   locate,
   positionLabel,
+  shownNames,
   whyNotChosen,
 } from './select';
 import type { Base, SlotPick } from './types';
@@ -197,6 +198,20 @@ describe('checkedPieces', () => {
     expect(checkedPieces({ photo: null, pieces: { top: { hex: navy } }, swaps: {} })).toEqual({
       top: navy,
     });
+  });
+});
+
+describe('shownNames', () => {
+  it('maps each name on screen to the first slot showing it, head to toe', () => {
+    const shown = shownNames({
+      top: parseHex('#8a8a8a'),
+      shoes: parseHex('#8a8a8a'),
+      bottom: parseHex('#c9ad86'),
+    });
+    expect([...shown]).toEqual([
+      ['Grey', 'top'],
+      ['Tan', 'bottom'],
+    ]);
   });
 });
 

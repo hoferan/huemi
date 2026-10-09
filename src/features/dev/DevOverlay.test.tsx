@@ -31,4 +31,14 @@ describe('DevOverlay', () => {
     expect(toggle).toHaveAttribute('aria-expanded', 'false');
     expect(screen.queryByText('Inside')).not.toBeInTheDocument();
   });
+
+  // The panel scrolls when its contents outgrow it, and a scrolling region has
+  // to be reachable from the keyboard (axe's scrollable-region-focusable).
+  it('makes the open panel a named region the keyboard can reach', async () => {
+    const user = renderOverlay();
+    await user.click(screen.getByRole('button', { name: 'Engine' }));
+    const panel = screen.getByRole('region', { name: 'Engine' });
+    expect(panel).toHaveAttribute('tabindex', '0');
+    expect(panel).toContainElement(screen.getByText('Inside'));
+  });
 });

@@ -32,9 +32,13 @@ const SHUFFLE_MS = Number.parseInt(durations.shuffle, 10);
 
 const styles = stylex.create({
   header: { display: 'flex', justifyContent: 'flex-end', gap: '8px' },
-  // Positioned, so the `suggest.overlay` slot can cover the blocks.
+  // Positioned, so the `suggest.overlay` slot can cover the blocks, and
+  // isolated, so the panel's z-index stays inside this box. Without that the
+  // panel paints over the sticky footer once the page scrolls, and Shuffle
+  // disappears under it.
   blocks: {
     position: 'relative',
+    isolation: 'isolate',
     display: 'flex',
     flexDirection: 'column',
     gap: '8px',
