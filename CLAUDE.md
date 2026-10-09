@@ -56,7 +56,9 @@ from what later milestones still owe.
 outfit dataset and is how its constants were settled (ADR 0010). The dataset is not ours
 to redistribute, so it lives in the gitignored `tmp/polyvore/` and the tests skip without
 it; CI never runs them. The file's own comment says which files to fetch and from where.
-Run it before and after changing `TUNING`.
+Run it before and after changing `TUNING`. `src/color/read.benchmark.test.ts` does the
+same for the color reader, against exports from the field recorder in the gitignored
+`tmp/field/`, and is the one to run around a change to `READ_TUNING`.
 
 `src/dev/` is the color engine's harness, served at `/harness.html` while the dev
 server runs. It renders candidate combinations as large blocks with their measured

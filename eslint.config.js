@@ -215,7 +215,10 @@ export default tseslint.config(
     // fetch, and will need an exemption scoped to its own file.
     // Sharing is not on the list: navigator.share and the clipboard move data
     // only where the user sends it (ADR 0018).
+    // The harness's Field mode is left out. It never ships, and its fetch goes
+    // only to the dev server's own `/__field/` middleware on the same machine.
     files: ['src/**/*.{ts,tsx}'],
+    ignores: ['src/dev/Field.tsx'],
     rules: {
       'no-restricted-globals': [
         'error',

@@ -8,14 +8,16 @@ import { readableForeground } from '../color/contrast';
 import { chromaLoad, hueContrast, lightnessContrast } from '../color/score';
 import { rate, suggest } from '../color/engine';
 import Compare from './Compare';
+import Field from './Field';
 import Read from './Read';
 
-type Mode = 'browse' | 'compare' | 'read';
+type Mode = 'browse' | 'compare' | 'read' | 'field';
 
 const MODES: Readonly<Record<Mode, string>> = {
   browse: 'Browse the ranking',
   compare: 'Judge pairs',
   read: 'Read a photo',
+  field: 'Field captures',
 };
 
 type SortKey = 'rank' | 'lightness' | 'hue' | 'load';
@@ -147,6 +149,15 @@ export default function Harness() {
       ))}
     </div>
   );
+
+  if (mode === 'field') {
+    return (
+      <main {...stylex.props(styles.page)}>
+        {modeSwitch}
+        <Field />
+      </main>
+    );
+  }
 
   if (mode === 'read') {
     return (
