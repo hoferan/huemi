@@ -12,7 +12,11 @@ describe('CheckEnginePanel', () => {
     const user = userEvent.setup();
     render(<CheckEnginePanel pieces={pieces} observations={checkOutfit(pieces)!} />);
     await user.click(screen.getByRole('button', { name: 'Engine' }));
-    expect(screen.getByText('mixed: Cream top warm · Navy bottom cool')).toBeInTheDocument();
-    expect(screen.getByText('Bottom · Navy · L 0.29 · C 0.050 · cool')).toBeInTheDocument();
+    expect(
+      screen.getByText('mixed: Cream top warm (0.025) · Navy bottom cool (0.040)'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('Bottom · Navy · L 0.29 · C 0.050 · carries 0.040 · cool'),
+    ).toBeInTheDocument();
   });
 });

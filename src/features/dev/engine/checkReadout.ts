@@ -8,6 +8,7 @@ import {
 import { colorName } from '../../../color/palette';
 import { SLOT_LABELS } from '../../../model/types';
 import { fmt } from '../reader/readout';
+import { sideBySide } from './format';
 
 export type CheckReadout = { observations: string[]; pieces: string[] };
 
@@ -26,21 +27,27 @@ function observationLine(
   measured: MeasuredPiece[],
 ): string {
   const colored = measured.filter((piece) => !piece.namedNeutral);
-  const against = `${load > budget ? 'over' : 'of'} ${chromaText(budget)}`;
+  const [loadText, budgetText] = sideBySide(load, budget, 3);
+  const chromaLine = `chroma ${loadText} ${load > budget ? 'over' : 'of'} ${budgetText}`;
+  const [gapText, limitText] = sideBySide(gap, limit, 2);
   switch (observation.term) {
     case 'color': {
       if (observation.kind === 'neutral') {
-        return `neutral: every piece is named as a neutral · chroma ${chromaText(load)} ${against}`;
+        return `neutral: every piece is named as a neutral · ${chromaLine}`;
       }
       const [heaviest] = observation.pieces;
       const carried = measured.find((piece) => piece.slot === heaviest.slot)!.carried;
-      return `${observation.kind}: chroma ${chromaText(load)} ${against} · most from ${phrase(heaviest)} (${chromaText(carried)})`;
+      return `${observation.kind}: ${chromaLine} · most from ${phrase(heaviest)} (${chromaText(carried)})`;
     }
+    // Every colored piece with the color it carries: the sentence names the
+    // heaviest warm piece and the heaviest cool one.
     case 'temperature':
-      return `${observation.kind}: ${colored.map((piece) => `${phrase(piece)} ${piece.temperature}`).join(' · ')}`;
+      return `${observation.kind}: ${colored
+        .map((piece) => `${phrase(piece)} ${piece.temperature} (${chromaText(piece.carried)})`)
+        .join(' · ')}`;
     case 'lightness':
-      if (observation.kind === 'tonal') return `tonal: gap ${fmt(gap)} within ${fmt(limit)}`;
-      return `contrast: gap ${fmt(gap)} over ${fmt(limit)} · ${phrase(observation.pieces[0])} to ${phrase(observation.pieces[1])}`;
+      if (observation.kind === 'tonal') return `tonal: gap ${gapText} within ${limitText}`;
+      return `contrast: gap ${gapText} over ${limitText} · ${phrase(observation.pieces[0])} to ${phrase(observation.pieces[1])}`;
   }
 }
 
@@ -60,7 +67,7 @@ export function checkReadout(pieces: WornPieces, observations: Observation[]): C
     ),
     pieces: measured.map(
       (piece) =>
-        `${SLOT_LABELS[piece.slot]} · ${colorName(piece.hex)} · L ${fmt(piece.lightness)} · C ${chromaText(piece.chroma)} · ${piece.temperature}${piece.namedNeutral ? ' · named neutral' : ''}`,
+        `${SLOT_LABELS[piece.slot]} · ${colorName(piece.hex)} · L ${fmt(piece.lightness)} · C ${chromaText(piece.chroma)} · carries ${chromaText(piece.carried)} · ${piece.temperature}${piece.namedNeutral ? ' · named neutral' : ''}`,
     ),
   };
 }

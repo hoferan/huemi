@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { checkOutfit, type WornPieces } from '../../../color/check';
+import { TONAL_LIMIT, checkOutfit, measureOutfit, type WornPieces } from '../../../color/check';
+import { TUNING } from '../../../color/engine';
 import { PALETTE } from '../../../color/palette';
 import type { Hex } from '../../../model/hex';
 import type { CheckSlot } from '../../../model/types';
@@ -15,10 +16,13 @@ describe('checkReadout', () => {
     expect(readout(outfit({ top: 'Cream', bottom: 'Navy' }))).toEqual({
       observations: [
         'quiet: chroma 0.065 of 0.120 · most from Navy bottom (0.040)',
-        'mixed: Cream top warm · Navy bottom cool',
+        'mixed: Cream top warm (0.025) · Navy bottom cool (0.040)',
         'contrast: gap 0.62 over 0.19 · Cream top to Navy bottom',
       ],
-      pieces: ['Top · Cream · L 0.91 · C 0.031 · warm', 'Bottom · Navy · L 0.29 · C 0.050 · cool'],
+      pieces: [
+        'Top · Cream · L 0.91 · C 0.031 · carries 0.025 · warm',
+        'Bottom · Navy · L 0.29 · C 0.050 · carries 0.040 · cool',
+      ],
     });
   });
 
@@ -45,5 +49,40 @@ describe('checkReadout', () => {
     const { observations } = readout(pieces);
     expect(observations).toHaveLength(checkOutfit(pieces)!.length);
     expect(observations.some((line) => /^(warm|cool|mixed):/.test(line))).toBe(false);
+  });
+
+  // The sentences name pieces by the color they carry, chroma times the area
+  // of the slot, which is why small Mustard shoes lose to Navy trousers. The
+  // panel has to show that number for every piece, or it cannot say why.
+  it('shows the color each piece carries, which decides the pieces named', () => {
+    const { observations, pieces } = readout(
+      outfit({ outerwear: 'Grey', top: 'Cream', bottom: 'Navy', shoes: 'Mustard' }),
+    );
+    expect(observations[0]).toMatch(/most from Navy bottom \(0\.040\)$/);
+    expect(observations[1]).toBe(
+      'mixed: Cream top warm (0.025) · Navy bottom cool (0.040) · Mustard shoes warm (0.018)',
+    );
+    expect(pieces[3]).toBe('Shoes · Mustard · L 0.71 · C 0.122 · carries 0.018 · warm');
+  });
+
+  // An outfit at a threshold is the one a developer opens the panel for.
+  it('never prints a measurement like its threshold unless they are equal', () => {
+    let near = 0;
+    for (const top of PALETTE) {
+      for (const bottom of PALETTE) {
+        const pieces: WornPieces = { top: top.hex, bottom: bottom.hex, shoes: hex('Grey') };
+        const measures = measureOutfit(pieces)!;
+        // `checkOutfit` puts the color sentence first and lightness last.
+        const lines = readout(pieces).observations;
+        const color = lines[0]!;
+        const lightness = lines.at(-1)!;
+        const gap = lightness.match(/gap (\S+) (?:over|within) (\S+)/)!;
+        if (Math.abs(measures.lightnessGap - TONAL_LIMIT) < 0.005) near += 1;
+        if (gap[1] === gap[2]) expect(measures.lightnessGap).toBe(TONAL_LIMIT);
+        const load = color.match(/chroma (\S+) (?:over|of) (\S+)/);
+        if (load && load[1] === load[2]) expect(measures.load).toBe(TUNING.chromaBudget);
+      }
+    }
+    expect(near).toBeGreaterThan(0);
   });
 });
