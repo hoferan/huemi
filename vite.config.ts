@@ -64,12 +64,42 @@ function buildInfo(): Plugin {
   };
 }
 
+type FieldModule = {
+  fieldResponse(path: string): { status: number; type: string; body: string | Uint8Array };
+};
+
+// Serves the field recorder's exports in tmp/field/ to the harness's Field
+// mode, on the dev server only. The handler is loaded through the dev server
+// instead of imported here, so this file takes nothing from src/ and an edit
+// to the scorer applies on the next request.
+function fieldData(): Plugin {
+  return {
+    name: 'huemi-field-data',
+    apply: 'serve',
+    configureServer(server) {
+      server.middlewares.use('/__field', (req, res, next) => {
+        const path = (req.url ?? '').split('?')[0].replace(/^\//, '');
+        server
+          .ssrLoadModule('/src/dev/fieldData.ts')
+          .then((module) => {
+            const { status, type, body } = (module as FieldModule).fieldResponse(path);
+            res.statusCode = status;
+            res.setHeader('Content-Type', type);
+            res.end(body);
+          })
+          .catch(next);
+      });
+    },
+  };
+}
+
 export default defineConfig({
   plugins: [
     // MUST precede @vitejs/plugin-react, or React Fast Refresh breaks.
     stylexPlugin,
     react(),
     buildInfo(),
+    fieldData(),
     // Last, because it lists the finished build: the bundle and the copy of
     // public/ both have to be on disk before it writes dist/sw.js.
     serviceWorker(),
