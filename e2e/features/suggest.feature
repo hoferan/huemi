@@ -51,3 +51,26 @@ Feature: Suggestions
     When I choose the swatch "Mustard"
     Then I see the heading "Goes with it"
     And the "Shoes" block carries a suggestion
+
+  # Developer mode's engine panel. It covers the blocks and leaves Shuffle
+  # free, so an outfit can be shuffled with the numbers open.
+  Scenario: The engine chip leaves the first block readable and usable
+    Given developer mode is on
+    When I open the suggestions for a mustard top
+    Then the engine chip leaves "Outerwear" uncovered
+    And the engine chip leaves "Keep Outerwear" tappable
+    And the engine chip leaves "Next suggestion for Outerwear" tappable
+
+  Scenario: Developer mode shows the engine over the blocks
+    Given developer mode is on
+    When I open the suggestions for a mustard top
+    And I press "Engine"
+    Then the engine panel covers every block in "#f3f1ee" on "#1c1b1a"
+    And the engine panel leaves the button "Shuffle" uncovered
+
+  Scenario: The open engine panel passes the accessibility checks
+    Given developer mode is on
+    When I open the suggestions for a mustard top
+    And I press "Engine"
+    Then the screen has no detectable accessibility violations
+    And every link and button is at least 44 by 44

@@ -8,7 +8,6 @@ const styles = stylex.create({
   toggle: {
     position: 'absolute',
     top: '6px',
-    left: '6px',
     zIndex: 2,
     minHeight: tokens.touchTarget,
     minWidth: tokens.touchTarget,
@@ -21,6 +20,8 @@ const styles = stylex.create({
     fontSize: '0.875rem',
     cursor: 'pointer',
   },
+  start: { left: '6px' },
+  center: { left: '50%', transform: 'translateX(-50%)' },
   // Covers whatever box the slot sits in. It scrolls rather than clips, since
   // the 200% text-size check in e2e/invariants.spec.ts fails any element that
   // hides its own overflow.
@@ -49,8 +50,20 @@ const styles = stylex.create({
  * screen makes that box positioned. Closed, only the chip shows; open, the
  * panel covers the box and renders `children`, which mount only while it is
  * open.
+ *
+ * `place` is where the chip sits along the top: `start` over a photo, and
+ * `center` over a block, which has its slot label at the start and Keep and
+ * Next down the end.
  */
-export function DevOverlay({ label, children }: { label: string; children: ReactNode }) {
+export function DevOverlay({
+  label,
+  place = 'start',
+  children,
+}: {
+  label: string;
+  place?: 'start' | 'center';
+  children: ReactNode;
+}) {
   const [open, setOpen] = useState(false);
   const id = useId();
   return (
@@ -60,7 +73,7 @@ export function DevOverlay({ label, children }: { label: string; children: React
         aria-expanded={open}
         aria-controls={id}
         onClick={() => setOpen(!open)}
-        {...stylex.props(styles.toggle)}
+        {...stylex.props(styles.toggle, styles[place])}
       >
         {label} <span aria-hidden="true">{open ? '▾' : '▸'}</span>
       </button>
