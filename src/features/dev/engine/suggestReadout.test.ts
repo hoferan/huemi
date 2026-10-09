@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { suggest } from '../../../color/engine';
+import { TUNING, suggest } from '../../../color/engine';
+import { PALETTE } from '../../../color/palette';
+import { chromaLoad } from '../../../color/score';
 import { parseHex, type Hex } from '../../../model/hex';
 import { SLOTS, type Slot } from '../../../model/types';
 import { composeOutfit } from '../../../session/select';
@@ -85,5 +87,44 @@ describe('suggestReadout', () => {
     const readout = suggestReadout('outerwear', pieces);
     expect(readout.total).toMatch(/ over 0\.120$/);
     for (const entry of readout.slots) expect(entry.heading).toContain(' of 21 ');
+  });
+
+  // Shuffled outfits land on the budget often enough that "0.120 of 0.120"
+  // turned up in the first look at the panel.
+  it('never prints the total and the budget alike unless they are', () => {
+    let draws = 0;
+    let alike = 0;
+    let near = 0;
+    for (const color of PALETTE) {
+      for (const baseSlot of SLOTS) {
+        for (let k = 0; k < 2; k += 1) {
+          const picks = composeOutfit({ slot: baseSlot, hex: color.hex }, {}, () => {
+            draws += 1;
+            return ((draws * 7919) % 1000) / 1000;
+          });
+          const pieces: Partial<Record<Slot, Hex>> = { [baseSlot]: color.hex };
+          for (const slot of SLOTS) if (picks[slot]) pieces[slot] = picks[slot].hex;
+          // Only outfits near the budget can print alike, and building a
+          // readout for every outfit would be slow.
+          if (Math.abs(chromaLoad(pieces) - TUNING.chromaBudget) > 0.002) continue;
+          near += 1;
+          const readout = suggestReadout(baseSlot, pieces);
+          const [, load, budget] = readout.total.match(/chroma (\S+) (?:of|over) (\S+)$/)!;
+          // A color kept out by the budget is over it, so its chroma can never
+          // print as the budget itself.
+          for (const entry of readout.slots) {
+            for (const line of entry.above) {
+              if (/: chroma /.test(line)) expect(line.endsWith(` ${budget}`)).toBe(false);
+            }
+          }
+          if (load === budget) {
+            alike += 1;
+            expect(chromaLoad(pieces)).toBe(TUNING.chromaBudget);
+          }
+        }
+      }
+    }
+    expect(alike).toBe(0);
+    expect(near).toBeGreaterThan(0);
   });
 });

@@ -5,6 +5,7 @@ import type { Hex } from '../../../model/hex';
 import { SLOTS, SLOT_LABELS, type Slot } from '../../../model/types';
 import { whyNotChosen, type WhyNot } from '../../../session/select';
 import { fmt } from '../reader/readout';
+import { sideBySide } from './format';
 
 export type SlotReadout = {
   slot: Slot;
@@ -15,14 +16,12 @@ export type SlotReadout = {
 };
 export type SuggestReadout = { total: string; slots: SlotReadout[] };
 
-const chromaText = (load: number): string => load.toFixed(3);
-
 function reasonText(name: string, why: WhyNot): string {
   switch (why.kind) {
     case 'name':
       return `${name}: name shown in ${SLOT_LABELS[why.slot]}`;
     case 'budget':
-      return `${name}: chroma ${chromaText(why.load)}`;
+      return `${name}: chroma ${sideBySide(why.load, TUNING.chromaBudget, 3)[0]}`;
     case 'fits':
       return `${name}: fits`;
   }
@@ -41,7 +40,8 @@ export function suggestReadout(baseSlot: Slot, pieces: Partial<Record<Slot, Hex>
   const base = pieces[baseSlot]!;
   const load = chromaLoad(pieces);
   const budget = TUNING.chromaBudget;
-  const total = `Outfit chroma ${chromaText(load)} ${load > budget ? 'over' : 'of'} ${chromaText(budget)}`;
+  const [loadText, budgetText] = sideBySide(load, budget, 3);
+  const total = `Outfit chroma ${loadText} ${load > budget ? 'over' : 'of'} ${budgetText}`;
 
   const slots = SLOTS.flatMap((slot): SlotReadout[] => {
     const hex = pieces[slot];
