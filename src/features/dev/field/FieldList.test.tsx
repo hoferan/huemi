@@ -372,7 +372,9 @@ describe('FieldList', () => {
     expect(screen.queryByRole('button', { name: 'Export' })).not.toBeInTheDocument();
     release();
     const send = await screen.findByRole('button', { name: 'Share the export' });
-    expect(send).toHaveFocus();
+    // The focus moves in an effect, which React runs a task after the commit
+    // findByRole saw.
+    await waitFor(() => expect(send).toHaveFocus());
     expect(screen.getByRole('button', { name: 'Export' })).toBeEnabled();
     // The sheet opens only from the second tap.
     expect(share.calls.share).toEqual([]);
