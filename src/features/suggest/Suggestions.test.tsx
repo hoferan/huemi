@@ -2,7 +2,7 @@ import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useEffect, type ReactNode } from 'react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router';
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { colorName } from '../../color/palette';
 import type { Hex } from '../../model/hex';
 import { advance, composeOutfit } from '../../session/select';
@@ -16,6 +16,8 @@ import { fakeOutfitStore } from '../saved/testing';
 import { fakeSharePort, type FakeSharePort } from '../share/fakeShare.testing';
 import { ShareContext } from '../share/ShareContext';
 import { Suggestions } from './Suggestions';
+import { FULL_SHAPE } from '../../model/shape';
+import { PIECES_KEY } from '../../storage/localPieces';
 
 function Where() {
   const { pathname } = useLocation();
@@ -143,12 +145,12 @@ describe('Suggestions', () => {
   // turn into seeding on every mount, or a back navigation would wipe out the
   // choices the user came back to look at.
   it('keeps a slot the user already moved when the screen mounts again', async () => {
-    const seeded = composeOutfit(MUSTARD, {}, () => 0);
+    const seeded = composeOutfit(MUSTARD, {}, () => 0, FULL_SHAPE);
     const moved = advance(MUSTARD, 'shoes', 0, 6);
     await arrivingWith(
       [
         CHOSE_MUSTARD,
-        { type: 'picksReplaced', picks: seeded },
+        { type: 'outfitSeeded', shape: FULL_SHAPE, picks: seeded },
         { type: 'pickChanged', slot: 'shoes', hex: moved.hex, cursor: moved.cursor },
       ],
       (state) => state.picks.shoes?.hex === moved.hex,
@@ -358,5 +360,150 @@ describe('Suggestions back arrow', () => {
       'href',
       '/color?slot=top',
     );
+  });
+});
+
+describe('Suggestions with pieces left out', () => {
+  const NO_ACCESSORY = { outerwear: true, accessory: false };
+
+  beforeEach(() => {
+    localStorage.setItem(PIECES_KEY, JSON.stringify(NO_ACCESSORY));
+  });
+
+  afterEach(() => {
+    localStorage.clear();
+  });
+
+  it('leaves out a piece the person remembered leaving out', async () => {
+    await at(TOP);
+    expect(screen.getAllByRole('group')).toHaveLength(4);
+    expect(screen.queryByRole('group', { name: /^Accessory:/ })).not.toBeInTheDocument();
+  });
+
+  it('still shows the base when it is the piece left out', async () => {
+    await at('/suggest?slot=accessory&hex=%23b58a5a');
+    expect(screen.getByRole('group', { name: /^Accessory:/ })).toBeInTheDocument();
+    expect(screen.getAllByRole('group')).toHaveLength(5);
+  });
+
+  it('shuffles only the pieces worn', async () => {
+    const user = userEvent.setup();
+    await at(TOP);
+    await user.click(screen.getByRole('button', { name: /^Shuffle/ }));
+    const status = screen.getByRole('status');
+    expect(status).toHaveTextContent(/Outerwear/);
+    expect(status).not.toHaveTextContent(/Accessory/);
+  });
+
+  it('says why nothing happened when every worn piece is kept', async () => {
+    const user = userEvent.setup();
+    await at(TOP);
+    for (const label of ['Outerwear', 'Bottom', 'Shoes']) {
+      await user.click(screen.getByRole('button', { name: `Keep ${label}` }));
+    }
+    await user.click(screen.getByRole('button', { name: 'Shuffle the rest' }));
+    expect(screen.getByRole('status')).toHaveTextContent(/every piece is kept/i);
+  });
+
+  it('shows a loaded outfit as it was loaded', async () => {
+    const grey = '#8a8a8a' as Hex;
+    const picks = { ...composeOutfit(MUSTARD, {}, () => 0, FULL_SHAPE), outerwear: { hex: grey } };
+    delete picks.accessory;
+    await arrivingWith(
+      [{ type: 'outfitLoaded', base: MUSTARD, shape: NO_ACCESSORY, picks }],
+      (state) => state.shape !== null,
+      TOP,
+    );
+    expect(screen.getAllByRole('group')).toHaveLength(4);
+    expect(screen.getByRole('group', { name: /^Outerwear:/ })).toHaveAccessibleName(/Grey/);
+  });
+});
+
+describe('the Pieces sheet', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    localStorage.clear();
+  });
+
+  const hexOf = (slot: string) => screen.getByRole('group', { name: new RegExp(`^${slot}:`) });
+  const stored = () => JSON.parse(localStorage.getItem(PIECES_KEY) ?? 'null') as unknown;
+
+  async function openPieces() {
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: 'Pieces' }));
+    return user;
+  }
+
+  it('opens from the footer beside Shuffle and gives focus back when it closes', async () => {
+    await at(TOP);
+    const button = screen.getByRole('button', { name: 'Pieces' });
+    expect(button.parentElement).toBe(
+      screen.getByRole('button', { name: 'Shuffle' }).parentElement,
+    );
+    const user = await openPieces();
+    expect(screen.getByRole('dialog', { name: 'Pieces' })).toBeInTheDocument();
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(button).toHaveFocus();
+  });
+
+  it('takes a piece off the screen and leaves the others as they were', async () => {
+    await at(TOP);
+    const before = ['Outerwear', 'Bottom', 'Shoes'].map((slot) =>
+      hexOf(slot).getAttribute('aria-label'),
+    );
+    const user = await openPieces();
+    await user.click(screen.getByRole('switch', { name: 'Accessory' }));
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('group', { name: /^Accessory:/ })).not.toBeInTheDocument();
+    const after = ['Outerwear', 'Bottom', 'Shoes'].map((slot) =>
+      hexOf(slot).getAttribute('aria-label'),
+    );
+    expect(after).toEqual(before);
+  });
+
+  it('brings a kept piece back unkept', async () => {
+    await at(TOP);
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: 'Keep Accessory' }));
+    await user.click(screen.getByRole('button', { name: 'Pieces' }));
+    await user.click(screen.getByRole('switch', { name: 'Accessory' }));
+    await user.click(screen.getByRole('switch', { name: 'Accessory' }));
+    await user.keyboard('{Escape}');
+    expect(hexOf('Accessory')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Keep Accessory' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
+  });
+
+  it('remembers a piece switched off', async () => {
+    await at(TOP);
+    const user = await openPieces();
+    await user.click(screen.getByRole('switch', { name: 'Accessory' }));
+    expect(stored()).toEqual({ outerwear: true, accessory: false });
+  });
+
+  it('keeps what is remembered for the piece the base fixes', async () => {
+    localStorage.setItem(PIECES_KEY, JSON.stringify({ outerwear: false, accessory: true }));
+    await at('/suggest?slot=outerwear&hex=%238a8a8a');
+    const user = await openPieces();
+    await user.click(screen.getByRole('switch', { name: 'Accessory' }));
+    expect(stored()).toEqual({ outerwear: false, accessory: false });
+  });
+
+  it('still takes the piece away when storage refuses the write', async () => {
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new DOMException('full', 'QuotaExceededError');
+    });
+    await at(TOP);
+    const user = await openPieces();
+    await user.click(screen.getByRole('switch', { name: 'Accessory' }));
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('group', { name: /^Accessory:/ })).not.toBeInTheDocument();
   });
 });

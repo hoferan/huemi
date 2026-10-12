@@ -48,8 +48,8 @@ export function Saved() {
   const [now] = useState(() => new Date());
 
   function open(outfit: Outfit) {
-    const { base, picks } = openOutfit(outfit);
-    dispatch({ type: 'outfitLoaded', base, picks });
+    const { base, shape, picks } = openOutfit(outfit);
+    dispatch({ type: 'outfitLoaded', base, shape, picks });
     void navigate(`/suggest?slot=${base.slot}&hex=${encodeURIComponent(base.hex)}`);
   }
 

@@ -2,10 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { composeOutfit } from '../../session/select';
 import { buildOutfit } from './buildOutfit';
 import { NAVY_BOTTOM } from './testing';
+import { FULL_SHAPE } from '../../model/shape';
 
 describe('buildOutfit', () => {
   it('stores the base and every pick as hexes, never cursors', () => {
-    const picks = composeOutfit(NAVY_BOTTOM, {}, () => 0);
+    const picks = composeOutfit(NAVY_BOTTOM, {}, () => 0, FULL_SHAPE);
     const now = new Date('2026-09-23T10:00:00.000Z');
     expect(buildOutfit(NAVY_BOTTOM, picks, 'id-1', now)).toEqual({
       version: 1,

@@ -4,6 +4,7 @@ import { chroma } from '../color/classify';
 import { PALETTE, colorName } from '../color/palette';
 import { chromaLoad } from '../color/score';
 import { parseHex, type Hex } from '../model/hex';
+import { FULL_SHAPE } from '../model/shape';
 import { SLOTS, type Slot } from '../model/types';
 import {
   advance,
@@ -85,9 +86,25 @@ describe('positionLabel', () => {
 
 describe('composeOutfit', () => {
   const base: Base = { slot: 'top', hex: parseHex('#c39a3a') };
+  const tan = parseHex('#c9ad86');
+  const noAccessory = { outerwear: true, accessory: false };
+
+  it('fills only the pieces the shape wears', () => {
+    const picks = composeOutfit(base, {}, () => 0, noAccessory);
+    expect(Object.keys(picks).sort()).toEqual(['bottom', 'outerwear', 'shoes']);
+  });
+
+  it('gives a held piece the shape does not wear no name and no place', () => {
+    expect(composeOutfit(base, {}, () => 0, FULL_SHAPE).shoes?.hex).toBe(tan);
+    const heldTan = { accessory: { hex: tan } };
+    expect(composeOutfit(base, heldTan, () => 0, FULL_SHAPE).shoes?.hex).not.toBe(tan);
+    const picks = composeOutfit(base, heldTan, () => 0, noAccessory);
+    expect(picks.shoes?.hex).toBe(tan);
+    expect(picks.accessory).toBeUndefined();
+  });
 
   it('gives every slot a colour the outfit does not already show', () => {
-    const picks = composeOutfit(base, {}, () => 0);
+    const picks = composeOutfit(base, {}, () => 0, FULL_SHAPE);
     const names = SLOTS.filter((slot) => slot !== base.slot).map((slot) =>
       colorName(picks[slot]!.hex),
     );
@@ -96,7 +113,7 @@ describe('composeOutfit', () => {
   });
 
   it('keeps the outfit inside the chroma budget when the base leaves room', () => {
-    const picks = composeOutfit(base, {}, () => 0);
+    const picks = composeOutfit(base, {}, () => 0, FULL_SHAPE);
     const pieces = { [base.slot]: base.hex } as Partial<Record<Slot, Hex>>;
     for (const slot of SLOTS) {
       const pick = picks[slot];
@@ -110,7 +127,7 @@ describe('composeOutfit', () => {
   // pick the quietest colour available rather than the highest-ranked one.
   it('falls back to the lowest chroma when the base is already over budget', () => {
     const loud: Base = { slot: 'top', hex: parseHex('#a3231f') };
-    const picks = composeOutfit(loud, {}, () => 0);
+    const picks = composeOutfit(loud, {}, () => 0, FULL_SHAPE);
     // The candidate pool shrinks as it goes: each slot's colour takes its name
     // out of play for the slots after it. So the comparison has to be against
     // what was still available at that point, not against the whole list.
@@ -129,13 +146,13 @@ describe('composeOutfit', () => {
 
   it('leaves a fixed slot exactly as given', () => {
     const held: SlotPick = { hex: parseHex('#1f2a44'), cursor: 7 };
-    const picks = composeOutfit(base, { shoes: held }, () => 0);
+    const picks = composeOutfit(base, { shoes: held }, () => 0, FULL_SHAPE);
     expect(picks.shoes).toEqual(held);
   });
 
   it('does not repeat the name of a fixed slot', () => {
     const held: SlotPick = { hex: parseHex('#1f2a44'), cursor: 7 };
-    const picks = composeOutfit(base, { shoes: held }, () => 0);
+    const picks = composeOutfit(base, { shoes: held }, () => 0, FULL_SHAPE);
     const others = SLOTS.filter((slot) => slot !== base.slot && slot !== 'shoes');
     for (const slot of others) expect(colorName(picks[slot]!.hex)).not.toBe(colorName(held.hex));
   });
@@ -147,7 +164,7 @@ describe('composeOutfit', () => {
     // accessory until reaching its position, so 'outerwear' would not see it
     // and would pick the same name, breaking deduplication.
     const fixedAccessory: SlotPick = { hex: parseHex('#8a8a8a'), cursor: 0 };
-    const picks = composeOutfit(base, { accessory: fixedAccessory }, () => 0);
+    const picks = composeOutfit(base, { accessory: fixedAccessory }, () => 0, FULL_SHAPE);
     const accessoryName = colorName(fixedAccessory.hex);
     const freeSlots = SLOTS.filter((slot) => slot !== base.slot && slot !== 'accessory');
     for (const slot of freeSlots) {
@@ -156,11 +173,13 @@ describe('composeOutfit', () => {
   });
 
   it('is deterministic when the offset is zero', () => {
-    expect(composeOutfit(base, {}, () => 0)).toEqual(composeOutfit(base, {}, () => 0));
+    expect(composeOutfit(base, {}, () => 0, FULL_SHAPE)).toEqual(
+      composeOutfit(base, {}, () => 0, FULL_SHAPE),
+    );
   });
 
   it('records a cursor that points at the colour it chose', () => {
-    const picks = composeOutfit(base, {}, () => 0.5);
+    const picks = composeOutfit(base, {}, () => 0.5, FULL_SHAPE);
     for (const slot of SLOTS) {
       if (slot === base.slot) continue;
       const pick = picks[slot]!;
@@ -172,7 +191,7 @@ describe('composeOutfit', () => {
   // returns a description. Deduplication reads that string like any other.
   it('composes against a base the palette cannot name', () => {
     const odd: Base = { slot: 'bottom', hex: parseHex('#12f4a7') };
-    const picks = composeOutfit(odd, {}, () => 0);
+    const picks = composeOutfit(odd, {}, () => 0, FULL_SHAPE);
     const named = SLOTS.filter((slot) => slot !== odd.slot);
     for (const slot of named) expect(picks[slot]).toBeDefined();
     const names = named.map((slot) => colorName(picks[slot]!.hex));
@@ -259,7 +278,7 @@ describe('whyNotChosen', () => {
     let over = 0;
     for (const color of PALETTE) {
       for (const baseSlot of SLOTS) {
-        const picks = composeOutfit({ slot: baseSlot, hex: color.hex }, {}, () => 0);
+        const picks = composeOutfit({ slot: baseSlot, hex: color.hex }, {}, () => 0, FULL_SHAPE);
         const pieces: Partial<Record<Slot, Hex>> = { [baseSlot]: color.hex };
         for (const slot of SLOTS) if (picks[slot]) pieces[slot] = picks[slot].hex;
         const inBudget = chromaLoad(pieces) <= TUNING.chromaBudget;

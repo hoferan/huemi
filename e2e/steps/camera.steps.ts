@@ -2,6 +2,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect } from '@playwright/test';
 import { createBdd } from 'playwright-bdd';
 import { fakeCamera } from '../fakeCamera';
+import { hitTargets } from '../hitTargets';
 
 const { Given, When, Then } = createBdd();
 
@@ -106,7 +107,7 @@ Then('the screen has no detectable accessibility violations', async ({ page }) =
 });
 
 Then('every link and button is at least 44 by 44', async ({ page }) => {
-  const targets = page.getByRole('link').or(page.getByRole('button'));
+  const targets = hitTargets(page);
   await expect.poll(() => targets.count()).toBeGreaterThan(0);
   const controls = await targets.all();
   for (const control of controls) {

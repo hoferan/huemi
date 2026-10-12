@@ -4,6 +4,7 @@ import { chroma } from '../color/classify';
 import { colorName } from '../color/palette';
 import { chromaLoad } from '../color/score';
 import type { Hex } from '../model/hex';
+import { wornSlots, type Shape } from '../model/shape';
 import { CHECK_SLOTS, SLOTS, type Slot } from '../model/types';
 import type { Base, Check, SlotPick } from './types';
 import type { Suggestion } from '../model/types';
@@ -73,7 +74,7 @@ export function positionLabel(cursor: number, count: number): string {
 }
 
 /**
- * The five pieces of an outfit, chosen together.
+ * The pieces an outfit wears, chosen together.
  *
  * `suggest()` scores one candidate against the base, and the slot reaches that
  * score only through `SLOT_AREA` weighting the chroma term, which moves the
@@ -93,18 +94,23 @@ export function positionLabel(cursor: number, count: number): string {
  * same starting outfit rather than a different one. It rebuilds the seed, not
  * whatever was on screen: a shuffle and a Next press both live in the session,
  * and a refresh discards them.
+ *
+ * Only the slots `shape` wears are filled. A held pick for a slot it does not
+ * wear is ignored, so a piece left out takes no name and no budget (ADR 0021).
  */
 export function composeOutfit(
   base: Base,
   fixed: Partial<Record<Slot, SlotPick>>,
   random: () => number,
+  shape: Shape,
 ): Partial<Record<Slot, SlotPick>> {
+  const worn = wornSlots(shape);
   const picks: Partial<Record<Slot, SlotPick>> = {};
   const pieces: Partial<Record<Slot, Hex>> = { [base.slot]: base.hex };
 
   // Pre-register all fixed slots so that free slots can see and avoid them,
   // regardless of order in SLOTS.
-  for (const slot of SLOTS) {
+  for (const slot of worn) {
     if (slot === base.slot) continue;
     const held = fixed[slot];
     if (!held) continue;
@@ -114,7 +120,7 @@ export function composeOutfit(
 
   const shown = shownNames(pieces);
 
-  for (const slot of SLOTS) {
+  for (const slot of worn) {
     if (slot === base.slot || fixed[slot]) continue;
 
     const list = suggest(base.hex, slot, base.slot);

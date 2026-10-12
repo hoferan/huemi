@@ -67,6 +67,15 @@ const styles = stylex.create({
     minHeight: tokens.touchTarget,
     fontSize: tokens.textBody,
   },
+  // The radio itself is the target the 44px check measures, not its label, so
+  // it takes the full size rather than the browser's 13px.
+  radio: {
+    flexShrink: 0,
+    width: tokens.touchTarget,
+    height: tokens.touchTarget,
+    margin: 0,
+    accentColor: tokens.ink,
+  },
   color: { display: 'flex', flexDirection: 'column', gap: '8px' },
   preview: (background: string) => ({
     backgroundColor: background,
@@ -167,6 +176,7 @@ export function NewGarment() {
             <label key={String(value)} {...stylex.props(styles.choice)}>
               <input
                 type="radio"
+                {...stylex.props(styles.radio)}
                 name={`${id}-count`}
                 checked={several === value}
                 onChange={() => {

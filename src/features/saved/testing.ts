@@ -4,6 +4,7 @@ import { composeOutfit } from '../../session/select';
 import type { Base } from '../../session/types';
 import type { OutfitStore, StorageResult } from '../../storage/port';
 import { buildOutfit } from './buildOutfit';
+import { FULL_SHAPE } from '../../model/shape';
 
 /**
  * Fixtures for tests of anything that reads saved outfits. Not imported by
@@ -15,7 +16,7 @@ export const NAVY_BOTTOM: Base = { slot: 'bottom', hex: parseHex('#1f2a44') };
 export function makeOutfit(overrides: Partial<Outfit> = {}): Outfit {
   const base = buildOutfit(
     NAVY_BOTTOM,
-    composeOutfit(NAVY_BOTTOM, {}, () => 0),
+    composeOutfit(NAVY_BOTTOM, {}, () => 0, FULL_SHAPE),
     'navy',
     new Date('2026-09-21T10:00:00.000Z'),
   );

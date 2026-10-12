@@ -1,5 +1,7 @@
 import type { SessionAction, SessionState, Toast } from './types';
-import { SLOTS } from '../model/types';
+import { isWorn } from '../model/shape';
+import { SLOTS, type Slot } from '../model/types';
+import type { SlotPick } from './types';
 
 export type { SlotPick, SessionAction, SessionState } from './types';
 
@@ -13,6 +15,7 @@ export const initialSession: SessionState = {
   base: null,
   capture: null,
   check: null,
+  shape: null,
   // Frozen because these two objects are shared by reference into every state
   // derived from the initial one, here and through `reset` and `baseChosen`.
   // Every case below replaces them rather than writing into them, and a lapse
@@ -23,6 +26,28 @@ export const initialSession: SessionState = {
   toast: null,
   toastSeq: 0,
 };
+
+/**
+ * Seeding and shuffle both change several slots at once. Four `pickChanged`
+ * dispatches would do it in four renders, which tears a crossfade that is
+ * meant to be simultaneous.
+ *
+ * The lock is enforced here rather than at the call site for the reason
+ * `pickChanged` enforces it here: this is the file that owns what a lock
+ * means, and the rule stated twice is the rule that drifts.
+ */
+function merged(
+  state: SessionState,
+  given: Partial<Record<Slot, SlotPick>>,
+): Partial<Record<Slot, SlotPick>> {
+  const picks = { ...state.picks };
+  for (const slot of SLOTS) {
+    const next = given[slot];
+    if (!next || state.locked[slot]) continue;
+    picks[slot] = next;
+  }
+  return picks;
+}
 
 export function sessionReducer(state: SessionState, action: SessionAction): SessionState {
   switch (action.type) {
@@ -67,6 +92,7 @@ export function sessionReducer(state: SessionState, action: SessionAction): Sess
       return {
         ...state,
         base: action.base,
+        shape: action.shape,
         picks: action.picks,
         locked: {},
         toast: null,
@@ -148,22 +174,28 @@ export function sessionReducer(state: SessionState, action: SessionAction): Sess
     case 'reset':
       return { ...initialSession, toastSeq: state.toastSeq };
 
-    case 'picksReplaced': {
-      // Seeding and shuffle both change several slots at once. Four
-      // `pickChanged` dispatches would do it in four renders, which tears a
-      // crossfade that is meant to be simultaneous.
-      //
-      // The lock is enforced here rather than at the call site for the reason
-      // `pickChanged` enforces it here: this is the file that owns what a lock
-      // means, and the rule stated twice is the rule that drifts.
+    case 'outfitSeeded':
+      return { ...state, shape: action.shape, picks: merged(state, action.picks) };
+
+    case 'shapeChanged': {
+      // A piece the new shape leaves out goes with its lock, so switching it
+      // back on brings a fresh, unkept pick rather than a lock on nothing.
       const picks = { ...state.picks };
+      const locked = { ...state.locked };
+      for (const slot of SLOTS) {
+        if (isWorn(action.shape, slot)) continue;
+        delete picks[slot];
+        delete locked[slot];
+      }
       for (const slot of SLOTS) {
         const next = action.picks[slot];
-        if (!next || state.locked[slot]) continue;
-        picks[slot] = next;
+        if (next && isWorn(action.shape, slot)) picks[slot] = next;
       }
-      return { ...state, picks };
+      return { ...state, shape: action.shape, picks, locked };
     }
+
+    case 'picksReplaced':
+      return { ...state, picks: merged(state, action.picks) };
 
     /* v8 ignore start */
     default: {

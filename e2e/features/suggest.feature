@@ -86,3 +86,36 @@ Feature: Suggestions
     And I shuffle
     Then the screen has no detectable accessibility violations
     And every link and button is at least 44 by 44
+
+  # The sheet is a Radix dialog over the blocks, so the route sweep never sees
+  # it open. This is the only place its switches meet axe and the 44px check.
+  Scenario: The open Pieces sheet passes the accessibility checks
+    When I open the suggestions for a mustard top
+    And I press "Pieces"
+    Then the screen has no detectable accessibility violations
+    And every link and button is at least 44 by 44
+
+  Scenario: A piece left out stays out
+    When I open the suggestions for a mustard top
+    And I press "Pieces"
+    And I switch off "Accessory"
+    And I press "Close"
+    Then I see 4 blocks
+    When I open the picker for the top
+    And I choose the swatch "Mustard"
+    Then I see 4 blocks
+
+  Scenario: A piece switched off is still visibly a switch
+    When I open the suggestions for a mustard top
+    And I press "Pieces"
+    And I switch off "Accessory"
+    Then the "Accessory" switch stands out from the sheet at 3:1
+
+  # Pieces and Shuffle share the footer with the hint, and at large text on a
+  # 320px phone the three no longer fit on one line.
+  Scenario: The footer fits a narrow phone at large text
+    When I open the suggestions for a mustard top
+    And my text is at 200%
+    Then the page does not scroll sideways
+    When I press "Keep Shoes"
+    Then the page does not scroll sideways

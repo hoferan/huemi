@@ -2,12 +2,13 @@ import { describe, expect, it } from 'vitest';
 import { PALETTE } from '../../color/palette';
 import { composeOutfit } from '../../session/select';
 import { PREVIEW_BASE, previewOutfit } from './preview';
+import { FULL_SHAPE } from '../../model/shape';
 
 describe('previewOutfit', () => {
   // The preview is a promise about the suggestions screen, so it is the
   // outfit that screen starts from for the same base, not one picked by hand.
   it('is the outfit the suggestions screen starts from', () => {
-    const seeded = composeOutfit(PREVIEW_BASE, {}, () => 0);
+    const seeded = composeOutfit(PREVIEW_BASE, {}, () => 0, FULL_SHAPE);
     expect(previewOutfit()).toEqual({
       top: seeded.top?.hex,
       bottom: PREVIEW_BASE.hex,

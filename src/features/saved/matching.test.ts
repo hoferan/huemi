@@ -3,12 +3,22 @@ import { parseHex } from '../../model/hex';
 import { composeOutfit } from '../../session/select';
 import { buildOutfit } from './buildOutfit';
 import { sameOutfit } from './matching';
+import { openOutfit } from './openOutfit';
 import { NAVY_BOTTOM } from './testing';
+import { FULL_SHAPE } from '../../model/shape';
 
-const picks = composeOutfit(NAVY_BOTTOM, {}, () => 0);
+const picks = composeOutfit(NAVY_BOTTOM, {}, () => 0, FULL_SHAPE);
 const saved = buildOutfit(NAVY_BOTTOM, picks, 'x', new Date());
 
 describe('sameOutfit', () => {
+  it('matches an outfit saved without an accessory once it is reopened', () => {
+    const pieces = { ...saved.pieces };
+    delete pieces.accessory;
+    const partial = { ...saved, pieces };
+    const reopened = openOutfit(partial);
+    expect(sameOutfit(partial, reopened.base, reopened.picks)).toBe(true);
+  });
+
   it('matches the combination it was built from', () => {
     expect(sameOutfit(saved, NAVY_BOTTOM, picks)).toBe(true);
   });
