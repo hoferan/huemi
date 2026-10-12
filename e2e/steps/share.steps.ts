@@ -43,9 +43,12 @@ function linkIn(share: RecordedShare): string {
   return share.text!.split(' ').at(-1)!;
 }
 
+/** A color block's accessible name, "Top: Mustard", as `blockLabel` writes it. */
+export const BLOCK_NAME = /^(Outerwear|Top|Bottom|Shoes|Accessory): /;
+
 /** "Top: Mustard" for every block on screen, head to toe, as `blockLabel` names them. */
 async function blockNames(page: Page): Promise<string[]> {
-  const blocks = page.getByRole('group', { name: /^(Outerwear|Top|Bottom|Shoes|Accessory): / });
+  const blocks = page.getByRole('group', { name: BLOCK_NAME });
   await expect(blocks).toHaveCount(5);
   return blocks.evaluateAll((nodes) => nodes.map((node) => node.getAttribute('aria-label') ?? ''));
 }
@@ -88,14 +91,12 @@ function channels(css: string): Rgb {
 
 /** Each block on screen: its background, and the foreground its text is drawn in. */
 async function blocksOnScreen(page: Page): Promise<{ background: Rgb; foreground: Rgb }[]> {
-  const styles = await page
-    .getByRole('group', { name: /^(Outerwear|Top|Bottom|Shoes|Accessory): / })
-    .evaluateAll((nodes) =>
-      nodes.map((node) => {
-        const style = getComputedStyle(node);
-        return { background: style.backgroundColor, foreground: style.color };
-      }),
-    );
+  const styles = await page.getByRole('group', { name: BLOCK_NAME }).evaluateAll((nodes) =>
+    nodes.map((node) => {
+      const style = getComputedStyle(node);
+      return { background: style.backgroundColor, foreground: style.color };
+    }),
+  );
   return styles.map(({ background, foreground }) => ({
     background: channels(background),
     foreground: channels(foreground),

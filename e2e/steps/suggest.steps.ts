@@ -1,6 +1,7 @@
 import { expect } from '@playwright/test';
 import { createBdd } from 'playwright-bdd';
 import { hexToRgb } from './entry.steps';
+import { BLOCK_NAME } from './share.steps';
 
 const { Given, When, Then } = createBdd();
 
@@ -110,3 +111,13 @@ Then(
     await expect(block).toHaveCSS('transition-duration', duration);
   },
 );
+
+When('I switch off {string}', async ({ page }, name: string) => {
+  const toggle = page.getByRole('dialog').getByRole('switch', { name });
+  await toggle.click();
+  await expect(toggle).not.toBeChecked();
+});
+
+Then('I see {int} blocks', async ({ page }, count: number) => {
+  await expect(page.getByRole('group', { name: BLOCK_NAME })).toHaveCount(count);
+});
