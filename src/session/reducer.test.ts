@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { Frame } from '../model/frame';
 import type { Outfit } from '../model/types';
 import { parseHex } from '../model/hex';
+import { FULL_SHAPE } from '../model/shape';
 import { initialSession, sessionReducer } from './reducer';
 
 const navy = parseHex('#1f2a44');
@@ -97,6 +98,7 @@ describe('sessionReducer', () => {
     // name some other colour's position for the block to announce.
     const next = sessionReducer(working, {
       type: 'outfitLoaded',
+      shape: FULL_SHAPE,
       base: { slot: 'top', hex: cream },
       picks: { bottom: { hex: navy, cursor: 15 } },
     });
@@ -111,6 +113,7 @@ describe('sessionReducer', () => {
     // is on, so this is an absent key rather than an explicit undefined.
     const next = sessionReducer(based, {
       type: 'outfitLoaded',
+      shape: FULL_SHAPE,
       base: { slot: 'top', hex: cream },
       picks: { bottom: { hex: navy } },
     });
@@ -178,10 +181,74 @@ describe('sessionReducer', () => {
     const shown = sessionReducer(based, { type: 'toastShown', message: 'Saved' });
     const next = sessionReducer(shown, {
       type: 'outfitLoaded',
+      shape: FULL_SHAPE,
       base: { slot: 'top', hex: cream },
       picks: {},
     });
     expect(next.toast).toBeNull();
+  });
+
+  describe('shape', () => {
+    const base = { slot: 'top', hex: parseHex('#c39a3a') } as const;
+    const grey = { hex: parseHex('#8a8a8a'), cursor: 0 };
+    const camel = { hex: parseHex('#b58a5a'), cursor: 3 };
+    const noAccessory = { outerwear: true, accessory: false };
+
+    function full() {
+      let state = sessionReducer(initialSession, { type: 'baseChosen', ...base });
+      state = sessionReducer(state, {
+        type: 'outfitSeeded',
+        shape: FULL_SHAPE,
+        picks: { outerwear: grey, accessory: camel },
+      });
+      state = sessionReducer(state, { type: 'lockToggled', slot: 'accessory' });
+      return sessionReducer(state, { type: 'lockToggled', slot: 'outerwear' });
+    }
+
+    it('has no shape until an outfit is composed for the base', () => {
+      expect(sessionReducer(initialSession, { type: 'baseChosen', ...base }).shape).toBeNull();
+      expect(full().shape).toEqual(FULL_SHAPE);
+      expect(full().picks.outerwear).toEqual(grey);
+    });
+
+    it('drops the pick and the lock of a piece the new shape leaves out', () => {
+      const state = sessionReducer(full(), { type: 'shapeChanged', shape: noAccessory, picks: {} });
+      expect(state.shape).toEqual(noAccessory);
+      expect(state.picks.accessory).toBeUndefined();
+      expect(state.locked.accessory).toBeUndefined();
+      expect(state.picks.outerwear).toEqual(grey);
+      expect(state.locked.outerwear).toBe(true);
+    });
+
+    it('brings a piece back unlocked', () => {
+      let state = sessionReducer(full(), { type: 'shapeChanged', shape: noAccessory, picks: {} });
+      state = sessionReducer(state, {
+        type: 'shapeChanged',
+        shape: FULL_SHAPE,
+        picks: { accessory: camel },
+      });
+      expect(state.picks.accessory).toEqual(camel);
+      expect(state.locked.accessory).toBeUndefined();
+    });
+
+    it('ignores a pick for a piece the new shape does not wear', () => {
+      const state = sessionReducer(full(), {
+        type: 'shapeChanged',
+        shape: noAccessory,
+        picks: { accessory: camel },
+      });
+      expect(state.picks.accessory).toBeUndefined();
+    });
+
+    it('keeps the shape of a loaded outfit', () => {
+      const state = sessionReducer(initialSession, {
+        type: 'outfitLoaded',
+        base: { slot: 'bottom', hex: navy },
+        shape: noAccessory,
+        picks: {},
+      });
+      expect(state.shape).toEqual(noAccessory);
+    });
   });
 
   describe('picksReplaced', () => {

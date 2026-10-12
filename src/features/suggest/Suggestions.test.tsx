@@ -16,6 +16,7 @@ import { fakeOutfitStore } from '../saved/testing';
 import { fakeSharePort, type FakeSharePort } from '../share/fakeShare.testing';
 import { ShareContext } from '../share/ShareContext';
 import { Suggestions } from './Suggestions';
+import { FULL_SHAPE } from '../../model/shape';
 
 function Where() {
   const { pathname } = useLocation();
@@ -143,7 +144,7 @@ describe('Suggestions', () => {
   // turn into seeding on every mount, or a back navigation would wipe out the
   // choices the user came back to look at.
   it('keeps a slot the user already moved when the screen mounts again', async () => {
-    const seeded = composeOutfit(MUSTARD, {}, () => 0);
+    const seeded = composeOutfit(MUSTARD, {}, () => 0, FULL_SHAPE);
     const moved = advance(MUSTARD, 'shoes', 0, 6);
     await arrivingWith(
       [

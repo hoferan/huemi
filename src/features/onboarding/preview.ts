@@ -2,6 +2,7 @@ import { PALETTE } from '../../color/palette';
 import type { Hex } from '../../model/hex';
 import { composeOutfit } from '../../session/select';
 import type { Base } from '../../session/types';
+import { FULL_SHAPE } from '../../model/shape';
 
 /**
  * The garment the welcome screen's preview starts from. Light grey, because
@@ -22,6 +23,6 @@ export type PreviewOutfit = { top: Hex; bottom: Hex; shoes: Hex };
  * slot but the base's, so the top and the shoes are always there.
  */
 export function previewOutfit(): PreviewOutfit {
-  const seeded = composeOutfit(PREVIEW_BASE, {}, () => 0);
+  const seeded = composeOutfit(PREVIEW_BASE, {}, () => 0, FULL_SHAPE);
   return { top: seeded.top!.hex, bottom: PREVIEW_BASE.hex, shoes: seeded.shoes!.hex };
 }

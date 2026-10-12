@@ -6,6 +6,7 @@ import { parseHex, type Hex } from '../../../model/hex';
 import { SLOTS, type Slot } from '../../../model/types';
 import { composeOutfit } from '../../../session/select';
 import { suggestReadout } from './suggestReadout';
+import { FULL_SHAPE } from '../../../model/shape';
 
 // The outfit `composeOutfit` seeds for a Mustard top. Its bottom fell to rank
 // 11, which is the case the panel exists to explain.
@@ -81,7 +82,7 @@ describe('suggestReadout', () => {
   // A camera-read red coat spends the whole budget by itself (ADR 0012).
   it('says over when the base alone breaks the budget', () => {
     const base = { slot: 'outerwear' as const, hex: parseHex('#a3231f') };
-    const picks = composeOutfit(base, {}, () => 0);
+    const picks = composeOutfit(base, {}, () => 0, FULL_SHAPE);
     const pieces: Partial<Record<Slot, Hex>> = { outerwear: base.hex };
     for (const slot of SLOTS) if (picks[slot]) pieces[slot] = picks[slot].hex;
     const readout = suggestReadout('outerwear', pieces);
@@ -98,10 +99,15 @@ describe('suggestReadout', () => {
     for (const color of PALETTE) {
       for (const baseSlot of SLOTS) {
         for (let k = 0; k < 2; k += 1) {
-          const picks = composeOutfit({ slot: baseSlot, hex: color.hex }, {}, () => {
-            draws += 1;
-            return ((draws * 7919) % 1000) / 1000;
-          });
+          const picks = composeOutfit(
+            { slot: baseSlot, hex: color.hex },
+            {},
+            () => {
+              draws += 1;
+              return ((draws * 7919) % 1000) / 1000;
+            },
+            FULL_SHAPE,
+          );
           const pieces: Partial<Record<Slot, Hex>> = { [baseSlot]: color.hex };
           for (const slot of SLOTS) if (picks[slot]) pieces[slot] = picks[slot].hex;
           // Only outfits near the budget can print alike, and building a

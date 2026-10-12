@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import * as stylex from '@stylexjs/stylex';
 import type { Outfit } from '../../model/types';
+import { FULL_SHAPE } from '../../model/shape';
 import { useSession } from '../../session/useSession';
 import { tokens } from '../../styles/tokens.stylex';
 import { Button } from '../../ui/Button';
@@ -49,7 +50,7 @@ export function Saved() {
 
   function open(outfit: Outfit) {
     const { base, picks } = openOutfit(outfit);
-    dispatch({ type: 'outfitLoaded', base, picks });
+    dispatch({ type: 'outfitLoaded', base, shape: FULL_SHAPE, picks });
     void navigate(`/suggest?slot=${base.slot}&hex=${encodeURIComponent(base.hex)}`);
   }
 

@@ -1,5 +1,6 @@
 import type { Frame } from '../model/frame';
 import type { Hex } from '../model/hex';
+import type { Shape } from '../model/shape';
 import type { CheckSlot, Outfit, Slot } from '../model/types';
 
 /** The garment the user started from. Always populated once a colour is picked. */
@@ -71,6 +72,12 @@ export type SessionState = {
   capture: Capture | null;
   /** The outfit being checked, or null when no check is under way. */
   check: Check | null;
+  /**
+   * Which optional pieces the outfit wears. Null until an outfit is seeded or
+   * loaded for the base, which is how the suggestions screen tells "nothing
+   * composed yet" apart from a piece left out on purpose (ADR 0021).
+   */
+  shape: Shape | null;
   /** The colour showing in each slot, and where it came from. */
   picks: Partial<Record<Slot, SlotPick>>;
   /** Hold-to-keep. Present and true, or absent. */
@@ -85,8 +92,10 @@ export type SessionAction =
   | { type: 'baseChosen'; slot: Slot; hex: Hex }
   | { type: 'pickChanged'; slot: Slot; hex: Hex; cursor: number }
   | { type: 'lockToggled'; slot: Slot }
-  | { type: 'outfitLoaded'; base: Base; picks: Partial<Record<Slot, SlotPick>> }
+  | { type: 'outfitSeeded'; shape: Shape; picks: Partial<Record<Slot, SlotPick>> }
+  | { type: 'outfitLoaded'; base: Base; shape: Shape; picks: Partial<Record<Slot, SlotPick>> }
   | { type: 'picksReplaced'; picks: Partial<Record<Slot, SlotPick>> }
+  | { type: 'shapeChanged'; shape: Shape; picks: Partial<Record<Slot, SlotPick>> }
   | { type: 'toastShown'; message: string; action?: ToastAction; focusAction?: true }
   | { type: 'toastDismissed'; id: number }
   | { type: 'frameCaptured'; slot: Slot; frame: Frame; lowLight: boolean | null }

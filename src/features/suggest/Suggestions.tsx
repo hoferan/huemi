@@ -22,6 +22,7 @@ import { Alternatives } from './Alternatives';
 import { SaveToggle } from './SaveToggle';
 import { useBaseParam } from './useBaseParam';
 import { clearOfToasts } from '../../ui/toastClearance';
+import { FULL_SHAPE } from '../../model/shape';
 
 // The crossfade is CSS and the flag that triggers it is a timer, so one of the
 // two has to be a number. It is derived rather than restated: `durations` is a
@@ -99,7 +100,7 @@ export function Suggestions() {
   // first paint happens before the effect runs and the blocks need colours
   // then. Safe only because the seed is deterministic: this is the same outfit
   // the dispatch below is about to put in the session, not a placeholder.
-  const seed = useMemo(() => (base ? composeOutfit(base, {}, () => 0) : {}), [base]);
+  const seed = useMemo(() => (base ? composeOutfit(base, {}, () => 0, FULL_SHAPE) : {}), [base]);
 
   // Two separate questions, and conflating them is what left this screen
   // empty. The picker dispatches `baseChosen` and then navigates, and
@@ -118,7 +119,8 @@ export function Suggestions() {
   useEffect(() => {
     if (!base) return;
     if (!baseMatches) dispatch({ type: 'baseChosen', slot: base.slot, hex: base.hex });
-    if (!baseMatches || !hasPicks) dispatch({ type: 'picksReplaced', picks: seed });
+    if (!baseMatches || !hasPicks)
+      dispatch({ type: 'outfitSeeded', shape: FULL_SHAPE, picks: seed });
   }, [base, baseMatches, hasPicks, seed, dispatch]);
 
   const announce = useAnnounce();
@@ -160,7 +162,7 @@ export function Suggestions() {
       return;
     }
 
-    const next = composeOutfit(base, fixed, Math.random);
+    const next = composeOutfit(base, fixed, Math.random, FULL_SHAPE);
     dispatch({ type: 'picksReplaced', picks: next });
     setShuffling(true);
     // Cleared on a timer rather than a transitionend, which does not fire when

@@ -1,6 +1,7 @@
 import { SLOTS, type Outfit, type Slot } from '../../model/types';
 import { composeOutfit, locate } from '../../session/select';
 import type { Base, SlotPick } from '../../session/types';
+import { FULL_SHAPE } from '../../model/shape';
 
 /**
  * What `outfitLoaded` needs to put a saved outfit back on the suggestions
@@ -23,5 +24,5 @@ export function openOutfit(outfit: Outfit): {
     const position = locate(base, slot, hex);
     loaded[slot] = position ? { hex, cursor: position.cursor } : { hex };
   }
-  return { base, picks: composeOutfit(base, loaded, () => 0) };
+  return { base, picks: composeOutfit(base, loaded, () => 0, FULL_SHAPE) };
 }

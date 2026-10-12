@@ -4,8 +4,9 @@ import { composeOutfit } from '../../session/select';
 import { buildOutfit } from './buildOutfit';
 import { sameOutfit } from './matching';
 import { NAVY_BOTTOM } from './testing';
+import { FULL_SHAPE } from '../../model/shape';
 
-const picks = composeOutfit(NAVY_BOTTOM, {}, () => 0);
+const picks = composeOutfit(NAVY_BOTTOM, {}, () => 0, FULL_SHAPE);
 const saved = buildOutfit(NAVY_BOTTOM, picks, 'x', new Date());
 
 describe('sameOutfit', () => {

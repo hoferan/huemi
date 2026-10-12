@@ -11,9 +11,10 @@ import { buildOutfit } from '../saved/buildOutfit';
 import { OutfitsProvider } from '../saved/OutfitsProvider';
 import { fakeOutfitStore, NAVY_BOTTOM, type FakeOutfitStore } from '../saved/testing';
 import { Suggestions } from './Suggestions';
+import { FULL_SHAPE } from '../../model/shape';
 
 const URL = '/suggest?slot=bottom&hex=%231f2a44';
-const SEED = composeOutfit(NAVY_BOTTOM, {}, () => 0);
+const SEED = composeOutfit(NAVY_BOTTOM, {}, () => 0, FULL_SHAPE);
 
 /** The toast is rendered by the shell, which a feature test may not import. */
 function ToastText() {
