@@ -19,10 +19,12 @@ import { Sheet } from '../../ui/Sheet';
 import { SuggestionBlock } from '../../ui/SuggestionBlock';
 import { useAnnounce } from '../../ui/useAnnounce';
 import { Alternatives } from './Alternatives';
+import { PIECES } from './copy';
+import { PiecesSheet } from './PiecesSheet';
 import { SaveToggle } from './SaveToggle';
 import { useBaseParam } from './useBaseParam';
 import { clearOfToasts } from '../../ui/toastClearance';
-import { FULL_SHAPE, isWorn, shapeFor, wornSlots } from '../../model/shape';
+import { FULL_SHAPE, isWorn, shapeFor, wornSlots, type OptionalSlot } from '../../model/shape';
 import { localPieces } from '../../storage/localPieces';
 
 // The crossfade is CSS and the flag that triggers it is a timer, so one of the
@@ -65,7 +67,7 @@ const styles = stylex.create({
     backgroundColor: tokens.bg,
   },
   hint: { margin: 0, flexGrow: 1, fontSize: '0.875rem', color: tokens.ink2 },
-  shuffle: {
+  pill: {
     display: 'inline-flex',
     alignItems: 'center',
     gap: '8px',
@@ -99,7 +101,7 @@ export function Suggestions() {
 
   // Read during the first render, so the first outfit drawn already leaves out
   // what the person left out last time. Only this screen's sheet changes it.
-  const [preference] = useState(() => localPieces.read());
+  const [preference, setPreference] = useState(() => localPieces.read());
 
   // Two separate questions, and conflating them is what left this screen
   // empty. The picker dispatches `baseChosen` and then navigates, and
@@ -138,6 +140,7 @@ export function Suggestions() {
   // the shuffle duration rather than the single-block one.
   const [shuffling, setShuffling] = useState(false);
   const [openFor, setOpenFor] = useState<Slot | null>(null);
+  const [piecesOpen, setPiecesOpen] = useState(false);
 
   // A base that cannot be rebuilt from the URL cannot be told apart from never
   // having picked one, so there is no error state to render (ADR 0011).
@@ -185,6 +188,29 @@ export function Suggestions() {
     // rather than saying "Shuffled", so an outfit that came back the same
     // reads as the same.
     announce(free.map((slot) => `${SLOT_LABELS[slot]} ${colorName(next[slot]!.hex)}`).join(', '));
+  }
+
+  // A piece switched off goes and the rest stay exactly as they are; one
+  // switched on is filled with everything on screen held, so the outfit the
+  // person was looking at survives either way. Only the switched piece is
+  // remembered, so a base that forces a piece on never reaches storage.
+  function changeWorn(slot: OptionalSlot, worn: boolean) {
+    if (!base) return;
+    const next = { ...shape, [slot]: worn };
+    const added: Partial<Record<Slot, SlotPick>> = {};
+    if (worn) {
+      const held: Partial<Record<Slot, SlotPick>> = {};
+      for (const other of wornSlots(shape)) {
+        const pick = picks[other];
+        if (pick && other !== base.slot) held[other] = pick;
+      }
+      const filled = composeOutfit(base, held, () => 0, next)[slot];
+      if (filled) added[slot] = filled;
+    }
+    dispatch({ type: 'shapeChanged', shape: next, picks: added });
+    const remembered = { ...preference, [slot]: worn };
+    localPieces.write(remembered);
+    setPreference(remembered);
   }
 
   const anyKept = SLOTS.some((slot) => state.locked[slot]);
@@ -242,11 +268,23 @@ export function Suggestions() {
             ? 'Kept pieces stay when you shuffle.'
             : 'Swipe a block, or hold one to keep it.'}
         </p>
-        <button type="button" onClick={shuffle} {...stylex.props(styles.shuffle)}>
+        <button type="button" onClick={() => setPiecesOpen(true)} {...stylex.props(styles.pill)}>
+          {PIECES}
+        </button>
+        <button type="button" onClick={shuffle} {...stylex.props(styles.pill)}>
           <ShuffleIcon size={16} aria-hidden="true" />
           {anyKept ? 'Shuffle the rest' : 'Shuffle'}
         </button>
       </div>
+      {piecesOpen && (
+        <PiecesSheet
+          open
+          onOpenChange={(next) => !next && setPiecesOpen(false)}
+          shape={shape}
+          baseSlot={base.slot}
+          onWornChange={changeWorn}
+        />
+      )}
       {openFor !== null && picks[openFor] && (
         <Sheet
           open

@@ -2,7 +2,7 @@ import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useEffect, type ReactNode } from 'react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { colorName } from '../../color/palette';
 import type { Hex } from '../../model/hex';
 import { advance, composeOutfit } from '../../session/select';
@@ -416,5 +416,94 @@ describe('Suggestions with pieces left out', () => {
     );
     expect(screen.getAllByRole('group')).toHaveLength(4);
     expect(screen.getByRole('group', { name: /^Outerwear:/ })).toHaveAccessibleName(/Grey/);
+  });
+});
+
+describe('the Pieces sheet', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    localStorage.clear();
+  });
+
+  const hexOf = (slot: string) => screen.getByRole('group', { name: new RegExp(`^${slot}:`) });
+  const stored = () => JSON.parse(localStorage.getItem(PIECES_KEY) ?? 'null') as unknown;
+
+  async function openPieces() {
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: 'Pieces' }));
+    return user;
+  }
+
+  it('opens from the footer beside Shuffle and gives focus back when it closes', async () => {
+    await at(TOP);
+    const button = screen.getByRole('button', { name: 'Pieces' });
+    expect(button.parentElement).toBe(
+      screen.getByRole('button', { name: 'Shuffle' }).parentElement,
+    );
+    const user = await openPieces();
+    expect(screen.getByRole('dialog', { name: 'Pieces' })).toBeInTheDocument();
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(button).toHaveFocus();
+  });
+
+  it('takes a piece off the screen and leaves the others as they were', async () => {
+    await at(TOP);
+    const before = ['Outerwear', 'Bottom', 'Shoes'].map((slot) =>
+      hexOf(slot).getAttribute('aria-label'),
+    );
+    const user = await openPieces();
+    await user.click(screen.getByRole('switch', { name: 'Accessory' }));
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('group', { name: /^Accessory:/ })).not.toBeInTheDocument();
+    const after = ['Outerwear', 'Bottom', 'Shoes'].map((slot) =>
+      hexOf(slot).getAttribute('aria-label'),
+    );
+    expect(after).toEqual(before);
+  });
+
+  it('brings a kept piece back unkept', async () => {
+    await at(TOP);
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: 'Keep Accessory' }));
+    await user.click(screen.getByRole('button', { name: 'Pieces' }));
+    await user.click(screen.getByRole('switch', { name: 'Accessory' }));
+    await user.click(screen.getByRole('switch', { name: 'Accessory' }));
+    await user.keyboard('{Escape}');
+    expect(hexOf('Accessory')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Keep Accessory' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
+  });
+
+  it('remembers a piece switched off', async () => {
+    await at(TOP);
+    const user = await openPieces();
+    await user.click(screen.getByRole('switch', { name: 'Accessory' }));
+    expect(stored()).toEqual({ outerwear: true, accessory: false });
+  });
+
+  it('keeps what is remembered for the piece the base fixes', async () => {
+    localStorage.setItem(PIECES_KEY, JSON.stringify({ outerwear: false, accessory: true }));
+    await at('/suggest?slot=outerwear&hex=%238a8a8a');
+    const user = await openPieces();
+    await user.click(screen.getByRole('switch', { name: 'Accessory' }));
+    expect(stored()).toEqual({ outerwear: false, accessory: false });
+  });
+
+  it('still takes the piece away when storage refuses the write', async () => {
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new DOMException('full', 'QuotaExceededError');
+    });
+    await at(TOP);
+    const user = await openPieces();
+    await user.click(screen.getByRole('switch', { name: 'Accessory' }));
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('group', { name: /^Accessory:/ })).not.toBeInTheDocument();
   });
 });

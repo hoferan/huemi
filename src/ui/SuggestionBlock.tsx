@@ -108,7 +108,7 @@ export function SuggestionBlock({
   // and so that the position is announced at all. Leaving the position to the
   // text does not work: an aria-label replaces a button's contents for naming,
   // so a screen reader reading this button reads the name and never the span
-  // holding "2 of 5". The slot stays in the name because five blocks share one
+  // holding "2 of 5". The slot stays in the name because up to five blocks share one
   // screen and a list of buttons has to stay distinguishable. An unknown
   // position drops out of the name rather than leaving an empty segment.
   const fieldName = [label, name, position, 'other options']

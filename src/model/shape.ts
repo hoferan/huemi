@@ -15,7 +15,7 @@ export type Shape = { outerwear: boolean; accessory: boolean };
 
 export const FULL_SHAPE: Shape = Object.freeze({ outerwear: true, accessory: true });
 
-const isOptional = (slot: Slot): slot is OptionalSlot =>
+export const isOptional = (slot: Slot): slot is OptionalSlot =>
   (OPTIONAL_SLOTS as readonly Slot[]).includes(slot);
 
 export function isWorn(shape: Shape, slot: Slot): boolean {
