@@ -8,6 +8,7 @@ import { ROUTES } from './routes';
 import { seedOnboarded } from './seedOnboarded';
 import { fakeCamera } from './fakeCamera';
 import { seedOutfit } from './seedOutfit';
+import { hitTargets } from './hitTargets';
 
 // Every route here is visited with onboarding already marked seen, so `/`
 // renders the entry screen it is listed for rather than redirecting to
@@ -141,7 +142,7 @@ function sweep(devMode: boolean): void {
       page,
     }) => {
       await visit(page, route, devMode);
-      const controls = await page.getByRole('link').or(page.getByRole('button')).all();
+      const controls = await hitTargets(page).all();
       expect(controls.length).toBeGreaterThan(0);
       for (const control of controls) {
         const box = await control.boundingBox();

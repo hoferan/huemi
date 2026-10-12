@@ -104,3 +104,18 @@ Feature: Suggestions
     When I open the picker for the top
     And I choose the swatch "Mustard"
     Then I see 4 blocks
+
+  Scenario: A piece switched off is still visibly a switch
+    When I open the suggestions for a mustard top
+    And I press "Pieces"
+    And I switch off "Accessory"
+    Then the "Accessory" switch stands out from the sheet at 3:1
+
+  # Pieces and Shuffle share the footer with the hint, and at large text on a
+  # 320px phone the three no longer fit on one line.
+  Scenario: The footer fits a narrow phone at large text
+    When I open the suggestions for a mustard top
+    And my text is at 200%
+    Then the page does not scroll sideways
+    When I press "Keep Shoes"
+    Then the page does not scroll sideways

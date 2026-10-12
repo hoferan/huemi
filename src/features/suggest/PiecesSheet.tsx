@@ -24,7 +24,7 @@ const styles = stylex.create({
   fixed: { display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' },
   always: { fontSize: '0.875rem', color: tokens.ink2 },
   note: { margin: 0, marginTop: '12px', fontSize: '0.875rem', color: tokens.ink2 },
-  // The switch is a button, so the 44px sweep measures it. The root is the
+  // The 44px check measures switches (e2e/hitTargets.ts), so the root is the
   // full target and the track inside it is only what is drawn.
   switch: {
     position: 'relative',
@@ -49,7 +49,9 @@ const styles = stylex.create({
     borderRadius: '999px',
     borderWidth: '1px',
     borderStyle: 'solid',
-    borderColor: tokens.line,
+    // ink2 rather than the hairline, because a switched-off switch is only its
+    // edge and its thumb, and both need 3:1 to stay findable (WCAG 1.4.11).
+    borderColor: tokens.ink2,
   },
   trackOn: { backgroundColor: tokens.ink },
   trackOff: { backgroundColor: tokens.surface },
@@ -60,11 +62,11 @@ const styles = stylex.create({
     width: '22px',
     height: '22px',
     borderRadius: '50%',
-    backgroundColor: tokens.darkFg,
     transitionProperty: 'transform',
     transitionDuration: tokens.colorFade,
   },
-  thumbOn: { transform: 'translateX(24px)' },
+  thumbOn: { transform: 'translateX(24px)', backgroundColor: tokens.darkFg },
+  thumbOff: { backgroundColor: tokens.ink2 },
 });
 
 /** The rows, head to toe. Top and bottom join with the dress (#136). */
@@ -124,7 +126,9 @@ export function PiecesSheet({
                   aria-hidden="true"
                   {...stylex.props(styles.track, worn ? styles.trackOn : styles.trackOff)}
                 />
-                <Switch.Thumb {...stylex.props(styles.thumb, worn && styles.thumbOn)} />
+                <Switch.Thumb
+                  {...stylex.props(styles.thumb, worn ? styles.thumbOn : styles.thumbOff)}
+                />
               </Switch.Root>
             </li>
           );

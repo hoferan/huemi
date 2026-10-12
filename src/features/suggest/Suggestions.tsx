@@ -61,12 +61,23 @@ const styles = stylex.create({
     position: 'sticky',
     bottom: 0,
     display: 'flex',
+    // The hint, Pieces and Shuffle fit one line on a phone at default text. At
+    // large text on a narrow one they do not, and wrapping drops the buttons
+    // under the hint rather than off the right edge of the screen.
+    flexWrap: 'wrap',
     alignItems: 'center',
     gap: '10px',
     paddingBlock: '8px',
     backgroundColor: tokens.bg,
   },
-  hint: { margin: 0, flexGrow: 1, fontSize: '0.875rem', color: tokens.ink2 },
+  hint: { margin: 0, flex: '1 1 5rem', fontSize: '0.875rem', color: tokens.ink2 },
+  actions: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    justifyContent: 'flex-end',
+    gap: '10px',
+    marginInlineStart: 'auto',
+  },
   pill: {
     display: 'inline-flex',
     alignItems: 'center',
@@ -81,6 +92,7 @@ const styles = stylex.create({
     color: tokens.ink,
     font: 'inherit',
     fontSize: '0.875rem',
+    whiteSpace: 'nowrap',
     cursor: 'pointer',
   },
 });
@@ -268,13 +280,15 @@ export function Suggestions() {
             ? 'Kept pieces stay when you shuffle.'
             : 'Swipe a block, or hold one to keep it.'}
         </p>
-        <button type="button" onClick={() => setPiecesOpen(true)} {...stylex.props(styles.pill)}>
-          {PIECES}
-        </button>
-        <button type="button" onClick={shuffle} {...stylex.props(styles.pill)}>
-          <ShuffleIcon size={16} aria-hidden="true" />
-          {anyKept ? 'Shuffle the rest' : 'Shuffle'}
-        </button>
+        <div {...stylex.props(styles.actions)}>
+          <button type="button" onClick={() => setPiecesOpen(true)} {...stylex.props(styles.pill)}>
+            {PIECES}
+          </button>
+          <button type="button" onClick={shuffle} {...stylex.props(styles.pill)}>
+            <ShuffleIcon size={16} aria-hidden="true" />
+            {anyKept ? 'Shuffle the rest' : 'Shuffle'}
+          </button>
+        </div>
       </div>
       {piecesOpen && (
         <PiecesSheet

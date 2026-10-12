@@ -2,6 +2,8 @@ import { expect } from '@playwright/test';
 import { createBdd } from 'playwright-bdd';
 import { hexToRgb } from './entry.steps';
 import { BLOCK_NAME } from './share.steps';
+import { contrastRatio } from '../../src/color/contrast';
+import { parseHex, type Hex } from '../../src/model/hex';
 
 const { Given, When, Then } = createBdd();
 
@@ -120,4 +122,56 @@ When('I switch off {string}', async ({ page }, name: string) => {
 
 Then('I see {int} blocks', async ({ page }, count: number) => {
   await expect(page.getByRole('group', { name: BLOCK_NAME })).toHaveCount(count);
+});
+
+// WCAG 1.4.11 asks 3:1 of what identifies a control and its state, and axe
+// does not measure it. Off is the state that matters: a switch the person
+// turned off has to stay findable to turn back on.
+Then('the {string} switch stands out from the sheet at 3:1', async ({ page }, name: string) => {
+  const colors = await page
+    .getByRole('dialog')
+    .getByRole('switch', { name })
+    .evaluate((control) => {
+      const opaque = (el: Element | null): string => {
+        for (let at = el; at; at = at.parentElement) {
+          const color = getComputedStyle(at).backgroundColor;
+          if (!/rgba\(.*, 0\)$/.test(color) && color !== 'transparent') return color;
+        }
+        return 'rgb(255, 255, 255)';
+      };
+      const [track, thumb] = [...control.children];
+      return {
+        sheet: opaque(control.parentElement),
+        edge: getComputedStyle(track!).borderTopColor,
+        track: getComputedStyle(track!).backgroundColor,
+        thumb: getComputedStyle(thumb!).backgroundColor,
+      };
+    });
+  const sheet = solid(colors.sheet, '#ffffff');
+  const track = solid(colors.track, sheet);
+  expect(contrastRatio(solid(colors.edge, sheet), sheet)).toBeGreaterThanOrEqual(3);
+  expect(contrastRatio(solid(colors.thumb, track), track)).toBeGreaterThanOrEqual(3);
+});
+
+/** A computed `rgb()` or `rgba()` color, laid over `under` and written as a hex. */
+function solid(css: string, under: string): Hex {
+  const [r, g, b, a = 1] = css.match(/[\d.]+/g)!.map(Number);
+  const base = parseHex(under);
+  const below = [1, 3, 5].map((i) => Number.parseInt(base.slice(i, i + 2), 16));
+  const mixed = [r!, g!, b!].map((c, i) => Math.round(c * a + below[i]! * (1 - a)));
+  return parseHex(`#${mixed.map((c) => c.toString(16).padStart(2, '0')).join('')}`);
+}
+
+// The route sweep scrolls nothing sideways at default text and checks 200%
+// text only for clipping, so a footer that grows past a narrow phone at large
+// text passes both. This puts the two together where the footer is busiest.
+When('my text is at 200%', async ({ page }) => {
+  await page.addStyleTag({ content: ':root { font-size: 32px }' });
+});
+
+Then('the page does not scroll sideways', async ({ page }) => {
+  const overflows = await page.evaluate(
+    () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
+  );
+  expect(overflows).toBe(false);
 });
