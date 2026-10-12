@@ -202,7 +202,8 @@ describe('Saved back arrow', () => {
 
 /**
  * A stand-in IntersectionObserver, which jsdom lacks. `show` reports an
- * element as on screen to whichever observer watches it.
+ * element as on screen to whichever observer watches it, and `watches` says
+ * whether any observer does yet.
  */
 function watchVisibility() {
   const watched = new Map<Element, IntersectionObserverCallback>();
@@ -217,6 +218,9 @@ function watchVisibility() {
   const original = Reflect.get(window, 'IntersectionObserver') as unknown;
   Reflect.set(window, 'IntersectionObserver', FakeObserver);
   return {
+    watches(element: Element) {
+      return watched.has(element);
+    },
     show(element: Element) {
       const callback = watched.get(element);
       callback?.(
@@ -264,8 +268,12 @@ describe('Saved: sharing', () => {
     const screenWatch = watchVisibility();
     setup(fakeOutfitStore([NAVY, MUSTARD]), port);
     const share = await screen.findByRole('button', { name: 'Share Mustard top' });
+    const card = share.closest('li')!;
+    // The card starts watching in an effect, which can run after findByRole
+    // returns. Until it has, showing the card reaches no observer.
+    await waitFor(() => expect(screenWatch.watches(card)).toBe(true));
 
-    act(() => screenWatch.show(share.closest('li')!));
+    act(() => screenWatch.show(card));
 
     await waitFor(() => expect(port.calls.render).toHaveLength(1));
     expect(port.calls.render[0]).toContainEqual(
