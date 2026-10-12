@@ -1,5 +1,6 @@
 import type { FieldCapture, FieldGarment } from '../model/field';
 import type { Pixels } from '../model/frame';
+import type { Shape } from '../model/shape';
 import type { Outfit } from '../model/types';
 
 /**
@@ -40,6 +41,16 @@ export interface PreferenceStore {
 export interface DevModeStore {
   isOn(): boolean;
   setOn(on: boolean): void;
+}
+
+/**
+ * The optional pieces a person leaves out. Synchronous like DevModeStore,
+ * because the suggestions screen reads it during its first render, so the
+ * first outfit drawn already has the right pieces.
+ */
+export interface PiecesStore {
+  read(): Shape;
+  write(shape: Shape): void;
 }
 
 /**
