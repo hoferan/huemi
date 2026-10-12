@@ -4,7 +4,8 @@
 //   npm run --silent devmode:hash
 //
 // The passphrase is read from stdin, never from an argument, so it stays out
-// of the shell history and the process list. A pipe works too, for a script
+// of the shell history and the process list. The prompt turns the terminal's
+// echo off, so it stays off the screen too. A pipe works as well, for a script
 // that already holds the passphrase:
 //
 //   printf '%s\n' "$PASSPHRASE" | npm run --silent devmode:hash
@@ -15,21 +16,17 @@
 //
 // The salt and the round count repeat DEV_HASH_SALT and DEV_HASH_ITERATIONS
 // from src/features/dev/passphrase.ts, which this script does not import. If
-// they drift, the hash it prints never unlocks.
+// they drift, the hash it prints never unlocks, and devmode-hash.test.mjs
+// fails, since it holds the output to the hash the e2e build unlocks with.
 import { pbkdf2Sync } from 'node:crypto';
 import process from 'node:process';
-import { createInterface } from 'node:readline';
+import { readPassphrase } from './readPassphrase.mjs';
 
 const SALT = 'huemi-dev:';
 const ITERATIONS = 600_000;
 
-// To stderr, so the only thing on stdout is the hash.
-if (process.stdin.isTTY) process.stderr.write('Passphrase: ');
-
-let passphrase = '';
-for await (const line of createInterface({ input: process.stdin, crlfDelay: Infinity })) {
-  passphrase = line;
-  break;
-}
+const passphrase = await readPassphrase(process.stdin, process.stderr);
+// Ctrl-C at the prompt: no hash, and the exit code a shell gives an interrupt.
+if (passphrase === null) process.exit(130);
 
 process.stdout.write(`${pbkdf2Sync(passphrase, SALT, ITERATIONS, 32, 'sha256').toString('hex')}\n`);
