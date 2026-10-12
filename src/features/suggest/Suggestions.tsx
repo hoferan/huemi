@@ -22,7 +22,8 @@ import { Alternatives } from './Alternatives';
 import { SaveToggle } from './SaveToggle';
 import { useBaseParam } from './useBaseParam';
 import { clearOfToasts } from '../../ui/toastClearance';
-import { FULL_SHAPE } from '../../model/shape';
+import { FULL_SHAPE, isWorn, shapeFor, wornSlots } from '../../model/shape';
+import { localPieces } from '../../storage/localPieces';
 
 // The crossfade is CSS and the flag that triggers it is a timer, so one of the
 // two has to be a number. It is derived rather than restated: `durations` is a
@@ -96,32 +97,41 @@ export function Suggestions() {
   const base = useBaseParam();
   const { state, dispatch } = useSession();
 
+  // Read during the first render, so the first outfit drawn already leaves out
+  // what the person left out last time. Only this screen's sheet changes it.
+  const [preference] = useState(() => localPieces.read());
+
+  // Two separate questions, and conflating them is what left this screen
+  // empty. The picker dispatches `baseChosen` and then navigates, and
+  // `baseChosen` resets the picks and the shape, so the session arrives here
+  // already agreeing with the URL and holding nothing. Asking only whether the
+  // base agrees read that as settled, skipped the seed, and rendered one block.
+  //
+  // The shape is what stops the seed running on every mount. It is set only
+  // when an outfit is seeded or loaded, so a user who advanced a slot and came
+  // back from a later screen finds their choices, and a reopened saved outfit
+  // stays as it was saved, not a fresh outfit over the top of either.
+  const baseMatches =
+    base !== null && state.base?.slot === base.slot && state.base.hex === base.hex;
+  const ready = baseMatches && state.shape !== null;
+  const fresh = useMemo(
+    () => (base ? shapeFor(base.slot, preference) : FULL_SHAPE),
+    [base, preference],
+  );
+  const shape = ready && state.shape ? state.shape : fresh;
+
   // Computed during render as well as dispatched from the effect, because the
   // first paint happens before the effect runs and the blocks need colours
   // then. Safe only because the seed is deterministic: this is the same outfit
   // the dispatch below is about to put in the session, not a placeholder.
-  const seed = useMemo(() => (base ? composeOutfit(base, {}, () => 0, FULL_SHAPE) : {}), [base]);
-
-  // Two separate questions, and conflating them is what left this screen
-  // empty. The picker dispatches `baseChosen` and then navigates, and
-  // `baseChosen` resets the picks, so the session arrives here already
-  // agreeing with the URL and holding nothing. Asking only whether the base
-  // agrees read that as settled, skipped the seed, and rendered one block.
-  //
-  // `hasPicks` is also what stops the seed running on every mount: a user who
-  // advanced a slot and came back from a later screen must find their choices,
-  // not a fresh outfit over the top of them.
-  const baseMatches =
-    base !== null && state.base?.slot === base.slot && state.base.hex === base.hex;
-  const hasPicks = base !== null && SLOTS.some((slot) => slot !== base.slot && state.picks[slot]);
-  const picks = baseMatches && hasPicks ? state.picks : seed;
+  const seed = useMemo(() => (base ? composeOutfit(base, {}, () => 0, fresh) : {}), [base, fresh]);
+  const picks = ready ? state.picks : seed;
 
   useEffect(() => {
     if (!base) return;
     if (!baseMatches) dispatch({ type: 'baseChosen', slot: base.slot, hex: base.hex });
-    if (!baseMatches || !hasPicks)
-      dispatch({ type: 'outfitSeeded', shape: FULL_SHAPE, picks: seed });
-  }, [base, baseMatches, hasPicks, seed, dispatch]);
+    if (!ready) dispatch({ type: 'outfitSeeded', shape: fresh, picks: seed });
+  }, [base, baseMatches, ready, fresh, seed, dispatch]);
 
   const announce = useAnnounce();
   // Set for one shuffle's worth of time so the blocks crossfade together at
@@ -156,13 +166,13 @@ export function Suggestions() {
       if (pick && state.locked[slot]) fixed[slot] = pick;
     }
 
-    const free = SLOTS.filter((slot) => slot !== base.slot && !state.locked[slot]);
+    const free = wornSlots(shape).filter((slot) => slot !== base.slot && !state.locked[slot]);
     if (free.length === 0) {
       announce('Nothing to shuffle — every piece is kept.');
       return;
     }
 
-    const next = composeOutfit(base, fixed, Math.random, FULL_SHAPE);
+    const next = composeOutfit(base, fixed, Math.random, shape);
     dispatch({ type: 'picksReplaced', picks: next });
     setShuffling(true);
     // Cleared on a timer rather than a transitionend, which does not fire when
@@ -204,7 +214,7 @@ export function Suggestions() {
               />
             );
           }
-          if (!pick) return null;
+          if (!pick || !isWorn(shape, slot)) return null;
           const count = advance(base, slot, pick.cursor ?? 0, 0).count;
           return (
             <SuggestionBlock

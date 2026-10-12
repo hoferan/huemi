@@ -2,7 +2,7 @@ import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useEffect, type ReactNode } from 'react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router';
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { colorName } from '../../color/palette';
 import type { Hex } from '../../model/hex';
 import { advance, composeOutfit } from '../../session/select';
@@ -17,6 +17,7 @@ import { fakeSharePort, type FakeSharePort } from '../share/fakeShare.testing';
 import { ShareContext } from '../share/ShareContext';
 import { Suggestions } from './Suggestions';
 import { FULL_SHAPE } from '../../model/shape';
+import { PIECES_KEY } from '../../storage/localPieces';
 
 function Where() {
   const { pathname } = useLocation();
@@ -149,7 +150,7 @@ describe('Suggestions', () => {
     await arrivingWith(
       [
         CHOSE_MUSTARD,
-        { type: 'picksReplaced', picks: seeded },
+        { type: 'outfitSeeded', shape: FULL_SHAPE, picks: seeded },
         { type: 'pickChanged', slot: 'shoes', hex: moved.hex, cursor: moved.cursor },
       ],
       (state) => state.picks.shoes?.hex === moved.hex,
@@ -359,5 +360,61 @@ describe('Suggestions back arrow', () => {
       'href',
       '/color?slot=top',
     );
+  });
+});
+
+describe('Suggestions with pieces left out', () => {
+  const NO_ACCESSORY = { outerwear: true, accessory: false };
+
+  beforeEach(() => {
+    localStorage.setItem(PIECES_KEY, JSON.stringify(NO_ACCESSORY));
+  });
+
+  afterEach(() => {
+    localStorage.clear();
+  });
+
+  it('leaves out a piece the person remembered leaving out', async () => {
+    await at(TOP);
+    expect(screen.getAllByRole('group')).toHaveLength(4);
+    expect(screen.queryByRole('group', { name: /^Accessory:/ })).not.toBeInTheDocument();
+  });
+
+  it('still shows the base when it is the piece left out', async () => {
+    await at('/suggest?slot=accessory&hex=%23b58a5a');
+    expect(screen.getByRole('group', { name: /^Accessory:/ })).toBeInTheDocument();
+    expect(screen.getAllByRole('group')).toHaveLength(5);
+  });
+
+  it('shuffles only the pieces worn', async () => {
+    const user = userEvent.setup();
+    await at(TOP);
+    await user.click(screen.getByRole('button', { name: /^Shuffle/ }));
+    const status = screen.getByRole('status');
+    expect(status).toHaveTextContent(/Outerwear/);
+    expect(status).not.toHaveTextContent(/Accessory/);
+  });
+
+  it('says why nothing happened when every worn piece is kept', async () => {
+    const user = userEvent.setup();
+    await at(TOP);
+    for (const label of ['Outerwear', 'Bottom', 'Shoes']) {
+      await user.click(screen.getByRole('button', { name: `Keep ${label}` }));
+    }
+    await user.click(screen.getByRole('button', { name: 'Shuffle the rest' }));
+    expect(screen.getByRole('status')).toHaveTextContent(/every piece is kept/i);
+  });
+
+  it('shows a loaded outfit as it was loaded', async () => {
+    const grey = '#8a8a8a' as Hex;
+    const picks = { ...composeOutfit(MUSTARD, {}, () => 0, FULL_SHAPE), outerwear: { hex: grey } };
+    delete picks.accessory;
+    await arrivingWith(
+      [{ type: 'outfitLoaded', base: MUSTARD, shape: NO_ACCESSORY, picks }],
+      (state) => state.shape !== null,
+      TOP,
+    );
+    expect(screen.getAllByRole('group')).toHaveLength(4);
+    expect(screen.getByRole('group', { name: /^Outerwear:/ })).toHaveAccessibleName(/Grey/);
   });
 });
