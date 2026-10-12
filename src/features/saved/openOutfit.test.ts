@@ -3,7 +3,6 @@ import { parseHex } from '../../model/hex';
 import { composeOutfit, locate } from '../../session/select';
 import { openOutfit } from './openOutfit';
 import { makeOutfit, NAVY_BOTTOM } from './testing';
-import { FULL_SHAPE } from '../../model/shape';
 
 describe('openOutfit', () => {
   it('gives back the base and each piece at its position in the list', () => {
@@ -24,8 +23,22 @@ describe('openOutfit', () => {
     expect(picks.top).toEqual({ hex: odd });
   });
 
-  it('fills a slot the outfit is missing with the usual starting suggestion', () => {
-    const { picks } = openOutfit(makeOutfit({ pieces: { bottom: NAVY_BOTTOM.hex } }));
-    expect(picks).toEqual(composeOutfit(NAVY_BOTTOM, {}, () => 0, FULL_SHAPE));
+  it('fills only the pieces an outfit cannot leave out', () => {
+    const { shape, picks } = openOutfit(makeOutfit({ pieces: { bottom: NAVY_BOTTOM.hex } }));
+    expect(shape).toEqual({ outerwear: false, accessory: false });
+    expect(Object.keys(picks).sort()).toEqual(['shoes', 'top']);
+    expect(picks).toEqual(composeOutfit(NAVY_BOTTOM, {}, () => 0, shape));
+  });
+
+  it('reopens without the accessory it was saved without', () => {
+    const full = makeOutfit();
+    const pieces = { ...full.pieces };
+    delete pieces.accessory;
+    const { shape, picks } = openOutfit(makeOutfit({ pieces }));
+    expect(shape).toEqual({ outerwear: true, accessory: false });
+    expect(picks.accessory).toBeUndefined();
+    for (const slot of ['outerwear', 'top', 'shoes'] as const) {
+      expect(picks[slot]?.hex).toBe(pieces[slot]);
+    }
   });
 });

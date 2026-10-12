@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router';
 import { describe, expect, it } from 'vitest';
 import { parseHex } from '../../model/hex';
+import { PIECES_KEY } from '../../storage/localPieces';
 import type { OutfitStore } from '../../storage/port';
 import { SessionProvider } from '../../session/SessionProvider';
 import { useSession } from '../../session/useSession';
@@ -152,11 +153,18 @@ describe('Saved', () => {
     );
   });
 
-  it('fills a slot the outfit is missing when it opens', async () => {
+  it('fills only the pieces an outfit cannot leave out when it opens', async () => {
     const user = setup(fakeOutfitStore([makeOutfit({ pieces: { bottom: NAVY_BOTTOM.hex } })]));
     await user.click(await screen.findByRole('button', { name: 'Navy bottom' }));
     const picks = JSON.parse(screen.getByTestId('picks').textContent ?? '') as object;
-    expect(Object.keys(picks).sort()).toEqual(['accessory', 'outerwear', 'shoes', 'top']);
+    expect(Object.keys(picks).sort()).toEqual(['shoes', 'top']);
+  });
+
+  it('leaves the remembered pieces alone when an outfit opens', async () => {
+    localStorage.clear();
+    const user = setup(fakeOutfitStore([makeOutfit({ pieces: { bottom: NAVY_BOTTOM.hex } })]));
+    await user.click(await screen.findByRole('button', { name: 'Navy bottom' }));
+    expect(localStorage.getItem(PIECES_KEY)).toBeNull();
   });
 
   it('deletes an outfit and offers Undo with focus', async () => {
