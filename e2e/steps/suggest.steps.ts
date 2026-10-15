@@ -3,11 +3,13 @@ import { createBdd } from 'playwright-bdd';
 import { hexToRgb } from './entry.steps';
 import { BLOCK_NAME } from './share.steps';
 import { contrastRatio } from '../../src/color/contrast';
+import { PALETTE } from '../../src/color/palette';
 import { parseHex, type Hex } from '../../src/model/hex';
 
 const { Given, When, Then } = createBdd();
 
 const MUSTARD_TOP = '/suggest?slot=top&hex=%23c39a3a';
+const TAN_SHOES = '/suggest?slot=shoes&hex=%23c9ad86';
 
 Given('I prefer reduced motion', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
@@ -19,6 +21,35 @@ When('I open the suggestions for a mustard top', async ({ page }) => {
   // the blocks arrive a tick later and a step that clicked Shuffle before then
   // would shuffle an outfit that was not there yet.
   await expect(page.getByRole('group', { name: /^Shoes:/ })).toBeVisible();
+});
+
+// Shoes, because a top, a bottom or a dress as the base settles the dress
+// choice and the Pieces sheet then offers no radios.
+When('I open the suggestions for tan shoes', async ({ page }) => {
+  await page.goto(TAN_SHOES);
+  await expect(page.getByRole('group', { name: /^Shoes:/ })).toBeVisible();
+});
+
+When('I choose the radio {string}', async ({ page }, name: string) => {
+  const radio = page.getByRole('dialog').getByRole('radio', { name, exact: true });
+  await radio.click();
+  await expect(radio).toBeChecked();
+});
+
+Then('I see no {string} block', async ({ page }, slot: string) => {
+  await expect(page.getByRole('group', { name: new RegExp(`^${slot}:`) })).toHaveCount(0);
+});
+
+// The composer picks the color, so the scenario cannot name it. The block
+// does, "Dress: Rust, 1 of 21", and the palette holds the hex for that name:
+// this asserts the rendered color is the one the block says it is.
+Then('the {string} block shows the color it names', async ({ page }, slot: string) => {
+  const block = page.getByRole('group', { name: new RegExp(`^${slot}: `) });
+  const label = (await block.getAttribute('aria-label'))!;
+  const name = label.slice(`${slot}: `.length).split(',')[0]!.trim();
+  const color = PALETTE.find((entry) => entry.name === name);
+  expect(color, `a palette color named ${name}`).toBeDefined();
+  await expect(block).toHaveCSS('background-color', hexToRgb(color!.hex));
 });
 
 // Fake timers, then a pause. Everything the shuffle crossfade can be measured
@@ -151,6 +182,29 @@ Then('the {string} switch stands out from the sheet at 3:1', async ({ page }, na
   const track = solid(colors.track, sheet);
   expect(contrastRatio(solid(colors.edge, sheet), sheet)).toBeGreaterThanOrEqual(3);
   expect(contrastRatio(solid(colors.thumb, track), track)).toBeGreaterThanOrEqual(3);
+});
+
+// The same 3:1 for a radio. Unchosen is the state that matters, for the
+// reason it is off for a switch: the ring is all there is to find it by.
+Then('the {string} radio stands out from the sheet at 3:1', async ({ page }, name: string) => {
+  const colors = await page
+    .getByRole('dialog')
+    .getByRole('radio', { name, exact: true })
+    .evaluate((control) => {
+      const opaque = (el: Element | null): string => {
+        for (let at = el; at; at = at.parentElement) {
+          const color = getComputedStyle(at).backgroundColor;
+          if (!/rgba\(.*, 0\)$/.test(color) && color !== 'transparent') return color;
+        }
+        return 'rgb(255, 255, 255)';
+      };
+      return {
+        sheet: opaque(control.parentElement),
+        ring: getComputedStyle(control.children[0]!).borderTopColor,
+      };
+    });
+  const sheet = solid(colors.sheet, '#ffffff');
+  expect(contrastRatio(solid(colors.ring, sheet), sheet)).toBeGreaterThanOrEqual(3);
 });
 
 /** A computed `rgb()` or `rgba()` color, laid over `under` and written as a hex. */

@@ -67,7 +67,7 @@ const ONE_PIXEL_PNG =
 When('I take a photo', async ({ page }) => {
   await expect(async () => {
     await page.getByRole('button', { name: 'Take photo', exact: true }).click();
-    await expect(page).toHaveURL(/\/confirm\?slot=top$/, { timeout: 500 });
+    await expect(page).toHaveURL(/\/confirm\?slot=\w+$/, { timeout: 500 });
   }).toPass();
 });
 

@@ -1,6 +1,7 @@
 # 0021. An outfit is the pieces you wear
 
-Status: Accepted, 2026-10-12. Amends ADR 0005 and ADR 0012.
+Status: Accepted, 2026-10-12. Amends ADR 0005 and ADR 0012. Amended 2026-10-15 for the
+dress (#136).
 
 ## Context
 
@@ -59,5 +60,33 @@ An outfit saved from a shared link or from a check, without outerwear or an
 accessory, used to reopen with those filled in. It now reopens without them. Outfits
 saved from the suggestions screen always had all five pieces, so they open as before.
 
-The dress (#136) joins the shape as a third choice, top and bottom or a dress, and
-amends this record when it does.
+## Amendment, 2026-10-15: the dress
+
+huemi had no dress. Someone who picked a dress as their top got a bottom in another
+color, because the composer never shows a color name twice.
+
+`dress` is now a slot, between the bottom and the shoes in `SLOTS`. Its area for the
+chroma budget is a top's plus a bottom's, so a saturated dress spends what the two of
+them would. The shape has a `dress` field, and `isWorn` reads it for all three slots:
+an outfit wears a top and a bottom, or a dress in their place. The composer, the
+session and every screen that follows the shape pick that up without code of their
+own.
+
+The Pieces sheet asks with two radios, "Top and bottom" and "Dress", in the row where
+those pieces sit. A top, a bottom or a dress as the base settles the answer, and the
+row then shows the settled value and why. Switching to a dress drops the top and the
+bottom along with their locks, and fills one dress with every other piece held.
+Switching back does the same the other way. `huemi.pieces` remembers the choice with
+the switches, and as with them only the sheet writes it. The product owner chose,
+from mocks, to remember it for the next outfit.
+
+huemi never writes a dress beside a top or a bottom. A stored outfit or a share link
+that has one is treated as unreadable, since showing it would show the body twice.
+Links already sent have no `dress` parameter and open as they did (ADR 0018). A build
+from before the dress ignores the parameter, so it opens a new link without the dress
+until its service worker updates, on the next load.
+
+Stored outfits keep `version: 1`, for the reason above: every outfit stored so far
+reads the same, and a bump would not change what an older build does.
+
+The outfit check has no dress yet. #137 adds one.

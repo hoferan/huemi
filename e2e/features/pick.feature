@@ -26,3 +26,13 @@ Feature: Picking a color
     Given I have seen the welcome screen
     And I open the garment choice
     Then the choices fill the screen, each at least 96 tall
+
+  Scenario: Starting from a dress
+    Given I have seen the welcome screen
+    And I open the garment choice
+    When I choose the slot "Dress"
+    And I choose the swatch "Navy"
+    Then the block "Dress" has background "#1f2a44"
+    And I see 4 blocks
+    And I see no "Top" block
+    And I see no "Bottom" block
