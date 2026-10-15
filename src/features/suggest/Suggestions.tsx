@@ -24,7 +24,7 @@ import { PiecesSheet } from './PiecesSheet';
 import { SaveToggle } from './SaveToggle';
 import { useBaseParam } from './useBaseParam';
 import { clearOfToasts } from '../../ui/toastClearance';
-import { FULL_SHAPE, isWorn, shapeFor, wornSlots, type OptionalSlot } from '../../model/shape';
+import { FULL_SHAPE, isWorn, shapeFor, wornSlots, type Shape } from '../../model/shape';
 import { localPieces } from '../../storage/localPieces';
 
 // The crossfade is CSS and the flag that triggers it is a timer, so one of the
@@ -202,25 +202,27 @@ export function Suggestions() {
     announce(free.map((slot) => `${SLOT_LABELS[slot]} ${colorName(next[slot]!.hex)}`).join(', '));
   }
 
-  // A piece switched off goes and the rest stay exactly as they are; one
-  // switched on is filled with everything on screen held, so the outfit the
-  // person was looking at survives either way. Only the switched piece is
-  // remembered, so a base that forces a piece on never reaches storage.
-  function changeWorn(slot: OptionalSlot, worn: boolean) {
+  // A piece that goes goes alone and the rest stay exactly as they are; a
+  // piece that comes is filled with everything on screen held, so the outfit
+  // the person was looking at survives either way. A dress for the top and
+  // the bottom, or back, is both at once. Only the choice made is remembered,
+  // so a base that forces a piece on never reaches storage.
+  function changeShape(change: Partial<Shape>) {
     if (!base) return;
-    const next = { ...shape, [slot]: worn };
+    const next = { ...shape, ...change };
+    const held: Partial<Record<Slot, SlotPick>> = {};
+    for (const slot of wornSlots(shape)) {
+      const pick = picks[slot];
+      if (pick && slot !== base.slot) held[slot] = pick;
+    }
+    const filled = composeOutfit(base, held, () => 0, next);
     const added: Partial<Record<Slot, SlotPick>> = {};
-    if (worn) {
-      const held: Partial<Record<Slot, SlotPick>> = {};
-      for (const other of wornSlots(shape)) {
-        const pick = picks[other];
-        if (pick && other !== base.slot) held[other] = pick;
-      }
-      const filled = composeOutfit(base, held, () => 0, next)[slot];
-      if (filled) added[slot] = filled;
+    for (const slot of wornSlots(next)) {
+      const pick = filled[slot];
+      if (pick && !isWorn(shape, slot)) added[slot] = pick;
     }
     dispatch({ type: 'shapeChanged', shape: next, picks: added });
-    const remembered = { ...preference, [slot]: worn };
+    const remembered = { ...preference, ...change };
     localPieces.write(remembered);
     setPreference(remembered);
   }
@@ -296,7 +298,8 @@ export function Suggestions() {
           onOpenChange={(next) => !next && setPiecesOpen(false)}
           shape={shape}
           baseSlot={base.slot}
-          onWornChange={changeWorn}
+          onWornChange={(slot, worn) => changeShape({ [slot]: worn })}
+          onDressChange={(dress) => changeShape({ dress })}
         />
       )}
       {openFor !== null && picks[openFor] && (

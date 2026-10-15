@@ -510,3 +510,103 @@ describe('the Pieces sheet', () => {
     expect(screen.queryByRole('group', { name: /^Accessory:/ })).not.toBeInTheDocument();
   });
 });
+
+describe('the dress', () => {
+  const SHOES = '/suggest?slot=shoes&hex=%23c9ad86';
+
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  afterEach(() => {
+    localStorage.clear();
+  });
+
+  const named = (slot: string) => screen.queryByRole('group', { name: new RegExp(`^${slot}:`) });
+  const stored = () => JSON.parse(localStorage.getItem(PIECES_KEY) ?? 'null') as unknown;
+
+  async function choose(label: 'Dress' | 'Top and bottom') {
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: 'Pieces' }));
+    await user.click(screen.getByRole('radio', { name: label }));
+    await user.keyboard('{Escape}');
+    return user;
+  }
+
+  it('replaces the top and the bottom with one dress and keeps the rest', async () => {
+    await at(SHOES);
+    const kept = ['Outerwear', 'Shoes', 'Accessory'].map((slot) =>
+      named(slot)!.getAttribute('aria-label'),
+    );
+    await choose('Dress');
+    expect(named('Top')).not.toBeInTheDocument();
+    expect(named('Bottom')).not.toBeInTheDocument();
+    expect(named('Dress')).toBeInTheDocument();
+    expect(screen.getAllByRole('group')).toHaveLength(4);
+    const after = ['Outerwear', 'Shoes', 'Accessory'].map((slot) =>
+      named(slot)!.getAttribute('aria-label'),
+    );
+    expect(after).toEqual(kept);
+  });
+
+  it('brings back a top and a bottom, unkept', async () => {
+    await at(SHOES);
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: 'Keep Top' }));
+    await choose('Dress');
+    await choose('Top and bottom');
+    expect(named('Dress')).not.toBeInTheDocument();
+    expect(named('Top')).toBeInTheDocument();
+    expect(named('Bottom')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Keep Top' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
+    await user.click(screen.getByRole('button', { name: /^Shuffle/ }));
+    expect(screen.getByRole('status')).toHaveTextContent(/Top .*Bottom/);
+  });
+
+  it('remembers the dress for the next outfit', async () => {
+    await at(SHOES);
+    await choose('Dress');
+    expect(stored()).toEqual({ outerwear: true, accessory: true, dress: true });
+  });
+
+  it('starts with a dress when one is remembered', async () => {
+    localStorage.setItem(PIECES_KEY, JSON.stringify({ dress: true }));
+    await at(SHOES);
+    expect(named('Dress')).toBeInTheDocument();
+    expect(named('Top')).not.toBeInTheDocument();
+  });
+
+  it('wears a top and a bottom around a top whatever is remembered, and keeps the memory', async () => {
+    localStorage.setItem(
+      PIECES_KEY,
+      JSON.stringify({ outerwear: true, accessory: true, dress: true }),
+    );
+    await at(TOP);
+    expect(named('Dress')).not.toBeInTheDocument();
+    expect(named('Bottom')).toBeInTheDocument();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: 'Pieces' }));
+    expect(screen.queryByRole('radio')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('switch', { name: 'Accessory' }));
+    expect(stored()).toEqual({ outerwear: true, accessory: false, dress: true });
+  });
+
+  it('starts from a dress as the base', async () => {
+    await at('/suggest?slot=dress&hex=%231f2a44');
+    expect(named('Dress')).toHaveAccessibleName(/^Dress: Navy/);
+    expect(named('Top')).not.toBeInTheDocument();
+    expect(named('Bottom')).not.toBeInTheDocument();
+    expect(screen.getAllByRole('group')).toHaveLength(4);
+  });
+
+  it('moves the dress to its next suggestion', async () => {
+    await at(SHOES);
+    const user = await choose('Dress');
+    const before = named('Dress')!.getAttribute('aria-label');
+    await user.click(within(named('Dress')!).getByRole('button', { name: /^Next/ }));
+    expect(named('Dress')!.getAttribute('aria-label')).not.toBe(before);
+  });
+});
