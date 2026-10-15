@@ -202,11 +202,11 @@ export function Suggestions() {
     announce(free.map((slot) => `${SLOT_LABELS[slot]} ${colorName(next[slot]!.hex)}`).join(', '));
   }
 
-  // A piece that goes goes alone and the rest stay exactly as they are; a
-  // piece that comes is filled with everything on screen held, so the outfit
-  // the person was looking at survives either way. A dress for the top and
-  // the bottom, or back, is both at once. Only the choice made is remembered,
-  // so a base that forces a piece on never reaches storage.
+  // Pieces the new shape leaves out go, and the rest stay exactly as they are.
+  // Pieces it adds are filled with everything on screen held, so the outfit
+  // the person was looking at survives either way. Trading the top and the
+  // bottom for a dress, or back, does both at once. Only the choice made is
+  // remembered, so a base that forces a piece on never reaches storage.
   function changeShape(change: Partial<Shape>) {
     if (!base) return;
     const next = { ...shape, ...change };
