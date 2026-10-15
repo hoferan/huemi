@@ -20,4 +20,14 @@ describe('shareText', () => {
   it('reads as a sentence with a single piece', () => {
     expect(shareText({ top: parseHex('#1f2a44') })).toBe('Navy top.');
   });
+
+  it('names a dress where the top and the bottom would be', () => {
+    expect(
+      shareText({
+        shoes: parseHex('#c9a57e'),
+        dress: parseHex('#1f2a44'),
+        outerwear: parseHex('#ffffff'),
+      }),
+    ).toBe(`${cap(lower('#ffffff'))} outerwear, navy dress, ${lower('#c9a57e')} shoes.`);
+  });
 });

@@ -51,6 +51,25 @@ describe('layoutShareImage', () => {
     expect(blocks(ops).map((block) => block.color)).toEqual([OUTFIT.top, OUTFIT.bottom]);
   });
 
+  // A dress block is as tall as any other (PO, 2026-10-15, from mocks).
+  it('draws a dress as one labelled block among equals', () => {
+    const ops = layoutShareImage(
+      {
+        pieces: { outerwear: OUTFIT.outerwear, dress: OUTFIT.bottom, shoes: OUTFIT.shoes },
+        baseSlot: 'dress',
+      },
+      charMeasure,
+    );
+
+    expect(blocks(ops).map((block) => block.color)).toEqual([
+      OUTFIT.outerwear,
+      OUTFIT.bottom,
+      OUTFIT.shoes,
+    ]);
+    expect(new Set(blocks(ops).map((block) => block.height)).size).toBe(1);
+    expect(texts(ops).map((text) => text.text)).toContain('DRESS · BASE');
+  });
+
   it('shares the height between blocks with 18 between them', () => {
     const five = blocks(layoutShareImage({ pieces: OUTFIT, baseSlot: 'bottom' }, charMeasure));
     const height = (1202 - 4 * 18) / 5;

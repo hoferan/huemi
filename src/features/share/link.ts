@@ -1,4 +1,5 @@
 import { parseHex, type Hex } from '../../model/hex';
+import { dressBesideSeparates } from '../../model/shape';
 import { SLOTS, type Slot } from '../../model/types';
 import type { ShareImageInput } from './layout';
 
@@ -30,7 +31,12 @@ export function shareLink(origin: string, { pieces, baseSlot }: ShareImageInput)
  * misrepresent what was sent, and that includes a hex cut to three digits.
  * Parameters it does not know, such as the
  * tracking ones apps append, are ignored, and a hex in capitals or with its
- * `#` still reads.
+ * `#` still reads. A dress beside a top or a bottom is not a link `shareLink`
+ * wrote, so it is rejected as well.
+ *
+ * Links written before the dress (#136) have no `dress` parameter and read
+ * as they always did. A build from before the dress ignores `dress` as a
+ * parameter it does not know, so it opens a new link without the dress.
  */
 export function parseShareLink(params: URLSearchParams): ShareImageInput | null {
   const pieces: Partial<Record<Slot, Hex>> = {};
@@ -43,7 +49,7 @@ export function parseShareLink(params: URLSearchParams): ShareImageInput | null 
     if (!/^[0-9a-f]{6}$/i.test(digits)) return null;
     pieces[slot] = parseHex(`#${digits}`);
   }
-  if (Object.keys(pieces).length === 0) return null;
+  if (Object.keys(pieces).length === 0 || dressBesideSeparates(pieces)) return null;
 
   const base = params.get('base');
   if (base === null) return { pieces, baseSlot: null };

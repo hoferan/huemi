@@ -73,6 +73,36 @@ describe('parseShareLink', () => {
     expect(read('base=top')).toBeNull();
   });
 
+  // ADR 0018: every link already sent keeps opening. None of them has a
+  // dress, and this is one of them, verbatim.
+  it('reads a link written before the dress as it always has', () => {
+    expect(
+      read('outerwear=b88a5c&top=c39a3a&bottom=1f2a44&shoes=c9a57e&accessory=6e1f2c&base=bottom'),
+    ).toEqual({
+      pieces: {
+        outerwear: parseHex('#b88a5c'),
+        top: MUSTARD,
+        bottom: NAVY,
+        shoes: parseHex('#c9a57e'),
+        accessory: parseHex('#6e1f2c'),
+      },
+      baseSlot: 'bottom',
+    });
+  });
+
+  it('carries a dress, and a dress base', () => {
+    const outfit: ShareImageInput = { pieces: { dress: MUSTARD, shoes: NAVY }, baseSlot: 'dress' };
+    const link = shareLink(ORIGIN, outfit);
+    expect(link).toBe(`${ORIGIN}/shared?dress=c39a3a&shoes=1f2a44&base=dress`);
+    expect(parseShareLink(new URL(link).searchParams)).toEqual(outfit);
+  });
+
+  // shareLink never writes one, so whatever wrote it was not huemi.
+  it('rejects a dress beside a top or a bottom', () => {
+    expect(read('dress=c39a3a&top=1f2a44')).toBeNull();
+    expect(read('dress=c39a3a&bottom=1f2a44&base=dress')).toBeNull();
+  });
+
   it('rejects a base with no piece in its slot', () => {
     expect(read('top=c39a3a&base=shoes')).toBeNull();
     expect(read('top=c39a3a&base=hat')).toBeNull();
