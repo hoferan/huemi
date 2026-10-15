@@ -87,7 +87,7 @@ describe('positionLabel', () => {
 describe('composeOutfit', () => {
   const base: Base = { slot: 'top', hex: parseHex('#c39a3a') };
   const tan = parseHex('#c9ad86');
-  const noAccessory = { outerwear: true, accessory: false };
+  const noAccessory = { outerwear: true, accessory: false, dress: false };
 
   it('fills only the pieces the shape wears', () => {
     const picks = composeOutfit(base, {}, () => 0, noAccessory);

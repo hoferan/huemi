@@ -192,7 +192,7 @@ describe('sessionReducer', () => {
     const base = { slot: 'top', hex: parseHex('#c39a3a') } as const;
     const grey = { hex: parseHex('#8a8a8a'), cursor: 0 };
     const camel = { hex: parseHex('#b58a5a'), cursor: 3 };
-    const noAccessory = { outerwear: true, accessory: false };
+    const noAccessory = { outerwear: true, accessory: false, dress: false };
 
     function full() {
       let state = sessionReducer(initialSession, { type: 'baseChosen', ...base });

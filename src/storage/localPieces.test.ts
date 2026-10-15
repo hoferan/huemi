@@ -17,7 +17,7 @@ describe('localPieces', () => {
 
   it('reads the pieces left out', () => {
     localStorage.setItem(PIECES_KEY, '{"outerwear":false,"accessory":true}');
-    expect(localPieces.read()).toEqual({ outerwear: false, accessory: true });
+    expect(localPieces.read()).toEqual({ outerwear: false, accessory: true, dress: false });
   });
 
   it('wears everything when the stored value is not JSON', () => {
@@ -37,15 +37,26 @@ describe('localPieces', () => {
     expect(localPieces.read()).toEqual(FULL_SHAPE);
   });
 
-  it('writes the two pieces and nothing else', () => {
-    localPieces.write({ outerwear: false, accessory: true });
-    expect(localStorage.getItem(PIECES_KEY)).toBe('{"outerwear":false,"accessory":true}');
+  it('wears a dress only for a literal true', () => {
+    localStorage.setItem(PIECES_KEY, '{"dress":true}');
+    expect(localPieces.read()).toEqual({ ...FULL_SHAPE, dress: true });
+    localStorage.setItem(PIECES_KEY, '{"dress":"yes"}');
+    expect(localPieces.read()).toEqual(FULL_SHAPE);
+  });
+
+  it('writes the three choices and nothing else', () => {
+    localPieces.write({ outerwear: false, accessory: true, dress: true });
+    expect(localStorage.getItem(PIECES_KEY)).toBe(
+      '{"outerwear":false,"accessory":true,"dress":true}',
+    );
   });
 
   it('drops a write that storage refuses', () => {
     vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
       throw new DOMException('full', 'QuotaExceededError');
     });
-    expect(() => localPieces.write({ outerwear: false, accessory: false })).not.toThrow();
+    expect(() =>
+      localPieces.write({ outerwear: false, accessory: false, dress: false }),
+    ).not.toThrow();
   });
 });

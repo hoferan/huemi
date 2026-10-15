@@ -364,7 +364,7 @@ describe('Suggestions back arrow', () => {
 });
 
 describe('Suggestions with pieces left out', () => {
-  const NO_ACCESSORY = { outerwear: true, accessory: false };
+  const NO_ACCESSORY = { outerwear: true, accessory: false, dress: false };
 
   beforeEach(() => {
     localStorage.setItem(PIECES_KEY, JSON.stringify(NO_ACCESSORY));
@@ -485,15 +485,18 @@ describe('the Pieces sheet', () => {
     await at(TOP);
     const user = await openPieces();
     await user.click(screen.getByRole('switch', { name: 'Accessory' }));
-    expect(stored()).toEqual({ outerwear: true, accessory: false });
+    expect(stored()).toEqual({ outerwear: true, accessory: false, dress: false });
   });
 
   it('keeps what is remembered for the piece the base fixes', async () => {
-    localStorage.setItem(PIECES_KEY, JSON.stringify({ outerwear: false, accessory: true }));
+    localStorage.setItem(
+      PIECES_KEY,
+      JSON.stringify({ outerwear: false, accessory: true, dress: false }),
+    );
     await at('/suggest?slot=outerwear&hex=%238a8a8a');
     const user = await openPieces();
     await user.click(screen.getByRole('switch', { name: 'Accessory' }));
-    expect(stored()).toEqual({ outerwear: false, accessory: false });
+    expect(stored()).toEqual({ outerwear: false, accessory: false, dress: false });
   });
 
   it('still takes the piece away when storage refuses the write', async () => {

@@ -217,7 +217,7 @@ function worn(pieces: Piece[]): WornPieces | null {
   const out: WornPieces = {};
   for (const piece of pieces) {
     const slot = piece.slot;
-    if (slot === 'accessory') continue;
+    if (slot === 'accessory' || slot === 'dress') continue;
     out[slot] ??= piece.hex;
   }
   return Object.keys(out).length >= 2 ? out : null;

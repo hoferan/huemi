@@ -25,6 +25,12 @@ describe('SLOT_AREA', () => {
     expect(SLOT_AREA.bottom).toBeGreaterThan(SLOT_AREA.shoes);
     expect(SLOT_AREA.shoes).toBeGreaterThan(SLOT_AREA.accessory);
   });
+
+  // A dress covers what a top and a bottom cover, so it spends the chroma
+  // budget the two of them would (#136).
+  it('gives a dress the area of a top and a bottom together', () => {
+    expect(SLOT_AREA.dress).toBe(SLOT_AREA.top + SLOT_AREA.bottom);
+  });
 });
 
 describe('lightnessContrast', () => {
@@ -93,7 +99,7 @@ describe('chromaLoad', () => {
   });
 
   it('accepts an override so the harness can sweep the weights', () => {
-    const flat = { outerwear: 1, top: 1, bottom: 1, shoes: 1, accessory: 1 };
+    const flat = { outerwear: 1, top: 1, bottom: 1, dress: 1, shoes: 1, accessory: 1 };
     expect(chromaLoad(pieces({ accessory: RUST }), flat)).toBe(
       chromaLoad(pieces({ outerwear: RUST }), flat),
     );

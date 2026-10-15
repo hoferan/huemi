@@ -25,7 +25,7 @@ describe('openOutfit', () => {
 
   it('fills only the pieces an outfit cannot leave out', () => {
     const { shape, picks } = openOutfit(makeOutfit({ pieces: { bottom: NAVY_BOTTOM.hex } }));
-    expect(shape).toEqual({ outerwear: false, accessory: false });
+    expect(shape).toEqual({ outerwear: false, accessory: false, dress: false });
     expect(Object.keys(picks).sort()).toEqual(['shoes', 'top']);
     expect(picks).toEqual(composeOutfit(NAVY_BOTTOM, {}, () => 0, shape));
   });
@@ -35,7 +35,7 @@ describe('openOutfit', () => {
     const pieces = { ...full.pieces };
     delete pieces.accessory;
     const { shape, picks } = openOutfit(makeOutfit({ pieces }));
-    expect(shape).toEqual({ outerwear: true, accessory: false });
+    expect(shape).toEqual({ outerwear: true, accessory: false, dress: false });
     expect(picks.accessory).toBeUndefined();
     for (const slot of ['outerwear', 'top', 'shoes'] as const) {
       expect(picks[slot]?.hex).toBe(pieces[slot]);

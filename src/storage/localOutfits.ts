@@ -1,4 +1,5 @@
 import { parseHex, type Hex } from '../model/hex';
+import { dressBesideSeparates } from '../model/shape';
 import { SLOTS, type Outfit, type Slot } from '../model/types';
 import type { OutfitList, OutfitStore, StorageResult } from './port';
 
@@ -34,7 +35,7 @@ function readHex(value: unknown): Hex | null {
  * Hexes go through `parseHex` rather than `isHex`, because storage is one of
  * the untrusted sources `hex.ts` names: a hand-edited `#1F2A44` is still navy.
  * A `createdAt` that does not parse is rejected here, since the list sorts on
- * it and the card prints it.
+ * it and the card prints it, and so is a dress beside a top or a bottom.
  */
 export function parseOutfit(value: unknown): Outfit | null {
   if (!isRecord(value)) return null;
@@ -51,7 +52,7 @@ export function parseOutfit(value: unknown): Outfit | null {
     if (!isSlot(slot) || hex === null) return null;
     parsed[slot] = hex;
   }
-  if (parsed[baseSlot] === undefined) return null;
+  if (parsed[baseSlot] === undefined || dressBesideSeparates(parsed)) return null;
 
   const outfit: Outfit = { version: 1, id, name, createdAt, baseSlot, pieces: parsed };
   if (note !== undefined) outfit.note = note;

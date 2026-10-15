@@ -6,7 +6,7 @@ import type { Slot } from '../../model/types';
 import { charMeasure } from './fakeShare.testing';
 import { IMAGE_FONTS, layoutShareImage, wrap, type DrawOp } from './layout';
 
-const OUTFIT: Record<Slot, Hex> = {
+const OUTFIT: Record<Exclude<Slot, 'dress'>, Hex> = {
   outerwear: parseHex('#b88a5c'),
   top: parseHex('#ffffff'),
   bottom: parseHex('#1f2a44'),

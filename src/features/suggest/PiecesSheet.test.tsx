@@ -36,7 +36,7 @@ describe('PiecesSheet', () => {
   });
 
   it('shows a piece left out as switched off', () => {
-    show({ outerwear: true, accessory: false }, 'top');
+    show({ outerwear: true, accessory: false, dress: false }, 'top');
     expect(screen.getByRole('switch', { name: 'Accessory' })).not.toBeChecked();
   });
 
