@@ -6,7 +6,7 @@ import type { Slot } from '../../model/types';
 import { charMeasure } from './fakeShare.testing';
 import { IMAGE_FONTS, layoutShareImage, wrap, type DrawOp } from './layout';
 
-const OUTFIT: Record<Slot, Hex> = {
+const OUTFIT: Record<Exclude<Slot, 'dress'>, Hex> = {
   outerwear: parseHex('#b88a5c'),
   top: parseHex('#ffffff'),
   bottom: parseHex('#1f2a44'),
@@ -49,6 +49,25 @@ describe('layoutShareImage', () => {
     );
 
     expect(blocks(ops).map((block) => block.color)).toEqual([OUTFIT.top, OUTFIT.bottom]);
+  });
+
+  // A dress block is as tall as any other (PO, 2026-10-15, from mocks).
+  it('draws a dress as one labelled block among equals', () => {
+    const ops = layoutShareImage(
+      {
+        pieces: { outerwear: OUTFIT.outerwear, dress: OUTFIT.bottom, shoes: OUTFIT.shoes },
+        baseSlot: 'dress',
+      },
+      charMeasure,
+    );
+
+    expect(blocks(ops).map((block) => block.color)).toEqual([
+      OUTFIT.outerwear,
+      OUTFIT.bottom,
+      OUTFIT.shoes,
+    ]);
+    expect(new Set(blocks(ops).map((block) => block.height)).size).toBe(1);
+    expect(texts(ops).map((text) => text.text)).toContain('DRESS · BASE');
   });
 
   it('shares the height between blocks with 18 between them', () => {

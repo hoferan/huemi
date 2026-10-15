@@ -44,6 +44,16 @@ Feature: Share
     And I share the outfit
     Then the share's link opens the same blocks
 
+  Scenario: The share links to a dress
+    Given my phone can share files
+    When I open the suggestions for tan shoes
+    And I press "Pieces"
+    And I choose the radio "Dress"
+    And I press "Close"
+    And I share the outfit
+    Then the shared text names every block on screen
+    And the share's link opens the same blocks
+
   Scenario: Closing the share sheet says nothing
     Given I will close the share sheet
     When I open the suggestions for a mustard top

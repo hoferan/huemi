@@ -31,6 +31,11 @@ import { temperature } from './classify';
  * The thresholds below are floors, not targets. They are set well under what
  * the shipped tuning scores so that ordinary retuning does not trip them, and
  * they exist to catch a change that puts the engine back below chance.
+ *
+ * Dresses, jumpsuits and rompers read as `dress` (#136). The three tests that
+ * settled the tuning run without them, so the numbers ADR 0010 and ADR 0014
+ * quote stay what they were, and the dress gets a section of its own that
+ * prints what the engine makes of outfits with one. Nothing was retuned for it.
  */
 const DIR = 'tmp/polyvore';
 const present = ['train', 'valid', 'test']
@@ -40,6 +45,15 @@ const present = ['train', 'valid', 'test']
 
 /** Polyvore category id to huemi slot. Non-garments are left out entirely. */
 const SLOT_OF: Readonly<Record<number, Slot>> = {
+  // Dresses, day and cocktail dresses, gowns and wedding dresses, then
+  // jumpsuits and rompers: one garment where a top and a bottom would be.
+  3: 'dress',
+  4: 'dress',
+  5: 'dress',
+  6: 'dress',
+  4516: 'dress',
+  243: 'dress',
+  244: 'dress',
   23: 'outerwear',
   24: 'outerwear',
   25: 'outerwear',
@@ -185,6 +199,11 @@ function index(): Map<string, Piece> {
   return map;
 }
 
+/** The index as it was before the dress, which the tuning was measured on. */
+function separates(items: Map<string, Piece>): Map<string, Piece> {
+  return new Map([...items].filter(([, piece]) => piece.slot !== 'dress'));
+}
+
 /** How a candidate scores against the pieces already in an outfit. */
 function against(context: Piece[], candidate: Piece): number | null {
   const usable = context.filter((c) => c.slot !== candidate.slot);
@@ -217,11 +236,120 @@ function worn(pieces: Piece[]): WornPieces | null {
   const out: WornPieces = {};
   for (const piece of pieces) {
     const slot = piece.slot;
-    if (slot === 'accessory') continue;
+    // The index has no dress here (`separates`), and the check has none yet (#137).
+    if (slot === 'accessory' || slot === 'dress') continue;
     out[slot] ??= piece.hex;
   }
   return Object.keys(out).length >= 2 ? out : null;
 }
+
+/**
+ * The share of human-labelled outfits over the chroma budget and mixing warm
+ * with cool, compatible against incompatible. `outfit` reads the pieces the
+ * way the caller wants them weighed.
+ */
+function colorAndTemperature(
+  items: Map<string, Piece>,
+  outfit: (pieces: Piece[]) => Partial<Record<Slot, Hex>> | null,
+) {
+  const rows = compatibility(items).flatMap(({ label, pieces }) => {
+    const worn = outfit(pieces);
+    if (!worn) return [];
+    const temperatures = Object.values(worn).map((hex) => temperature(hex));
+    return [
+      {
+        label,
+        colorful: chromaLoad(worn) > TUNING.chromaBudget,
+        mixes: temperatures.includes('warm') && temperatures.includes('cool'),
+      },
+    ];
+  });
+  const share = (label: number, key: 'colorful' | 'mixes') => {
+    const group = rows.filter((r) => r.label === label);
+    return group.filter((r) => r[key]).length / group.length;
+  };
+  return { rows, share };
+}
+
+/**
+ * The blank-filling benchmark over the questions `keep` accepts: how often the
+ * real item outscores the decoys, and the chance line coverage leaves.
+ */
+function fillInTheBlank(items: Map<string, Piece>, keep: (pieces: Piece[]) => boolean) {
+  const questions = JSON.parse(readFileSync(`${DIR}/fill_in_blank_test.json`, 'utf8')) as {
+    question: string[];
+    answers: string[];
+  }[];
+
+  let n = 0;
+  let correct = 0;
+  let chance = 0;
+  for (const q of questions) {
+    const context = q.question.map((id) => items.get(id)).filter((p): p is Piece => !!p);
+    const answer = items.get(q.answers[0]!);
+    if (context.length === 0 || !answer || !keep([...context, answer])) continue;
+
+    const scored: { option: number; score: number }[] = [];
+    q.answers.forEach((id, option) => {
+      const piece = items.get(id);
+      if (!piece) return;
+      const score = against(context, piece);
+      if (score !== null) scored.push({ option, score });
+    });
+    if (scored.length < 2 || !scored.some((x) => x.option === 0)) continue;
+
+    n += 1;
+    chance += 1 / scored.length;
+    // The true answer is always first; the rest are the benchmark's decoys.
+    const best = scored.reduce((a, b) => (b.score > a.score ? b : a));
+    if (best.option === 0) correct += 1;
+  }
+  return { n, correct, chance };
+}
+
+/**
+ * Compatibility AUC over the outfits `keep` accepts, each scored as the mean
+ * `rate` over its pairs of pieces in different slots.
+ */
+function compatibilityAuc(items: Map<string, Piece>, keep: (pieces: Piece[]) => boolean) {
+  const rows: { label: number; score: number }[] = [];
+
+  for (const { label, pieces } of compatibility(items)) {
+    if (!keep(pieces)) continue;
+    let total = 0;
+    let n = 0;
+    for (const a of pieces) {
+      for (const b of pieces) {
+        if (a === b || a.slot === b.slot) continue;
+        total += rate(a.hex, b.hex, b.slot, a.slot);
+        n += 1;
+      }
+    }
+    if (n > 0) rows.push({ label, score: total / n });
+  }
+
+  // AUC by rank: the chance a random compatible outfit outscores a random
+  // incompatible one.
+  rows.sort((a, b) => a.score - b.score);
+  const positives = rows.filter((r) => r.label === 1).length;
+  const negatives = rows.length - positives;
+  const rankSum = rows.reduce((sum, r, i) => (r.label === 1 ? sum + i + 1 : sum), 0);
+  const auc = (rankSum - (positives * (positives + 1)) / 2) / (positives * negatives);
+  return { rows: rows.length, positives, negatives, auc };
+}
+
+const everything = () => true;
+const hasDress = (pieces: Piece[]) => pieces.some((piece) => piece.slot === 'dress');
+
+/** An outfit with a dress as the composer weighs it: the first piece in each slot. */
+function dressed(pieces: Piece[]): Partial<Record<Slot, Hex>> | null {
+  if (!hasDress(pieces)) return null;
+  const out: Partial<Record<Slot, Hex>> = {};
+  for (const piece of pieces) out[piece.slot] ??= piece.hex;
+  return Object.keys(out).length >= 2 ? out : null;
+}
+
+const percent = (x: number) => `${(100 * x).toFixed(1)}%`;
 
 describe.skipIf(!present)('the engine against Polyvore', () => {
   // Why the outfit check describes and never flags (ADR 0014). In the
@@ -234,22 +362,7 @@ describe.skipIf(!present)('the engine against Polyvore', () => {
   // better reading of color ever reverses this, the test fails and the
   // describe-only decision is worth revisiting.
   it('finds no sign that color or warm against cool marks a bad outfit', () => {
-    const rows = compatibility(index()).flatMap(({ label, pieces }) => {
-      const outfit = worn(pieces);
-      if (!outfit) return [];
-      const temperatures = Object.values(outfit).map((hex) => temperature(hex));
-      return [
-        {
-          label,
-          colorful: chromaLoad(outfit) > TUNING.chromaBudget,
-          mixes: temperatures.includes('warm') && temperatures.includes('cool'),
-        },
-      ];
-    });
-    const share = (label: number, key: 'colorful' | 'mixes') => {
-      const group = rows.filter((r) => r.label === label);
-      return group.filter((r) => r[key]).length / group.length;
-    };
+    const { rows, share } = colorAndTemperature(separates(index()), worn);
 
     expect(rows.length).toBeGreaterThan(500);
     expect(share(1, 'colorful')).toBeGreaterThanOrEqual(share(0, 'colorful'));
@@ -257,34 +370,7 @@ describe.skipIf(!present)('the engine against Polyvore', () => {
   });
 
   it('picks the real item over the benchmark decoys more often than chance', () => {
-    const items = index();
-    const questions = JSON.parse(readFileSync(`${DIR}/fill_in_blank_test.json`, 'utf8')) as {
-      question: string[];
-      answers: string[];
-    }[];
-
-    let n = 0;
-    let correct = 0;
-    let chance = 0;
-    for (const q of questions) {
-      const context = q.question.map((id) => items.get(id)).filter((p): p is Piece => !!p);
-      if (context.length === 0 || !items.get(q.answers[0]!)) continue;
-
-      const scored: { option: number; score: number }[] = [];
-      q.answers.forEach((id, option) => {
-        const piece = items.get(id);
-        if (!piece) return;
-        const score = against(context, piece);
-        if (score !== null) scored.push({ option, score });
-      });
-      if (scored.length < 2 || !scored.some((x) => x.option === 0)) continue;
-
-      n += 1;
-      chance += 1 / scored.length;
-      // The true answer is always first; the rest are the benchmark's decoys.
-      const best = scored.reduce((a, b) => (b.score > a.score ? b : a));
-      if (best.option === 0) correct += 1;
-    }
+    const { n, correct, chance } = fillInTheBlank(separates(index()), everything);
 
     // 57.8% against a 47.5% chance line when this was written. The shipped ramp
     // scored 40.6%, below chance, which is what ADR 0010 set out to fix.
@@ -293,35 +379,38 @@ describe.skipIf(!present)('the engine against Polyvore', () => {
   });
 
   it('ranks human-labelled compatible outfits above incompatible ones', () => {
-    const items = index();
-    const rows: { label: number; score: number }[] = [];
-
-    for (const { label, pieces } of compatibility(items)) {
-      let total = 0;
-      let n = 0;
-      for (const a of pieces) {
-        for (const b of pieces) {
-          if (a === b || a.slot === b.slot) continue;
-          total += rate(a.hex, b.hex, b.slot, a.slot);
-          n += 1;
-        }
-      }
-      if (n > 0) rows.push({ label, score: total / n });
-    }
-
-    // AUC by rank: the chance a random compatible outfit outscores a random
-    // incompatible one.
-    rows.sort((a, b) => a.score - b.score);
-    const positives = rows.filter((r) => r.label === 1).length;
-    const negatives = rows.length - positives;
-    const rankSum = rows.reduce((sum, r, i) => (r.label === 1 ? sum + i + 1 : sum), 0);
-    const auc = (rankSum - (positives * (positives + 1)) / 2) / (positives * negatives);
+    const { rows, auc } = compatibilityAuc(separates(index()), everything);
 
     // 0.578 when this was written, against 0.398 for the shipped ramp. Zhang
     // and others reach 0.84 on this benchmark, with a model trained on three
     // K-means dominant colours per garment rather than thirteen constants read
     // off a colour word, so it is a reference point and not a target.
-    expect(rows.length).toBeGreaterThan(500);
+    expect(rows).toBeGreaterThan(500);
     expect(auc).toBeGreaterThan(0.5);
+  });
+
+  // The dress on its own (#136). Printed, not held to a floor: nothing was
+  // tuned on these outfits, and there are too few for a floor to mean much.
+  // They are here so whoever retunes can see what a change does to outfits
+  // with a dress before deciding whether to tune for them.
+  it('prints what it makes of outfits with a dress', () => {
+    const items = index();
+    const blank = fillInTheBlank(items, hasDress);
+    const auc = compatibilityAuc(items, hasDress);
+    const { rows, share } = colorAndTemperature(items, dressed);
+    const count = (label: number) => rows.filter((r) => r.label === label).length;
+
+    const lines = [
+      'Outfits with a dress',
+      `  fill in the blank  ${percent(blank.correct / blank.n)} against ${percent(blank.chance / blank.n)} by chance, on ${blank.n} questions`,
+      `  compatibility AUC  ${auc.auc.toFixed(3)}, on ${auc.positives} compatible and ${auc.negatives} incompatible`,
+      `  over the budget    ${percent(share(1, 'colorful'))} of compatible, ${percent(share(0, 'colorful'))} of incompatible`,
+      `  warm with cool     ${percent(share(1, 'mixes'))} of compatible, ${percent(share(0, 'mixes'))} of incompatible, on ${count(1)} and ${count(0)}`,
+    ];
+    console.log(`\n${lines.join('\n')}\n`);
+
+    expect(blank.n).toBeGreaterThan(0);
+    expect(auc.positives).toBeGreaterThan(0);
+    expect(auc.negatives).toBeGreaterThan(0);
   });
 });

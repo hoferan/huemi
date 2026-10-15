@@ -53,8 +53,27 @@ describe('parseOutfit', () => {
     ['a piece that is not a hex', { ...outfit(), pieces: { bottom: 'navy' } }],
     ['a piece that is not text', { ...outfit(), pieces: { bottom: 7 } }],
     ['no piece in the base slot', { ...outfit(), pieces: { top: '#e9dfc9' } }],
+    ['a dress beside a bottom', { ...outfit(), pieces: { bottom: '#1f2a44', dress: '#a4522d' } }],
+    [
+      'a dress beside a top',
+      { ...outfit(), pieces: { bottom: '#1f2a44', top: '#e9dfc9', dress: '#a4522d' } },
+    ],
   ])('rejects %s', (_, value) => {
     expect(parseOutfit(value)).toBeNull();
+  });
+});
+
+describe('parseOutfit with a dress', () => {
+  it('accepts a dress with the pieces worn around it', () => {
+    const dressed = {
+      ...outfit(),
+      baseSlot: 'dress',
+      pieces: { dress: '#a4522d', shoes: '#c9ad86' },
+    };
+    expect(parseOutfit(dressed)?.pieces).toEqual({
+      dress: parseHex('#a4522d'),
+      shoes: parseHex('#c9ad86'),
+    });
   });
 });
 

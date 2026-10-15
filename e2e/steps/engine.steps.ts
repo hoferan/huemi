@@ -18,7 +18,7 @@ Then(
     await expect(panel).toHaveCSS('color', hexToRgb(fg));
     const box = await panel.boundingBox();
     const blocks = await page
-      .getByRole('group', { name: /^(Outerwear|Top|Bottom|Shoes|Accessory):/ })
+      .getByRole('group', { name: /^(Outerwear|Top|Bottom|Dress|Shoes|Accessory):/ })
       .all();
     expect(blocks.length).toBeGreaterThan(1);
     for (const block of blocks) {

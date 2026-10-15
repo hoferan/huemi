@@ -2,6 +2,7 @@ import { useState } from 'react';
 import * as stylex from '@stylexjs/stylex';
 import { tokens } from '../styles/tokens.stylex';
 import { parseHex, type Hex } from '../model/hex';
+import { FULL_SHAPE, dressFixedBy, isWorn } from '../model/shape';
 import { SLOTS, SLOT_LABELS, type Slot, type Suggestion } from '../model/types';
 import { PALETTE } from '../color/palette';
 import { readableForeground } from '../color/contrast';
@@ -106,6 +107,16 @@ const styles = stylex.create({
 const BASE = parseHex('#1f2a44');
 
 const fmt = (n: number) => n.toFixed(3);
+
+/**
+ * Whether `slot` can be worn with a base in `baseSlot`. A top or a bottom
+ * leaves no room for a dress and a dress none for either, so their lists
+ * would measure pairs no outfit has. Any other base shows both.
+ */
+function wearableWith(baseSlot: Slot, slot: Slot): boolean {
+  const dress = dressFixedBy(baseSlot);
+  return dress === null || isWorn({ ...FULL_SHAPE, dress }, slot);
+}
 
 export default function Harness() {
   const [mode, setMode] = useState<Mode>('browse');
@@ -223,7 +234,7 @@ export default function Harness() {
         ))}
       </div>
 
-      {SLOTS.filter((slot) => slot !== baseSlot).map((slot) => (
+      {SLOTS.filter((slot) => slot !== baseSlot && wearableWith(baseSlot, slot)).map((slot) => (
         <section key={slot}>
           <h2 {...stylex.props(styles.slotHeading)}>{SLOT_LABELS[slot]}</h2>
           <div {...stylex.props(styles.grid)}>

@@ -27,6 +27,17 @@ Feature: Confirming the color
     Then I see the heading "Goes with it"
     And the base block is named "Top: Navy"
 
+  Scenario: Starting from a dress through the camera
+    Given my camera shows a plain garment
+    When I choose the slot "Dress" on the way to the camera
+    And I take a photo
+    And I press "Not quite"
+    And I choose the nearby color "Navy"
+    And I press "Use this color"
+    Then the base block is named "Dress: Navy"
+    And I see no "Top" block
+    And I see no "Bottom" block
+
   Scenario: A patterned garment asks which color
     Given my camera shows a striped garment
     When I open the camera for the top

@@ -11,6 +11,12 @@ Feature: A shared outfit
     And the block "Bottom" has background "#1f2a44"
     And the block "Shoes" has background "#c9a57e"
 
+  Scenario: A shared dress shows as one block
+    When I open the shared link "/shared?dress=c39a3a&shoes=c9a57e&base=dress"
+    Then the block "Dress" has background "#c39a3a"
+    And the block "Shoes" has background "#c9a57e"
+    And I see 2 blocks
+
   Scenario: Saving a shared outfit keeps it
     When I open the shared link "/shared?top=c39a3a&bottom=1f2a44&base=top"
     And I press "Save this outfit"

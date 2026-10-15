@@ -44,12 +44,15 @@ function linkIn(share: RecordedShare): string {
 }
 
 /** A color block's accessible name, "Top: Mustard", as `blockLabel` writes it. */
-export const BLOCK_NAME = /^(Outerwear|Top|Bottom|Shoes|Accessory): /;
+export const BLOCK_NAME = /^(Outerwear|Top|Bottom|Dress|Shoes|Accessory): /;
 
 /** "Top: Mustard" for every block on screen, head to toe, as `blockLabel` names them. */
 async function blockNames(page: Page): Promise<string[]> {
   const blocks = page.getByRole('group', { name: BLOCK_NAME });
-  await expect(blocks).toHaveCount(5);
+  // Waits for the outfit to be on screen before reading it. Shoes are in every
+  // outfit (ADR 0021), and a count would hold only for one shape: a dress
+  // outfit has four blocks where a top and a bottom make five.
+  await expect(page.getByRole('group', { name: /^Shoes: / })).toBeVisible();
   return blocks.evaluateAll((nodes) => nodes.map((node) => node.getAttribute('aria-label') ?? ''));
 }
 

@@ -1,11 +1,18 @@
 import type { Hex } from './hex';
 
-export type Slot = 'outerwear' | 'top' | 'bottom' | 'shoes' | 'accessory';
+export type Slot = 'outerwear' | 'top' | 'bottom' | 'dress' | 'shoes' | 'accessory';
 
-export const SLOTS: readonly Slot[] = ['outerwear', 'top', 'bottom', 'shoes', 'accessory'];
+/**
+ * Head to toe. An outfit wears a top and a bottom or a dress, never both
+ * (`isWorn` in `shape.ts`), and the dress sits where they would.
+ */
+export const SLOTS: readonly Slot[] = ['outerwear', 'top', 'bottom', 'dress', 'shoes', 'accessory'];
 
-/** The slots an outfit check reads, head to toe. Rating leaves out accessories (#23). */
-export type CheckSlot = Exclude<Slot, 'accessory'>;
+/**
+ * The slots an outfit check reads, head to toe. Rating leaves out accessories
+ * (#23), and the check has no dress yet (#137).
+ */
+export type CheckSlot = Exclude<Slot, 'accessory' | 'dress'>;
 
 export const CHECK_SLOTS: readonly CheckSlot[] = ['outerwear', 'top', 'bottom', 'shoes'];
 
@@ -13,6 +20,7 @@ export const SLOT_LABELS: Readonly<Record<Slot, string>> = {
   outerwear: 'Outerwear',
   top: 'Top',
   bottom: 'Bottom',
+  dress: 'Dress',
   shoes: 'Shoes',
   accessory: 'Accessory',
 };
@@ -57,11 +65,18 @@ export type Suggestion = {
  * Moon and Spencer's area finding actually licenses: a coat carries more color
  * than a bag. The magnitudes are a first cut, tuned against the corpus in #11,
  * and a test pins the ordering so tuning cannot quietly invert it.
+ *
+ * A dress covers what a top and a bottom cover, so its area is theirs added
+ * up, and a saturated dress spends the budget the two of them would (#136).
  */
+const TOP_AREA = 0.8;
+const BOTTOM_AREA = 0.8;
+
 export const SLOT_AREA: Readonly<Record<Slot, number>> = {
   outerwear: 1,
-  top: 0.8,
-  bottom: 0.8,
+  top: TOP_AREA,
+  bottom: BOTTOM_AREA,
+  dress: TOP_AREA + BOTTOM_AREA,
   shoes: 0.15,
   accessory: 0.05,
 };

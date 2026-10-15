@@ -4,7 +4,7 @@ import { chroma } from '../color/classify';
 import { PALETTE, colorName } from '../color/palette';
 import { chromaLoad } from '../color/score';
 import { parseHex, type Hex } from '../model/hex';
-import { FULL_SHAPE } from '../model/shape';
+import { FULL_SHAPE, shapeFor, wornSlots } from '../model/shape';
 import { SLOTS, type Slot } from '../model/types';
 import {
   advance,
@@ -12,6 +12,7 @@ import {
   composeOutfit,
   locate,
   positionLabel,
+  loadWith,
   shownNames,
   whyNotChosen,
 } from './select';
@@ -87,7 +88,9 @@ describe('positionLabel', () => {
 describe('composeOutfit', () => {
   const base: Base = { slot: 'top', hex: parseHex('#c39a3a') };
   const tan = parseHex('#c9ad86');
-  const noAccessory = { outerwear: true, accessory: false };
+  const noAccessory = { outerwear: true, accessory: false, dress: false };
+  // The full shape wears a top and a bottom, so these are what it fills.
+  const WORN = wornSlots(FULL_SHAPE);
 
   it('fills only the pieces the shape wears', () => {
     const picks = composeOutfit(base, {}, () => 0, noAccessory);
@@ -105,7 +108,7 @@ describe('composeOutfit', () => {
 
   it('gives every slot a colour the outfit does not already show', () => {
     const picks = composeOutfit(base, {}, () => 0, FULL_SHAPE);
-    const names = SLOTS.filter((slot) => slot !== base.slot).map((slot) =>
+    const names = WORN.filter((slot) => slot !== base.slot).map((slot) =>
       colorName(picks[slot]!.hex),
     );
     expect(new Set(names).size).toBe(names.length);
@@ -132,7 +135,7 @@ describe('composeOutfit', () => {
     // out of play for the slots after it. So the comparison has to be against
     // what was still available at that point, not against the whole list.
     const used = new Set([colorName(loud.hex)]);
-    for (const slot of SLOTS) {
+    for (const slot of WORN) {
       if (slot === loud.slot) continue;
       const chosen = picks[slot]!.hex;
       const available = suggest(loud.hex, slot, loud.slot).filter(
@@ -153,7 +156,7 @@ describe('composeOutfit', () => {
   it('does not repeat the name of a fixed slot', () => {
     const held: SlotPick = { hex: parseHex('#1f2a44'), cursor: 7 };
     const picks = composeOutfit(base, { shoes: held }, () => 0, FULL_SHAPE);
-    const others = SLOTS.filter((slot) => slot !== base.slot && slot !== 'shoes');
+    const others = WORN.filter((slot) => slot !== base.slot && slot !== 'shoes');
     for (const slot of others) expect(colorName(picks[slot]!.hex)).not.toBe(colorName(held.hex));
   });
 
@@ -166,7 +169,7 @@ describe('composeOutfit', () => {
     const fixedAccessory: SlotPick = { hex: parseHex('#8a8a8a'), cursor: 0 };
     const picks = composeOutfit(base, { accessory: fixedAccessory }, () => 0, FULL_SHAPE);
     const accessoryName = colorName(fixedAccessory.hex);
-    const freeSlots = SLOTS.filter((slot) => slot !== base.slot && slot !== 'accessory');
+    const freeSlots = WORN.filter((slot) => slot !== base.slot && slot !== 'accessory');
     for (const slot of freeSlots) {
       expect(colorName(picks[slot]!.hex)).not.toBe(accessoryName);
     }
@@ -180,7 +183,7 @@ describe('composeOutfit', () => {
 
   it('records a cursor that points at the colour it chose', () => {
     const picks = composeOutfit(base, {}, () => 0.5, FULL_SHAPE);
-    for (const slot of SLOTS) {
+    for (const slot of WORN) {
       if (slot === base.slot) continue;
       const pick = picks[slot]!;
       expect(suggest(base.hex, slot, base.slot)[pick.cursor!]!.hex).toBe(pick.hex);
@@ -192,10 +195,38 @@ describe('composeOutfit', () => {
   it('composes against a base the palette cannot name', () => {
     const odd: Base = { slot: 'bottom', hex: parseHex('#12f4a7') };
     const picks = composeOutfit(odd, {}, () => 0, FULL_SHAPE);
-    const named = SLOTS.filter((slot) => slot !== odd.slot);
+    const named = WORN.filter((slot) => slot !== odd.slot);
     for (const slot of named) expect(picks[slot]).toBeDefined();
     const names = named.map((slot) => colorName(picks[slot]!.hex));
     expect(new Set(names).size).toBe(names.length);
+  });
+
+  describe('with a dress', () => {
+    const shoes: Base = { slot: 'shoes', hex: parseHex('#c9ad86') };
+    const dressed = { outerwear: true, accessory: true, dress: true };
+
+    it('fills one dress in place of the top and the bottom', () => {
+      const picks = composeOutfit(shoes, {}, () => 0, dressed);
+      expect(Object.keys(picks).sort()).toEqual(['accessory', 'dress', 'outerwear']);
+    });
+
+    it('fills no top or bottom around a dress base', () => {
+      const dress: Base = { slot: 'dress', hex: parseHex('#1f2a44') };
+      const picks = composeOutfit(dress, {}, () => 0, shapeFor('dress', FULL_SHAPE));
+      expect(Object.keys(picks).sort()).toEqual(['accessory', 'outerwear', 'shoes']);
+    });
+
+    it('ignores a held top once the outfit wears a dress', () => {
+      const held = { top: { hex: parseHex('#a4522d') } };
+      expect(composeOutfit(shoes, held, () => 0, dressed).top).toBeUndefined();
+    });
+
+    // The dress spends the budget a top and a bottom would together, so a
+    // colour that fits as a top can be too much as a dress.
+    it('weighs a dress at the area of a top and a bottom', () => {
+      const rust = parseHex('#a4522d');
+      expect(loadWith({}, 'dress', rust)).toBeCloseTo(2 * loadWith({}, 'top', rust), 10);
+    });
   });
 });
 
@@ -274,16 +305,16 @@ describe('whyNotChosen', () => {
   // Holds against the finished outfit, not only at the step the composer
   // took, because later picks only add names and only add chroma.
   it('agrees with the composer for every seeded outfit', () => {
-    let within = 0;
-    let over = 0;
+    // Counted apart, so the dress cannot move the numbers that held before it.
+    const tally = { separates: { within: 0, over: 0 }, dress: { within: 0, over: 0 } };
     for (const color of PALETTE) {
       for (const baseSlot of SLOTS) {
-        const picks = composeOutfit({ slot: baseSlot, hex: color.hex }, {}, () => 0, FULL_SHAPE);
+        const shape = shapeFor(baseSlot, FULL_SHAPE);
+        const picks = composeOutfit({ slot: baseSlot, hex: color.hex }, {}, () => 0, shape);
         const pieces: Partial<Record<Slot, Hex>> = { [baseSlot]: color.hex };
         for (const slot of SLOTS) if (picks[slot]) pieces[slot] = picks[slot].hex;
         const inBudget = chromaLoad(pieces) <= TUNING.chromaBudget;
-        if (inBudget) within += 1;
-        else over += 1;
+        tally[baseSlot === 'dress' ? 'dress' : 'separates'][inBudget ? 'within' : 'over'] += 1;
         for (const slot of SLOTS) {
           const pick = picks[slot];
           if (slot === baseSlot || !pick) continue;
@@ -295,7 +326,7 @@ describe('whyNotChosen', () => {
         }
       }
     }
-    expect(within).toBe(103);
-    expect(over).toBe(2);
+    expect(tally.separates).toEqual({ within: 103, over: 2 });
+    expect(tally.dress.within + tally.dress.over).toBe(PALETTE.length);
   });
 });

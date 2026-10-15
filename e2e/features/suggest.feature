@@ -105,6 +105,29 @@ Feature: Suggestions
     And I choose the swatch "Mustard"
     Then I see 4 blocks
 
+  # A mustard top settles the dress choice, so the sheet above has no radios.
+  # Tan shoes leave it open, and this is where the radios meet axe and the
+  # 44px check.
+  Scenario: The Pieces sheet with the dress choice passes the accessibility checks
+    When I open the suggestions for tan shoes
+    And I press "Pieces"
+    Then the screen has no detectable accessibility violations
+    And every link and button is at least 44 by 44
+    And the "Dress" radio stands out from the sheet at 3:1
+
+  Scenario: A dress takes the place of the top and the bottom, and stays chosen
+    When I open the suggestions for tan shoes
+    And I press "Pieces"
+    And I choose the radio "Dress"
+    And I press "Close"
+    Then I see 4 blocks
+    And I see no "Top" block
+    And I see no "Bottom" block
+    And the "Dress" block shows the color it names
+    When I reload the page
+    Then I see 4 blocks
+    And the "Dress" block shows the color it names
+
   Scenario: A piece switched off is still visibly a switch
     When I open the suggestions for a mustard top
     And I press "Pieces"
