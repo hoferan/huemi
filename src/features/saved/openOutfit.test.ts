@@ -41,4 +41,14 @@ describe('openOutfit', () => {
       expect(picks[slot]?.hex).toBe(pieces[slot]);
     }
   });
+
+  it('reopens a dress without a top or a bottom', () => {
+    const rust = parseHex('#a4522d');
+    const { shape, picks } = openOutfit(
+      makeOutfit({ baseSlot: 'shoes', pieces: { dress: rust, shoes: parseHex('#c9ad86') } }),
+    );
+    expect(shape).toEqual({ outerwear: false, accessory: false, dress: true });
+    expect(Object.keys(picks)).toEqual(['dress']);
+    expect(picks.dress?.hex).toBe(rust);
+  });
 });

@@ -94,6 +94,22 @@ describe('Shared', () => {
     expect(save()).toHaveTextContent('Saved');
   });
 
+  it('shows and saves a dress as sent', async () => {
+    const { store, save } = await at('/shared?dress=c39a3a&shoes=c9a57e&base=dress');
+
+    expect(screen.getAllByRole('group').map((group) => group.getAttribute('aria-label'))).toEqual([
+      blockLabel('dress', MUSTARD),
+      blockLabel('shoes', TAN),
+    ]);
+    fireEvent.click(save());
+    await waitFor(() => expect(store.contents()).toHaveLength(1));
+    expect(store.contents()[0]).toMatchObject({
+      baseSlot: 'dress',
+      pieces: { dress: MUSTARD, shoes: TAN },
+      name: outfitName({ slot: 'dress', hex: MUSTARD }),
+    });
+  });
+
   it('saves a link without a base by its largest piece', async () => {
     const { store, save } = await at('/shared?top=c39a3a&shoes=c9a57e&outerwear=1f2a44');
 

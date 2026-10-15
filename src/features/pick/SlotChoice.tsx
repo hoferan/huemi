@@ -8,7 +8,7 @@ import { clearOfToasts } from '../../ui/toastClearance';
 import { SLOT_TITLE } from './copy';
 
 const styles = stylex.create({
-  // The five rows share the screen's height the way the picker's swatches do,
+  // The rows share the screen's height the way the picker's swatches do,
   // and for the reasons its grid gives. Past 144px, on a window tall enough
   // for that, a row stops growing rather than turning into a slab.
   list: {
@@ -36,11 +36,12 @@ const styles = stylex.create({
 });
 
 /**
- * Five rows, from `SLOTS` rather than a list written here, so the screen
- * cannot drift from the model the engine weights by area.
+ * One row per slot, from `SLOTS` rather than a list written here, so the
+ * screen cannot drift from the model the engine weights by area. The dress
+ * sits between the bottom and the shoes, where it is worn.
  *
- * One column: five rows that each take a share of the screen are larger
- * targets than a grid of five could give.
+ * One column: six rows that each take a share of the screen are larger
+ * targets than a grid of six could give.
  */
 export function SlotChoice() {
   const navigate = useNavigate();

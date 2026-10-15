@@ -25,12 +25,23 @@ function renderAt(url = '/slot') {
 }
 
 describe('SlotChoice', () => {
-  it('offers every slot the model defines', () => {
+  it('offers every slot the model defines, head to toe', () => {
     renderAt();
-    for (const label of ['Outerwear', 'Top', 'Bottom', 'Shoes', 'Accessory']) {
-      expect(screen.getByRole('button', { name: label })).toBeInTheDocument();
-    }
-    expect(screen.getAllByRole('button')).toHaveLength(5);
+    expect(screen.getAllByRole('button').map((button) => button.textContent)).toEqual([
+      'Outerwear',
+      'Top',
+      'Bottom',
+      'Dress',
+      'Shoes',
+      'Accessory',
+    ]);
+  });
+
+  it('starts from a dress, through the picker or the camera', async () => {
+    const user = userEvent.setup();
+    renderAt('/slot?next=camera');
+    await user.click(screen.getByRole('button', { name: 'Dress' }));
+    expect(await screen.findByText('/camera?slot=dress')).toBeInTheDocument();
   });
 
   it('carries the chosen slot to the picker in the URL', async () => {
