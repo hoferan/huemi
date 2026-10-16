@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { FieldCapture, FieldGarment } from '../../../model/field';
+import type { FieldCapture, FieldGarment, PairVote } from '../../../model/field';
 import { parseHex } from '../../../model/hex';
 import type { StorageResult } from '../../../storage/port';
 import { fakeFieldStore } from './fieldStore.testing';
@@ -31,6 +31,19 @@ const pixels = () => ({
   width: 2,
   height: 1,
   data: new Uint8ClampedArray([1, 2, 3, 255, 9, 8, 7, 255]),
+});
+
+const vote = (id: string, takenAt: string, liked = true): PairVote => ({
+  id,
+  takenAt,
+  build: 'test',
+  top: parseHex('#1f2a44'),
+  bottom: parseHex('#f2ead8'),
+  liked,
+  changed: null,
+  replacement: null,
+  offered: [],
+  noneWorks: false,
 });
 
 function value<T>(result: StorageResult<T>): T {
@@ -113,6 +126,49 @@ describe('fakeFieldStore', () => {
     expect(value(await fakeFieldStore().setId())).not.toBe(first);
   });
 
+  it('upserts votes by id and lists them newest first', async () => {
+    const store = fakeFieldStore();
+    await store.saveVote(vote('old', '2026-10-01T10:00:00.000Z'));
+    await store.saveVote(vote('new', '2026-10-05T10:00:00.000Z'));
+    await store.saveVote(vote('old', '2026-10-01T10:00:00.000Z', false));
+    const list = value(await store.listVotes());
+    expect(list.map((v) => v.id)).toEqual(['new', 'old']);
+    expect(list[1]!.liked).toBe(false);
+  });
+
+  it('deletes a vote, and fails for an unknown id', async () => {
+    const store = fakeFieldStore();
+    await store.saveVote(vote('a', '2026-10-01T10:00:00.000Z'));
+    expect((await store.deleteVote('nope')).ok).toBe(false);
+    value(await store.deleteVote('a'));
+    expect(value(await store.listVotes())).toEqual([]);
+  });
+
+  it('clears every vote', async () => {
+    const store = fakeFieldStore();
+    await store.saveVote(vote('a', '2026-10-01T10:00:00.000Z'));
+    await store.saveVote(vote('b', '2026-10-02T10:00:00.000Z'));
+    value(await store.clearVotes());
+    expect(value(await store.listVotes())).toEqual([]);
+  });
+
+  it('deletes run captures and their frames, and keeps the rest', async () => {
+    const store = fakeFieldStore();
+    await store.saveCapture(capture('kit', '2026-10-01T10:00:00.000Z'), pixels());
+    await store.saveCapture(
+      { ...capture('flow', '2026-10-02T10:00:00.000Z'), source: 'flow' },
+      pixels(),
+    );
+    await store.saveCapture(
+      { ...capture('run', '2026-10-03T10:00:00.000Z'), source: 'run' },
+      pixels(),
+    );
+    value(await store.deleteRunCaptures());
+    expect(value(await store.listCaptures()).map((c) => c.id)).toEqual(['flow', 'kit']);
+    expect((await store.readPixels('run')).ok).toBe(false);
+    expect((await store.readPixels('kit')).ok).toBe(true);
+  });
+
   it('fails every call when failing', async () => {
     const store = fakeFieldStore({ failing: true });
     const results = await Promise.all([
@@ -125,6 +181,11 @@ describe('fakeFieldStore', () => {
       store.deleteCapture('c'),
       store.linkCapture('c', 'g'),
       store.setId(),
+      store.saveVote(vote('v', '2026-10-01T10:00:00.000Z')),
+      store.listVotes(),
+      store.deleteVote('v'),
+      store.clearVotes(),
+      store.deleteRunCaptures(),
     ]);
     for (const result of results) expect(result).toEqual({ ok: false, reason: 'test' });
   });

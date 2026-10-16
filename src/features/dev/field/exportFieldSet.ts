@@ -1,4 +1,4 @@
-import type { FieldCapture, FieldGarment } from '../../../model/field';
+import type { FieldCapture, FieldGarment, PairVote } from '../../../model/field';
 import { encodeFieldCapture } from '../../../model/fieldExport';
 import type { FieldStore } from '../../../storage/port';
 import type { SharePort, ShareResult } from '../../share/port';
@@ -17,7 +17,7 @@ export function exportFileName(now: Date): string {
 type Chunks = AsyncIterable<Uint8Array<ArrayBuffer>>;
 
 /**
- * The export's JSON in pieces: the head with the garments, then each capture
+ * The export's JSON in pieces: the head with the garments and votes, then each capture
  * with its frame, then the tail. A frame is read only when the piece before
  * it has been taken, so memory holds one frame at a time.
  * The text is what `encodeFieldExport` writes for the same set, which its
@@ -25,14 +25,14 @@ type Chunks = AsyncIterable<Uint8Array<ArrayBuffer>>;
  */
 async function* exportChunks(
   store: FieldStore,
-  head: { exportedAt: string; setId: string; garments: FieldGarment[] },
+  head: { exportedAt: string; setId: string; garments: FieldGarment[]; votes: PairVote[] },
   captures: readonly FieldCapture[],
 ): Chunks {
   const text = new TextEncoder();
   yield text.encode(
-    `{"version":1,"exportedAt":${JSON.stringify(head.exportedAt)},` +
+    `{"version":2,"exportedAt":${JSON.stringify(head.exportedAt)},` +
       `"setId":${JSON.stringify(head.setId)},` +
-      `"garments":${JSON.stringify(head.garments)},"captures":[`,
+      `"garments":${JSON.stringify(head.garments)},"votes":${JSON.stringify(head.votes)},"captures":[`,
   );
   for (const [i, capture] of captures.entries()) {
     const read = await store.readPixels(capture.id);
@@ -59,18 +59,24 @@ export async function buildFieldExport({
   compress?: (chunks: Chunks) => Promise<Uint8Array<ArrayBuffer>>;
   now?: Date;
 }): Promise<File | 'failed'> {
-  const [garments, captures, setId] = await Promise.all([
+  const [garments, captures, setId, votes] = await Promise.all([
     store.listGarments(),
     store.listCaptures(),
     store.setId(),
+    store.listVotes(),
   ]);
-  if (!garments.ok || !captures.ok || !setId.ok) return 'failed';
+  if (!garments.ok || !captures.ok || !setId.ok || !votes.ok) return 'failed';
   let bytes: Uint8Array<ArrayBuffer>;
   try {
     bytes = await compress(
       exportChunks(
         store,
-        { exportedAt: now.toISOString(), setId: setId.value, garments: garments.value },
+        {
+          exportedAt: now.toISOString(),
+          setId: setId.value,
+          garments: garments.value,
+          votes: votes.value,
+        },
         captures.value,
       ),
     );

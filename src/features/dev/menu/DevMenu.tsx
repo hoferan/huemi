@@ -7,6 +7,7 @@ import { tokens } from '../../../styles/tokens.stylex';
 import { Button } from '../../../ui/Button';
 import { HOME } from '../../../ui/home';
 import { Screen } from '../../../ui/Screen';
+import { clearOfToasts } from '../../../ui/toastClearance';
 import { useOutfits } from '../../saved/useOutfits';
 import { useDevMode } from '../useDevMode';
 import { readBuild } from './build';
@@ -144,6 +145,21 @@ export default function DevMenu({ worker = browserWorker }: { worker?: WorkerPor
       </section>
 
       <section {...stylex.props(styles.section)}>
+        <h2 {...stylex.props(styles.heading)}>Guided runs</h2>
+        <Button
+          label="Check color reading"
+          variant="secondary"
+          onClick={() => void navigate('/dev/runs/reading')}
+        />
+        <Button
+          label="Rate color pairs"
+          variant="secondary"
+          onClick={() => void navigate('/dev/runs/matching')}
+        />
+      </section>
+
+      {/* The last two groups sit at the foot of the screen, where a toast would cover them. */}
+      <section {...stylex.props(styles.section)} {...clearOfToasts}>
         <h2 {...stylex.props(styles.heading)}>Field recorder</h2>
         <Button
           label="Open the field recorder"
@@ -152,15 +168,17 @@ export default function DevMenu({ worker = browserWorker }: { worker?: WorkerPor
         />
       </section>
 
-      <Button
-        label="Lock developer mode"
-        onClick={() => {
-          lock();
-          toast('Developer mode off');
-          // Replace, because /dev is not found once locked, and Back would land on it.
-          void navigate('/', { replace: true });
-        }}
-      />
+      <div {...clearOfToasts}>
+        <Button
+          label="Lock developer mode"
+          onClick={() => {
+            lock();
+            toast('Developer mode off');
+            // Replace, because /dev is not found once locked, and Back would land on it.
+            void navigate('/', { replace: true });
+          }}
+        />
+      </div>
 
       {clearing && (
         <ClearOutfits

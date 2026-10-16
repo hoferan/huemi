@@ -2,7 +2,7 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
-import type { FieldCapture, FieldGarment } from '../../../model/field';
+import type { FieldCapture, FieldGarment, PairVote } from '../../../model/field';
 import { parseHex } from '../../../model/hex';
 import { SessionProvider } from '../../../session/SessionProvider';
 import { useSession } from '../../../session/useSession';
@@ -41,6 +41,28 @@ const capture = (id: string, garmentId: string | null, light: FieldCapture['ligh
     takenAt: '2026-10-05T10:00:00.000Z',
     build: 'test',
   }) satisfies FieldCapture;
+
+const vote = (id: string): PairVote => ({
+  id,
+  takenAt: '2026-10-05T10:00:00.000Z',
+  build: 'test',
+  top: parseHex('#1f2a44'),
+  bottom: parseHex('#f2ead8'),
+  liked: true,
+  changed: null,
+  replacement: null,
+  offered: [],
+  noneWorks: false,
+});
+
+async function withRuns(captures: number, votes: number) {
+  const store = fakeFieldStore();
+  for (let i = 0; i < captures; i += 1) {
+    await store.saveCapture({ ...capture(`r${i}`, null), source: 'run' }, PIXELS);
+  }
+  for (let i = 0; i < votes; i += 1) await store.saveVote(vote(`v${i}`));
+  return store;
+}
 
 const PIXELS = { width: 1, height: 1, data: new Uint8ClampedArray([1, 2, 3, 255]) };
 
@@ -332,6 +354,13 @@ describe('FieldList', () => {
     expect(screen.getByRole('button', { name: 'Export' })).toBeDisabled();
   });
 
+  it('names the pair votes beside the size when there are any', async () => {
+    setup(await withRuns(0, 3));
+
+    expect(await screen.findByText('0 captures, about 0.0 MB, 3 pair votes')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Export' })).toBeEnabled();
+  });
+
   it('downloads in one step without a share sheet', async () => {
     const store = fakeFieldStore();
     await store.saveCapture(capture('c1', 'g1'), PIXELS);
@@ -594,6 +623,106 @@ describe('FieldList', () => {
       );
       expect(screen.getByRole('button', { name: 'Export' })).toBeEnabled();
       for (const button of captureButtons()) expect(button).toBeEnabled();
+    });
+  });
+
+  describe('guided runs', () => {
+    it('counts run captures and pair votes', async () => {
+      setup(await withRuns(3, 2));
+      expect(await screen.findByText('3 captures from guided runs')).toBeInTheDocument();
+      expect(screen.getByText('2 pair votes')).toBeInTheDocument();
+    });
+
+    it('counts none when there are none', async () => {
+      setup();
+      expect(await screen.findByText('0 captures from guided runs')).toBeInTheDocument();
+      expect(screen.getByText('0 pair votes')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Delete run captures' })).toBeDisabled();
+      expect(screen.getByRole('button', { name: 'Delete votes' })).toBeDisabled();
+    });
+
+    it('never lists a run capture under normal use', async () => {
+      setup(await withRuns(3, 0));
+      await screen.findByText('3 captures from guided runs');
+      expect(screen.queryByRole('heading', { name: 'From normal use' })).not.toBeInTheDocument();
+    });
+
+    it('exports votes even with no captures', async () => {
+      setup(await withRuns(0, 1));
+      await screen.findByText('1 pair vote');
+      expect(screen.getByRole('button', { name: 'Export' })).toBeEnabled();
+    });
+
+    it('deletes the run captures after a confirm', async () => {
+      const store = await withRuns(3, 2);
+      await store.saveCapture(capture('kit1', null), PIXELS);
+      const deleteRunCaptures = vi.spyOn(store, 'deleteRunCaptures');
+      const user = setup(store);
+
+      await user.click(await screen.findByRole('button', { name: 'Delete run captures' }));
+      const sheet = screen.getByRole('dialog', { name: 'Delete 3 captures from guided runs?' });
+      expect(deleteRunCaptures).not.toHaveBeenCalled();
+      await user.click(within(sheet).getByRole('button', { name: 'Delete' }));
+
+      expect(deleteRunCaptures).toHaveBeenCalledTimes(1);
+      expect(await screen.findByText('0 captures from guided runs')).toBeInTheDocument();
+      expect(screen.getByText('2 pair votes')).toBeInTheDocument();
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+
+    it('keeps the run captures when the confirm is declined', async () => {
+      const store = await withRuns(3, 2);
+      const deleteRunCaptures = vi.spyOn(store, 'deleteRunCaptures');
+      const user = setup(store);
+
+      await user.click(await screen.findByRole('button', { name: 'Delete run captures' }));
+      await user.click(screen.getByRole('button', { name: 'Keep it' }));
+
+      expect(deleteRunCaptures).not.toHaveBeenCalled();
+      expect(screen.getByText('3 captures from guided runs')).toBeInTheDocument();
+    });
+
+    it('deletes the votes after a confirm', async () => {
+      const store = await withRuns(3, 2);
+      const clearVotes = vi.spyOn(store, 'clearVotes');
+      const user = setup(store);
+
+      await user.click(await screen.findByRole('button', { name: 'Delete votes' }));
+      const sheet = screen.getByRole('dialog', { name: 'Delete 2 pair votes?' });
+      expect(clearVotes).not.toHaveBeenCalled();
+      await user.click(within(sheet).getByRole('button', { name: 'Delete' }));
+
+      expect(clearVotes).toHaveBeenCalledTimes(1);
+      expect(await screen.findByText('0 pair votes')).toBeInTheDocument();
+      expect(screen.getByText('3 captures from guided runs')).toBeInTheDocument();
+    });
+
+    it('toasts and keeps the counts when a delete fails', async () => {
+      const store = await withRuns(3, 2);
+      store.deleteRunCaptures = () => Promise.resolve({ ok: false, reason: 'test' });
+      store.clearVotes = () => Promise.resolve({ ok: false, reason: 'test' });
+      const user = setup(store);
+
+      await user.click(await screen.findByRole('button', { name: 'Delete run captures' }));
+      await user.click(screen.getByRole('button', { name: 'Delete' }));
+      await waitFor(() =>
+        expect(screen.getByTestId('toast')).toHaveTextContent("Couldn't delete the run captures."),
+      );
+      expect(screen.getByText('3 captures from guided runs')).toBeInTheDocument();
+
+      await user.click(screen.getByRole('button', { name: 'Delete votes' }));
+      await user.click(screen.getByRole('button', { name: 'Delete' }));
+      await waitFor(() =>
+        expect(screen.getByTestId('toast')).toHaveTextContent("Couldn't delete the votes."),
+      );
+      expect(screen.getByText('2 pair votes')).toBeInTheDocument();
+    });
+
+    it('shows the store failure when the votes cannot be read', async () => {
+      const store = fakeFieldStore();
+      store.listVotes = () => Promise.resolve({ ok: false, reason: 'test' });
+      setup(store);
+      expect(await screen.findByText('The field store could not be opened.')).toBeInTheDocument();
     });
   });
 

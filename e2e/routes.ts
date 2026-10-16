@@ -41,6 +41,11 @@ export const ROUTES: readonly string[] = [
   '/dev/field/new',
   '/dev/field/garment?id=missing',
   '/dev/field/capture?id=missing&light=dim',
+  // The guided runs, locked and unlocked like /dev. Unlocked, each opens on its
+  // setup screen. `e2e/features/runs.feature` carries the checks through the
+  // runs themselves.
+  '/dev/runs/reading',
+  '/dev/runs/matching',
   // A link that reads, so the sweep sees the screen rather than its redirect to
   // the start.
   '/shared?top=c39a3a&bottom=1f2a44&shoes=c9a57e&base=top',

@@ -42,7 +42,7 @@ Feature: Field recorder
     When I add the garment "grey hoodie" with one color
     And I capture it in "Lamp"
     And I export the field set
-    Then the download "huemi-field-<today>.json.gz" unzips to version 1 with 1 garment and 1 capture
+    Then the download "huemi-field-<today>.json.gz" unzips to version 2 with 1 garment and 1 capture
     And that capture's frame has width × height × 4 bytes
     And the centre of that frame is "#4a6285"
 
@@ -79,3 +79,12 @@ Feature: Field recorder
     And I delete the one capture of "grey hoodie"
     And I reload the page
     Then the garment "grey hoodie" has 0 captures
+
+  Scenario: An upgrade keeps the field set
+    Given I have seen the welcome screen
+    And developer mode is on
+    And a version 1 field database holds the garment "grey hoodie"
+    When I open the field recorder
+    Then the garment "grey hoodie" has 0 captures
+    And the field recorder counts 0 pair votes
+    And the screen has no detectable accessibility violations

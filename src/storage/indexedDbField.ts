@@ -1,10 +1,10 @@
-import type { FieldCapture, FieldGarment } from '../model/field';
+import type { FieldCapture, FieldGarment, PairVote } from '../model/field';
 import type { Pixels } from '../model/frame';
 import type { FieldStore, StorageResult } from './port';
 
 export const FIELD_DB = 'huemi-field';
 
-/* v8 ignore start -- jsdom has no indexedDB; e2e/features/field.feature drives it. */
+/* v8 ignore start -- jsdom has no indexedDB; e2e/features/field.feature and runs.feature drive it. */
 type FrameRecord = { id: string; width: number; height: number; data: Uint8ClampedArray };
 type MetaRecord = { id: 'setId'; value: string };
 
@@ -46,12 +46,13 @@ function openDb(): Promise<IDBDatabase> {
       reject(new Error('IndexedDB is unavailable'));
       return;
     }
-    const request = indexedDB.open(FIELD_DB, 1);
+    const request = indexedDB.open(FIELD_DB, 2);
     request.onupgradeneeded = (event) => {
       // Each version's stores, so a later version adds its own and leaves these.
       if (event.oldVersion < 1) {
         for (const name of STORES) request.result.createObjectStore(name, { keyPath: 'id' });
       }
+      if (event.oldVersion < 2) request.result.createObjectStore('votes', { keyPath: 'id' });
     };
     request.onsuccess = () => {
       const db = request.result;
@@ -203,6 +204,42 @@ export const indexedDbField: FieldStore = {
       const made: MetaRecord = { id: 'setId', value: crypto.randomUUID() };
       await settle(meta.put(made));
       return made.value;
+    }),
+
+  saveVote: (vote) =>
+    run(['votes'], 'readwrite', async (tx) => {
+      await settle(tx.objectStore('votes').put(vote));
+    }),
+
+  listVotes: () =>
+    run(['votes'], 'readonly', async (tx) => {
+      const all = await settle<PairVote[]>(tx.objectStore('votes').getAll());
+      return all.sort(newestFirst((v) => v.takenAt));
+    }),
+
+  deleteVote: (id) =>
+    run(['votes'], 'readwrite', async (tx) => {
+      const votes = tx.objectStore('votes');
+      if ((await settle<number>(votes.count(id))) === 0) throw new Error('no vote');
+      await settle(votes.delete(id));
+    }),
+
+  clearVotes: () =>
+    run(['votes'], 'readwrite', async (tx) => {
+      await settle(tx.objectStore('votes').clear());
+    }),
+
+  deleteRunCaptures: () =>
+    run(['captures', 'frames'], 'readwrite', async (tx) => {
+      const captures = tx.objectStore('captures');
+      const frames = tx.objectStore('frames');
+      const all = await settle<FieldCapture[]>(captures.getAll());
+      const requests: Promise<unknown>[] = [];
+      for (const capture of all) {
+        if (capture.source !== 'run') continue;
+        requests.push(settle(captures.delete(capture.id)), settle(frames.delete(capture.id)));
+      }
+      await Promise.all(requests);
     }),
 };
 /* v8 ignore stop */

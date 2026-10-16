@@ -56,8 +56,10 @@ from what later milestones still owe.
 outfit dataset and is how its constants were settled (ADR 0010). The dataset is not ours
 to redistribute, so it lives in the gitignored `tmp/polyvore/` and the tests skip without
 it; CI never runs them. The file's own comment says which files to fetch and from where.
-Run it before and after changing `TUNING`. `src/color/read.benchmark.test.ts` does the
-same for the color reader, against exports from the field recorder in the gitignored
+Run it before and after changing `TUNING`, together with
+`src/color/vote.benchmark.test.ts`, which scores the engine against the matching run's
+pair votes from the `tmp/field/` exports. `src/color/read.benchmark.test.ts` measures
+the color reader against exports from the field recorder in the same gitignored
 `tmp/field/`, and is the one to run around a change to `READ_TUNING`.
 
 `src/dev/` is the color engine's harness, served at `/harness.html` while the dev
@@ -75,7 +77,9 @@ developer feature adds a slot there and lists its component in
 `src/features/dev/registry.tsx`. The field recorder at `/dev/field` records camera
 frames of real garments with their true colors, for measuring the color reader in real
 light. It keeps them on the device until someone deletes them there, and exports them
-as one file (ADR 0020). Over the confirm screen's photo, a reader panel shows what
+as one file (ADR 0020). Two guided runs, at `/dev/runs/reading` and `/dev/runs/matching`,
+record judged answers (ADR 0023) that feed `read.benchmark.test.ts` and
+`vote.benchmark.test.ts`. Over the confirm screen's photo, a reader panel shows what
 the color reader saw: the circle it sampled, each cluster's share, and the threshold
 behind the verdict. Its readout and drawing live in `src/features/dev/reader/`, which
 the harness's Read mode also uses. Over the suggestions screen's blocks, an engine

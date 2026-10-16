@@ -1,4 +1,4 @@
-import type { FieldCapture, FieldGarment } from '../model/field';
+import type { FieldCapture, FieldGarment, PairVote } from '../model/field';
 import type { Pixels } from '../model/frame';
 import type { Shape } from '../model/shape';
 import type { Outfit } from '../model/types';
@@ -80,4 +80,13 @@ export interface FieldStore {
    * asked for and the same ever after.
    */
   setId(): Promise<StorageResult<string>>;
+  /** An upsert. */
+  saveVote(vote: PairVote): Promise<StorageResult<void>>;
+  /** Newest first. */
+  listVotes(): Promise<StorageResult<PairVote[]>>;
+  /** Fails for an unknown id. */
+  deleteVote(id: string): Promise<StorageResult<void>>;
+  clearVotes(): Promise<StorageResult<void>>;
+  /** Removes every capture from a guided run, with its frame. Kit and normal-use captures stay. */
+  deleteRunCaptures(): Promise<StorageResult<void>>;
 }

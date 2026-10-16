@@ -55,5 +55,15 @@ export const EXPORT_FAILED = "Couldn't export the field set.";
 export const EXPORT_TITLE = 'huemi field set';
 export const PREPARING_EXPORT = 'Preparing export…';
 export const SHARE_EXPORT = 'Share the export';
-export const exportSize = (n: number, bytes: number): string =>
-  `${captureCount(n)}, about ${(bytes / 1_000_000).toFixed(1)} MB`;
+export const exportSize = (n: number, bytes: number, votes = 0): string =>
+  `${captureCount(n)}, about ${(bytes / 1_000_000).toFixed(1)} MB${votes > 0 ? `, ${voteCount(votes)}` : ''}`;
+
+export const GUIDED_RUNS = 'Guided runs';
+export const DELETE_RUN_CAPTURES = 'Delete run captures';
+export const DELETE_VOTES = 'Delete votes';
+export const DELETE_RUN_CAPTURES_FAILED = "Couldn't delete the run captures.";
+export const DELETE_VOTES_FAILED = "Couldn't delete the votes.";
+export const runCaptureCount = (n: number): string => `${captureCount(n)} from guided runs`;
+export const voteCount = (n: number): string => (n === 1 ? '1 pair vote' : `${n} pair votes`);
+export const deleteRunCapturesTitle = (n: number): string => `Delete ${runCaptureCount(n)}?`;
+export const deleteVotesTitle = (n: number): string => `Delete ${voteCount(n)}?`;

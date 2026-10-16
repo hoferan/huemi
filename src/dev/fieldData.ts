@@ -11,7 +11,7 @@ import type { FieldExport } from '../model/field';
 type Loaded = {
   files: number;
   data: FieldExport | null;
-  scored: { scores: CaptureScore[]; skipped: number };
+  scored: { scores: CaptureScore[]; skipped: number; missed: number };
 };
 
 // A set of exports runs to tens of megabytes and the harness asks for it on
@@ -32,7 +32,11 @@ function load(dir: string): Loaded {
     : '';
   if (cache?.key === `${dir}|${key}`) return cache.loaded;
   const { files, data } = loadFieldDir(dir);
-  const loaded = { files, data, scored: data ? scoreFieldSet(data) : { scores: [], skipped: 0 } };
+  const loaded = {
+    files,
+    data,
+    scored: data ? scoreFieldSet(data) : { scores: [], skipped: 0, missed: 0 },
+  };
   cache = { key: `${dir}|${key}`, loaded };
   return loaded;
 }

@@ -10,7 +10,7 @@ import { readableForeground } from '../color/contrast';
 import { drawRegion } from '../features/dev/reader/drawRegion';
 import { verdictText } from '../features/dev/reader/readout';
 
-type Captures = { files: number; skipped: number; scores: CaptureScore[] };
+type Captures = { files: number; skipped: number; missed: number; scores: CaptureScore[] };
 
 const styles = stylex.create({
   wrap: { maxWidth: '960px', margin: '0 auto', display: 'grid', gap: '16px' },
@@ -94,7 +94,10 @@ function Row({ score }: { score: CaptureScore }) {
       <canvas ref={canvas} {...stylex.props(styles.canvas)} />
       <div {...stylex.props(styles.details)}>
         <p {...stylex.props(styles.heading)}>
-          {score.label ?? 'Unlinked, against the color settled in use'}
+          {score.label ??
+            (score.source === 'judged'
+              ? 'Guided run, judged in the same light'
+              : 'Unlinked, against the color settled in use')}
         </p>
         <p {...stylex.props(styles.numbers)}>
           <span {...stylex.props(wrong && styles.wrong)}>
@@ -103,6 +106,7 @@ function Row({ score }: { score: CaptureScore }) {
           · {verdictText(score.reading)} ·{' '}
           {/* A settled color is one color whatever the garment, so it cannot judge the verdict. */}
           {score.source === 'garment' && `verdict ${score.verdictRight ? 'right' : 'wrong'} · `}
+          {score.verdict && `first try ${score.verdict} · `}
           {LIGHT_LABELS[score.light]} · {viewfinder}
         </p>
         <Blocks label="True" colors={score.truth} />
@@ -140,6 +144,8 @@ export default function Field() {
         {captures.scores.length} captures from {captures.files} export
         {captures.files === 1 ? '' : 's'}, worst first. Wrong above {WRONG_AT}.
         {captures.skipped > 0 && ` ${captures.skipped} with nothing to score against left out.`}
+        {captures.missed > 0 &&
+          ` ${captures.missed} skipped in a guided run (the person couldn't say) counted as misses.`}
       </p>
       {[...captures.scores].sort(worstFirst).map((score) => (
         <Row key={score.id} score={score} />

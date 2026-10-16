@@ -45,3 +45,4 @@ supersedes it, in which case both say so.
 | [0020](0020-field-captures-are-stored-on-the-device.md)               | Store field captures on the device, in developer mode     |
 | [0021](0021-an-outfit-is-the-pieces-you-wear.md)                      | An outfit is the pieces you wear                          |
 | [0022](0022-offer-a-waiting-update-on-the-start-screen.md)            | Offer a waiting update on the start screen                |
+| [0023](0023-guided-runs-record-judged-truth.md)                       | Record guided runs as judged truth, apart from the kit    |

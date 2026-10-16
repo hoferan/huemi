@@ -13,6 +13,7 @@ import { TUNING, rate } from './engine';
 import type { WornPieces } from './check';
 import { chromaLoad } from './score';
 import { temperature } from './classify';
+import { aucByRank } from './voteScore';
 
 /**
  * The engine measured against the Polyvore benchmarks (ADR 0010).
@@ -330,12 +331,10 @@ function compatibilityAuc(items: Map<string, Piece>, keep: (pieces: Piece[]) => 
 
   // AUC by rank: the chance a random compatible outfit outscores a random
   // incompatible one.
-  rows.sort((a, b) => a.score - b.score);
-  const positives = rows.filter((r) => r.label === 1).length;
-  const negatives = rows.length - positives;
-  const rankSum = rows.reduce((sum, r, i) => (r.label === 1 ? sum + i + 1 : sum), 0);
-  const auc = (rankSum - (positives * (positives + 1)) / 2) / (positives * negatives);
-  return { rows: rows.length, positives, negatives, auc };
+  const positives = rows.filter((r) => r.label === 1).map((r) => r.score);
+  const negatives = rows.filter((r) => r.label !== 1).map((r) => r.score);
+  const auc = aucByRank(positives, negatives);
+  return { rows: rows.length, positives: positives.length, negatives: negatives.length, auc };
 }
 
 const everything = () => true;

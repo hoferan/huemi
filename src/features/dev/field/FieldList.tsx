@@ -3,34 +3,44 @@ import { Link, useNavigate } from 'react-router';
 import * as stylex from '@stylexjs/stylex';
 import { needsBorder } from '../../../color/contrast';
 import { colorName } from '../../../color/palette';
-import { LIGHT_LABELS, type FieldCapture, type FieldGarment } from '../../../model/field';
+import {
+  LIGHT_LABELS,
+  type FieldCapture,
+  type FieldGarment,
+  type PairVote,
+} from '../../../model/field';
 import type { Pixels } from '../../../model/frame';
 import { useSession } from '../../../session/useSession';
 import { tokens } from '../../../styles/tokens.stylex';
 import { Button } from '../../../ui/Button';
 import { Screen } from '../../../ui/Screen';
+import { Sheet } from '../../../ui/Sheet';
 import { FramePhoto } from '../../confirm/FramePhoto';
 import { formatSavedDate } from '../../saved/formatSavedDate';
-import { ShareContext } from '../../share/ShareContext';
 import {
   ADD_GARMENT,
   DELETE,
   DELETE_CAPTURE_FAILED,
-  EXPORT,
-  EXPORTED,
-  EXPORT_FAILED,
+  DELETE_RUN_CAPTURES,
+  DELETE_RUN_CAPTURES_FAILED,
+  DELETE_VOTES,
+  DELETE_VOTES_FAILED,
   FROM_NORMAL_USE,
+  GUIDED_RUNS,
+  KEEP_IT,
   LINK_TO_GARMENT,
   LIST_TITLE,
   MENU_BACK,
   NO_GARMENTS,
-  PREPARING_EXPORT,
-  SHARE_EXPORT,
   STORE_FAILED,
   captureCount,
+  deleteRunCapturesTitle,
+  deleteVotesTitle,
   exportSize,
+  runCaptureCount,
+  voteCount,
 } from './copy';
-import { buildFieldExport, deliverFieldExport, type ExportOutcome } from './exportFieldSet';
+import { ExportButton } from './ExportButton';
 import { FieldStoreContext } from './FieldStoreContext';
 import { LinkCapture } from './LinkCapture';
 
@@ -88,14 +98,6 @@ const styles = stylex.create({
 const isWaiting = (capture: FieldCapture): boolean =>
   capture.source === 'flow' && capture.garmentId === null;
 
-/** Where an export is: nothing yet, being built, or built and waiting for its tap. */
-type Exporting =
-  | { status: 'idle' }
-  | { status: 'preparing' }
-  | { status: 'ready'; file: File; garments: FieldGarment[]; captures: FieldCapture[] };
-
-const IDLE: Exporting = { status: 'idle' };
-
 type Loaded =
   | { status: 'loading' }
   | { status: 'error' }
@@ -103,6 +105,7 @@ type Loaded =
       status: 'ready';
       garments: FieldGarment[];
       captures: FieldCapture[];
+      votes: PairVote[];
       frames: ReadonlyMap<string, Pixels>;
     };
 
@@ -122,8 +125,12 @@ export function FieldList() {
   useEffect(() => {
     let current = true;
     void (async () => {
-      const [garments, captures] = await Promise.all([store.listGarments(), store.listCaptures()]);
-      if (!garments.ok || !captures.ok) {
+      const [garments, captures, votes] = await Promise.all([
+        store.listGarments(),
+        store.listCaptures(),
+        store.listVotes(),
+      ]);
+      if (!garments.ok || !captures.ok || !votes.ok) {
         if (current) setLoaded({ status: 'error' });
         return;
       }
@@ -136,7 +143,13 @@ export function FieldList() {
         }),
       );
       if (current) {
-        setLoaded({ status: 'ready', garments: garments.value, captures: captures.value, frames });
+        setLoaded({
+          status: 'ready',
+          garments: garments.value,
+          captures: captures.value,
+          votes: votes.value,
+          frames,
+        });
       }
     })();
     return () => {
@@ -151,6 +164,7 @@ export function FieldList() {
         <Ready
           garments={loaded.garments}
           captures={loaded.captures}
+          votes={loaded.votes}
           frames={loaded.frames}
           now={now}
           onAdd={() => void navigate('/dev/field/new')}
@@ -171,6 +185,18 @@ export function FieldList() {
                 : current,
             )
           }
+          onRunCapturesDeleted={() =>
+            setLoaded((current) =>
+              current.status === 'ready'
+                ? { ...current, captures: current.captures.filter((c) => c.source !== 'run') }
+                : current,
+            )
+          }
+          onVotesDeleted={() =>
+            setLoaded((current) =>
+              current.status === 'ready' ? { ...current, votes: [] } : current,
+            )
+          }
         />
       )}
     </Screen>
@@ -180,36 +206,38 @@ export function FieldList() {
 function Ready({
   garments,
   captures,
+  votes,
   frames,
   now,
   onAdd,
   onLinked,
   onDeleted,
+  onRunCapturesDeleted,
+  onVotesDeleted,
 }: {
   garments: FieldGarment[];
   captures: FieldCapture[];
+  votes: PairVote[];
   frames: ReadonlyMap<string, Pixels>;
   now: Date;
   onAdd: () => void;
   onLinked: (id: string, garmentId: string) => void;
   onDeleted: (id: string) => void;
+  onRunCapturesDeleted: () => void;
+  onVotesDeleted: () => void;
 }) {
   const store = use(FieldStoreContext);
-  const share = use(ShareContext);
   const { dispatch } = useSession();
   // The capture whose link sheet is open.
   const [linking, setLinking] = useState<string | null>(null);
-  const [exporting, setExporting] = useState<Exporting>(IDLE);
-  // Set while the share sheet is up: Chrome rejects a second share then, and
-  // the person would read that as a failure.
-  const sharing = useRef(false);
-  const shareButton = useRef<HTMLButtonElement>(null);
+  // True while the export is being built.
+  const [preparing, setPreparing] = useState(false);
+  // Which guided-runs delete is waiting on its confirm.
+  const [confirming, setConfirming] = useState<'captures' | 'votes' | null>(null);
   // Set while a delete is out, so a second tap cannot run it twice.
   const deleting = useRef(false);
-  // The build reads the captures one at a time, so a delete or link landing
-  // mid-build fails it or leaves a file of the old set that is then dropped.
-  const preparing = exporting.status === 'preparing';
   const unlinked = captures.filter(isWaiting);
+  const runCaptures = captures.filter((capture) => capture.source === 'run').length;
   const counts = new Map<string, number>();
   for (const { garmentId } of captures) {
     if (garmentId !== null) counts.set(garmentId, (counts.get(garmentId) ?? 0) + 1);
@@ -218,45 +246,7 @@ function Ready({
   // The frames as stored, before base64 and gzip change the size either way.
   const bytes = captures.reduce((sum, { width, height }) => sum + width * height * 4, 0);
 
-  // A file built before a link, or before the lists were read again, holds
-  // the old set, so it is dropped and never shared.
-  const prepared =
-    exporting.status === 'ready' &&
-    exporting.garments === garments &&
-    exporting.captures === captures
-      ? exporting.file
-      : null;
-
-  // The sheet's button appears after Export went disabled, which dropped focus.
-  useEffect(() => {
-    if (prepared) shareButton.current?.focus();
-  }, [prepared]);
-
   const toast = (message: string) => dispatch({ type: 'toastShown', message });
-
-  // The first tap builds the file. With a share sheet the second tap shares
-  // it, since the build's awaits use up the tap's user activation. Without
-  // one, a download needs no activation, so it happens straight away.
-  async function prepare() {
-    const set = { garments, captures };
-    setExporting({ status: 'preparing' });
-    let next: Exporting = IDLE;
-    try {
-      const file = await buildFieldExport({ store });
-      if (file === 'failed') {
-        toast(EXPORT_FAILED);
-      } else if (share.canShareFiles([file])) {
-        next = { status: 'ready', file, ...set };
-      } else {
-        await deliverFieldExport(share, file);
-        toast(EXPORTED);
-      }
-    } catch {
-      toast(EXPORT_FAILED);
-    } finally {
-      setExporting(next);
-    }
-  }
 
   // No confirmation, the same as a capture's Delete on the garment page.
   async function remove(id: string) {
@@ -268,38 +258,37 @@ function Ready({
     else toast(DELETE_CAPTURE_FAILED);
   }
 
-  // Synchronous up to the share, which must start inside the click.
-  function send(file: File) {
-    if (sharing.current) return;
-    sharing.current = true;
-    void deliverFieldExport(share, file)
-      .catch((): ExportOutcome => 'failed')
-      .then((outcome) => {
-        sharing.current = false;
-        // A closed sheet keeps the file, so the person can try again.
-        if (outcome === 'failed') {
-          toast(EXPORT_FAILED);
-        } else if (outcome !== 'dismissed') {
-          toast(EXPORTED);
-          setExporting(IDLE);
-        }
-      });
+  // Behind a confirm, since a run's data cannot be taken again. Shares
+  // `deleting` with a capture's Delete, so the two never run at once.
+  async function removeRuns(what: 'captures' | 'votes') {
+    if (deleting.current) return;
+    deleting.current = true;
+    const removed = await (what === 'captures' ? store.deleteRunCaptures() : store.clearVotes());
+    deleting.current = false;
+    setConfirming(null);
+    if (!removed.ok) {
+      toast(what === 'captures' ? DELETE_RUN_CAPTURES_FAILED : DELETE_VOTES_FAILED);
+    } else if (what === 'captures') {
+      onRunCapturesDeleted();
+    } else {
+      onVotesDeleted();
+    }
   }
 
   return (
     <>
       <div {...stylex.props(styles.actions)}>
         <Button label={ADD_GARMENT} onClick={onAdd} />
-        <Button
-          label={preparing ? PREPARING_EXPORT : EXPORT}
-          variant="secondary"
-          disabled={captures.length === 0 || preparing}
-          onClick={() => void prepare()}
+        {/* A link, or the lists read again, changes what the export would
+            hold, so a file built before either is dropped. The build reads
+            the captures one at a time, so the deletes and links below wait
+            while it runs. */}
+        <ExportButton
+          disabled={captures.length === 0 && votes.length === 0}
+          snapshot={[garments, captures, votes]}
+          onPreparing={setPreparing}
         />
-        {prepared && (
-          <Button ref={shareButton} label={SHARE_EXPORT} onClick={() => send(prepared)} />
-        )}
-        <p {...stylex.props(styles.text)}>{exportSize(captures.length, bytes)}</p>
+        <p {...stylex.props(styles.text)}>{exportSize(captures.length, bytes, votes.length)}</p>
       </div>
       {garments.length === 0 ? (
         <p {...stylex.props(styles.text)}>{NO_GARMENTS}</p>
@@ -385,6 +374,39 @@ function Ready({
             })}
           </ul>
         </section>
+      )}
+      <section {...stylex.props(styles.section)}>
+        <h2 {...stylex.props(styles.heading)}>{GUIDED_RUNS}</h2>
+        <p {...stylex.props(styles.text)}>{runCaptureCount(runCaptures)}</p>
+        <p {...stylex.props(styles.text)}>{voteCount(votes.length)}</p>
+        <Button
+          label={DELETE_RUN_CAPTURES}
+          variant="secondary"
+          disabled={runCaptures === 0 || preparing}
+          onClick={() => setConfirming('captures')}
+        />
+        <Button
+          label={DELETE_VOTES}
+          variant="secondary"
+          disabled={votes.length === 0 || preparing}
+          onClick={() => setConfirming('votes')}
+        />
+      </section>
+      {confirming !== null && (
+        <Sheet
+          open
+          onOpenChange={(open) => {
+            if (!open) setConfirming(null);
+          }}
+          title={
+            confirming === 'captures'
+              ? deleteRunCapturesTitle(runCaptures)
+              : deleteVotesTitle(votes.length)
+          }
+        >
+          <Button label={DELETE} onClick={() => void removeRuns(confirming)} />
+          <Button label={KEEP_IT} variant="secondary" onClick={() => setConfirming(null)} />
+        </Sheet>
       )}
       {linking !== null && (
         <LinkCapture

@@ -1,4 +1,4 @@
-import type { FieldCapture, FieldGarment } from '../../../model/field';
+import type { FieldCapture, FieldGarment, PairVote } from '../../../model/field';
 import type { Pixels } from '../../../model/frame';
 import type { FieldStore, StorageResult } from '../../../storage/port';
 
@@ -8,13 +8,14 @@ const failed = (reason: string): Promise<StorageResult<never>> =>
 
 /**
  * An in-memory FieldStore with the port's semantics: upsert by id, newest
- * first, a garment's delete cascading, unknown ids failing, one set id made
+ * first, a garment's delete cascading, votes by id, unknown ids failing, one set id made
  * on first asking. With `failing`, every call fails.
  */
 export function fakeFieldStore(options: { failing?: boolean } = {}): FieldStore {
   const garments = new Map<string, FieldGarment>();
   const captures = new Map<string, FieldCapture>();
   const frames = new Map<string, Pixels>();
+  const votes = new Map<string, PairVote>();
   let setId: string | undefined;
   const failing = options.failing === true;
   // Runs a call only when the store is not failing.
@@ -66,5 +67,28 @@ export function fakeFieldStore(options: { failing?: boolean } = {}): FieldStore 
       return ok(undefined);
     }),
     setId: guard(() => ok((setId ??= crypto.randomUUID()))),
+    saveVote: guard((vote: PairVote) => {
+      votes.set(vote.id, vote);
+      return ok(undefined);
+    }),
+    listVotes: guard(() =>
+      ok([...votes.values()].sort((a, b) => Date.parse(b.takenAt) - Date.parse(a.takenAt))),
+    ),
+    deleteVote: guard((id: string) => {
+      if (!votes.delete(id)) return failed('no vote');
+      return ok(undefined);
+    }),
+    clearVotes: guard(() => {
+      votes.clear();
+      return ok(undefined);
+    }),
+    deleteRunCaptures: guard(() => {
+      for (const capture of [...captures.values()]) {
+        if (capture.source !== 'run') continue;
+        captures.delete(capture.id);
+        frames.delete(capture.id);
+      }
+      return ok(undefined);
+    }),
   };
 }

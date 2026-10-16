@@ -1,5 +1,6 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import type { ComponentProps } from 'react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Frame } from '../../model/frame';
@@ -35,7 +36,11 @@ function port(overrides: Partial<CameraPort> = {}): CameraPort {
   };
 }
 
-function renderWith(camera: CameraPort, onFrame = vi.fn()) {
+function renderWith(
+  camera: CameraPort,
+  onFrame = vi.fn(),
+  extra: Partial<ComponentProps<typeof CaptureScreen>> = {},
+) {
   render(
     <MemoryRouter>
       <Announcer>
@@ -48,6 +53,7 @@ function renderWith(camera: CameraPort, onFrame = vi.fn()) {
               copy={copy}
               handEntry="/by-hand"
               onFrame={onFrame}
+              {...extra}
             />
           </CameraContext>
         </InitialLocationContext>
@@ -155,5 +161,54 @@ describe('CaptureScreen', () => {
       target: { files: [new File(['x'], 'outfit.jpg')] },
     });
     await vi.waitFor(() => expect(onFrame).toHaveBeenCalledWith(frame, null));
+  });
+
+  it('leaves out the photo chooser when told to', async () => {
+    renderWith(port(), vi.fn(), { offerPhoto: false });
+    await screen.findByRole('button', { name: 'Take photo' });
+    expect(screen.queryByRole('button', { name: 'Choose a photo' })).not.toBeInTheDocument();
+    expect(document.querySelector('input[type="file"]')).toBeNull();
+  });
+
+  it('offers the photo chooser by default', async () => {
+    renderWith(port());
+    expect(await screen.findByRole('button', { name: 'Choose a photo' })).toBeInTheDocument();
+  });
+
+  it('keeps hand entry out of low light when told to', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const attach = vi.fn<CameraPort['attach']>();
+    const camera = port({ readFrame: vi.fn(() => darkFrame), attach });
+    renderWith(camera, vi.fn(), { offerHandEntry: false });
+    await screen.findByRole('button', { name: 'Take photo' });
+    await vi.waitFor(() => expect(attach).toHaveBeenCalled());
+    act(() => {
+      vi.advanceTimersByTime(SAMPLE_INTERVAL_MS * 2);
+    });
+    expect(screen.queryByRole('link', { name: 'Do it by hand' })).not.toBeInTheDocument();
+  });
+
+  it('keeps hand entry out when always offered but told not to', async () => {
+    renderWith(port(), vi.fn(), { alwaysOfferHandEntry: true, offerHandEntry: false });
+    await screen.findByRole('button', { name: 'Take photo' });
+    expect(screen.queryByRole('link', { name: 'Do it by hand' })).not.toBeInTheDocument();
+  });
+
+  it('keeps hand entry out of the denied panel when told to', async () => {
+    const camera = port({
+      open: vi.fn(() => Promise.resolve({ ok: false as const, reason: 'denied' as const })),
+    });
+    renderWith(camera, vi.fn(), { offerHandEntry: false });
+    await screen.findByText('Denied heading');
+    expect(screen.queryByRole('link', { name: 'Do it by hand' })).not.toBeInTheDocument();
+  });
+
+  it('renders a header above the viewfinder', async () => {
+    renderWith(port(), vi.fn(), { header: <p>Run header</p> });
+    const header = await screen.findByText('Run header');
+    const viewfinder = document.querySelector('main > div[aria-hidden="true"]')!;
+    expect(
+      header.compareDocumentPosition(viewfinder) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 });
