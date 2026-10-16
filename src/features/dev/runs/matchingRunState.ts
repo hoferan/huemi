@@ -5,7 +5,7 @@ import type { Pair } from './pairs';
 type Run = { pairs: Pair[]; votes: PairVote[] };
 
 /**
- * The matching run's steps. The current pair is `pairs[votes.length]`, so the
+ * Where the matching run is. The current pair is `pairs[votes.length]`, so the
  * run's place is the number of votes and nothing else keeps count. `replace`
  * carries the block the person would change and the six colors offered for it,
  * drawn once when they picked the block so a re-render never reshuffles them.
@@ -19,16 +19,18 @@ export type MatchingAction =
   | { type: 'start'; pairs: Pair[] }
   | { type: 'no' }
   | { type: 'pick'; changed: 'top' | 'bottom'; offered: Hex[] }
+  | { type: 'back' }
   | { type: 'voted'; vote: PairVote }
   | { type: 'undo' }
   | { type: 'again' };
 
 /**
- * The matching run's steps. As in the reading run, the screen does the saving:
+ * Moves the matching run on. As in the reading run, the screen does the saving:
  * `voted` arrives only once the store has the vote, and Undo arrives only once
  * it has deleted one, so the run never counts a vote the set does not have.
- * Yes is therefore no step of its own. An action a step has no use for leaves
- * the state alone.
+ * Yes is therefore no step of its own. `back` leaves the which and replace
+ * steps for the pair's vote and saves nothing. An action a step has no use for
+ * leaves the state alone.
  */
 export function matchingRun(state: MatchingState, action: MatchingAction): MatchingState {
   switch (action.type) {
@@ -47,6 +49,9 @@ export function matchingRun(state: MatchingState, action: MatchingAction): Match
         changed: action.changed,
         offered: action.offered,
       };
+    case 'back':
+      if (state.step !== 'which' && state.step !== 'replace') return state;
+      return { step: 'vote', pairs: state.pairs, votes: state.votes };
     case 'voted': {
       if (state.step !== 'vote' && state.step !== 'replace') return state;
       const { pairs } = state;

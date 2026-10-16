@@ -25,7 +25,8 @@ export type FieldGarment = {
 /**
  * How a guided run's reading compared with the garment's true color, as the
  * person judged it: the reader got it `right`, the person `corrected` it, or
- * the reader `missed` and gave no color.
+ * the person skipped with "I can't say" (`missed`), which leaves no true color
+ * to judge by.
  */
 export type Verdict = 'right' | 'corrected' | 'missed';
 

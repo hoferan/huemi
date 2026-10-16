@@ -22,7 +22,7 @@ export function persistOnce(storage: () => Persistable): () => void {
 }
 
 /**
- * Called before each kit or flow save, so the first save in a page session
+ * Called before each kit, flow or run save, so the first save in a page session
  * asks. The call comes before the save's await, inside the tap that started
  * it, in case a browser wants a user gesture before it answers.
  */

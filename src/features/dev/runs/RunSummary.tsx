@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import * as stylex from '@stylexjs/stylex';
 import { tokens } from '../../../styles/tokens.stylex';
 import { Button } from '../../../ui/Button';
+import { clearOfToasts } from '../../../ui/toastClearance';
 import { AGAIN, UNDO } from './copy';
 
 const styles = stylex.create({
@@ -32,7 +33,7 @@ export function RunSummary({
   held?: boolean;
 }) {
   return (
-    <section aria-label={headline} {...stylex.props(styles.summary)}>
+    <section aria-label={headline} {...clearOfToasts} {...stylex.props(styles.summary)}>
       <p {...stylex.props(styles.headline)}>{headline}</p>
       {children}
       {exportControl}

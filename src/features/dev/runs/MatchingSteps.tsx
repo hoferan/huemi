@@ -8,10 +8,12 @@ import { tokens } from '../../../styles/tokens.stylex';
 import { blockText } from '../../../ui/blockText';
 import { Button } from '../../../ui/Button';
 import { Screen } from '../../../ui/Screen';
+import { clearOfToasts } from '../../../ui/toastClearance';
 import { Swatch } from '../../../ui/Swatch';
 import { swatchGrid } from '../../../ui/swatchGrid';
 import { MENU_BACK } from '../field/copy';
 import {
+  BACK,
   BETTER_COLORS,
   KEEPING,
   MATCHING_TITLE,
@@ -105,15 +107,17 @@ export function PairVoteStep({
   );
 }
 
-/** After No: tap the block they would change. */
+/** After No: tap the block they would change, or go back to the pair's vote. */
 export function WhichStep({
   pair,
   progress,
   onPick,
+  onBack,
 }: {
   pair: Pair;
   progress: ReactNode;
   onPick: (changed: 'top' | 'bottom') => void;
+  onBack: () => void;
 }) {
   return (
     <Screen title={WHICH_BLOCK} back={MENU_BACK}>
@@ -121,6 +125,9 @@ export function WhichStep({
       <div {...stylex.props(styles.stack)}>
         <Block hex={pair.top} onPress={() => onPick('top')} />
         <Block hex={pair.bottom} onPress={() => onPick('bottom')} />
+      </div>
+      <div {...clearOfToasts}>
+        <Button label={BACK} variant="quiet" onClick={onBack} />
       </div>
     </Screen>
   );
@@ -139,6 +146,7 @@ export function ReplaceStep({
   onReplace,
   onNoneWorks,
   onSkip,
+  onBack,
 }: {
   pair: Pair;
   changed: 'top' | 'bottom';
@@ -147,6 +155,7 @@ export function ReplaceStep({
   onReplace: (hex: Hex) => void;
   onNoneWorks: () => void;
   onSkip: () => void;
+  onBack: () => void;
 }) {
   const label = (slot: 'top' | 'bottom') => (slot === changed ? REPLACING : KEEPING);
   return (
@@ -161,9 +170,10 @@ export function ReplaceStep({
           <Swatch key={hex} hex={hex} onSelect={onReplace} />
         ))}
       </div>
-      <div {...stylex.props(styles.actions)}>
+      <div {...clearOfToasts} {...stylex.props(styles.actions)}>
         <Button label={NOTHING_WORKS} variant="secondary" onClick={onNoneWorks} />
         <Button label={SKIP} variant="quiet" onClick={onSkip} />
+        <Button label={BACK} variant="quiet" onClick={onBack} />
       </div>
     </Screen>
   );

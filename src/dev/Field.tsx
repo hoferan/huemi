@@ -10,7 +10,7 @@ import { readableForeground } from '../color/contrast';
 import { drawRegion } from '../features/dev/reader/drawRegion';
 import { verdictText } from '../features/dev/reader/readout';
 
-type Captures = { files: number; skipped: number; scores: CaptureScore[] };
+type Captures = { files: number; skipped: number; missed: number; scores: CaptureScore[] };
 
 const styles = stylex.create({
   wrap: { maxWidth: '960px', margin: '0 auto', display: 'grid', gap: '16px' },
@@ -144,6 +144,8 @@ export default function Field() {
         {captures.scores.length} captures from {captures.files} export
         {captures.files === 1 ? '' : 's'}, worst first. Wrong above {WRONG_AT}.
         {captures.skipped > 0 && ` ${captures.skipped} with nothing to score against left out.`}
+        {captures.missed > 0 &&
+          ` ${captures.missed} skipped in a guided run (the person couldn't say) counted as misses.`}
       </p>
       {[...captures.scores].sort(worstFirst).map((score) => (
         <Row key={score.id} score={score} />

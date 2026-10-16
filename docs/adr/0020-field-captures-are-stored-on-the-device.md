@@ -1,6 +1,8 @@
 # 0020. Field captures are stored on the device
 
 Status: Accepted, 2026-10-06. Amends ADR 0013 for field captures.
+[ADR 0023](0023-guided-runs-record-judged-truth.md) amends it for run captures, pair
+votes and export version 2.
 
 ## Context
 

@@ -301,6 +301,21 @@ describe('fieldReport', () => {
     expect(text).toContain('right first try 2 of 3');
   });
 
+  it('counts skipped run captures as misses in the first-try figure', () => {
+    const judged = (verdict: 'right' | 'corrected') =>
+      scoreOf({ source: 'judged', label: null, verdict });
+    const report = fieldReport([judged('right'), judged('corrected')], 0, 2);
+    expect(report).toContain('right first try 1 of 4');
+  });
+
+  it('reports run captures the person skipped as misses', () => {
+    expect(fieldReport([scoreOf()], 0, 2).trimEnd()).toMatch(
+      /2 captures skipped in a guided run \(the person couldn't say\), counted as misses\.$/,
+    );
+    expect(fieldReport([scoreOf()], 0, 1)).toContain('1 capture skipped in a guided run');
+    expect(fieldReport([scoreOf()], 0, 0)).not.toContain('guided run');
+  });
+
   it('says none for a table with no captures', () => {
     const report = fieldReport([scoreOf()], 0, 0);
     expect(report.split('Against the color settled in use (weaker truth)')[1]!.trim()).toBe('none');

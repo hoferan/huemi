@@ -156,7 +156,7 @@ describe('AppRoutes with developer mode on', () => {
     '/dev/field/garment?id=missing': 'Field recorder',
     '/dev/field/capture?id=missing&light=dim': 'Field recorder',
     '/dev/runs/reading': 'Check color reading',
-    '/dev/runs/matching': 'Check color matching',
+    '/dev/runs/matching': 'Rate color pairs',
   };
 
   it.each(Object.entries(FIELD_HEADINGS))('serves %s', async (route, heading) => {

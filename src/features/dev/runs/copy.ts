@@ -5,7 +5,7 @@ import type { CameraFailure } from '../../camera/port';
 
 export const READING_TITLE = 'Check color reading';
 export const MATCH_GARMENT = 'Match the garment';
-export const MATCHING_TITLE = 'Check color matching';
+export const MATCHING_TITLE = 'Rate color pairs';
 
 export const QUESTION_READING = 'Is this its color?';
 export const QUESTION_PAIR = 'Would you wear these together?';
@@ -19,6 +19,7 @@ export const NOTHING_WORKS = 'Nothing works with it';
 export const USE_THIS = 'Use this color';
 export const SKIP = 'Skip';
 export const UNDO = 'Undo';
+export const BACK = 'Back';
 export const YES = 'Yes';
 export const NO = 'No';
 export const START = 'Start';

@@ -69,6 +69,25 @@ describe('readingRun', () => {
     expect(readingRun(noVote, { type: 'back' })).toBe(noVote);
   });
 
+  it('goes back from the sliders to the swatches, whatever the reading was', () => {
+    const afterNo = readingRun(readingRun(started, { type: 'shot', shot: single }), {
+      type: 'no',
+    });
+    const direct = readingRun(started, { type: 'shot', shot: several });
+    for (const [correcting, shot] of [
+      [afterNo, single],
+      [direct, several],
+    ] as const) {
+      const sliders = readingRun(correcting, { type: 'noneOfThese' });
+      expect(sliders.step).toBe('sliders');
+      expect(readingRun(sliders, { type: 'back' })).toEqual({
+        ...correcting,
+        step: 'correct',
+        shot,
+      });
+    }
+  });
+
   it('ends on the summary at the last answer', () => {
     let state: ReadingState = started;
     for (let n = 1; n <= 20; n++) {

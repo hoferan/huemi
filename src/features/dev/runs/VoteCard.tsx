@@ -2,6 +2,7 @@ import type { KeyboardEvent, ReactNode } from 'react';
 import * as stylex from '@stylexjs/stylex';
 import { tokens } from '../../../styles/tokens.stylex';
 import { Button } from '../../../ui/Button';
+import { clearOfToasts } from '../../../ui/toastClearance';
 import { blockControl, useBlockGestures } from '../../../ui/useBlockGestures';
 import { NO, SWIPE_HINT, YES } from './copy';
 
@@ -71,7 +72,7 @@ export function VoteCard({
       <p {...stylex.props(styles.question)}>{question}</p>
       {children}
       {/* A press on either button is the button's, not a swipe's. */}
-      <div {...blockControl} {...stylex.props(styles.answers)}>
+      <div {...blockControl} {...clearOfToasts} {...stylex.props(styles.answers)}>
         <div {...stylex.props(styles.answer)}>
           <Button label={NO} variant="secondary" onClick={() => onAnswer(false)} />
         </div>

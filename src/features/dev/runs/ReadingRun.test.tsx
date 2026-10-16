@@ -231,6 +231,17 @@ describe('ReadingRun', () => {
     expect(screen.queryByText('Pick a closer color, or skip.')).not.toBeInTheDocument();
   });
 
+  it('goes back from the sliders to the swatches without saving', async () => {
+    const { user, store } = setup();
+    await start(user);
+    await shoot(user);
+    await user.click(await screen.findByRole('button', { name: 'No' }));
+    await user.click(screen.getByRole('button', { name: 'None of these' }));
+    await user.click(screen.getByRole('button', { name: 'Back' }));
+    expect(screen.getByRole('heading', { level: 1, name: 'Which is closer?' })).toBeInTheDocument();
+    expect(value(await store.listCaptures())).toEqual([]);
+  });
+
   it('saves nothing when the sliders are used without moving', async () => {
     const { user, store } = setup();
     await start(user);

@@ -67,6 +67,16 @@ describe('matchingRun', () => {
     expect(matchingRun(setup, { type: 'voted', vote: vote(1) })).toBe(setup);
   });
 
+  it('goes back from which and from replace to the vote, saving nothing', () => {
+    const which = matchingRun(started, { type: 'no' });
+    expect(matchingRun(which, { type: 'back' })).toEqual(started);
+    const replace = matchingRun(which, { type: 'pick', changed: 'top', offered: [CREAM] });
+    expect(matchingRun(replace, { type: 'back' })).toEqual(started);
+    expect(matchingRun(started, { type: 'back' })).toBe(started);
+    const summary = answered(started, 10);
+    expect(matchingRun(summary, { type: 'back' })).toBe(summary);
+  });
+
   it('ends on the summary at the last vote', () => {
     const state = answered(started, 10);
     expect(state.step).toBe('summary');

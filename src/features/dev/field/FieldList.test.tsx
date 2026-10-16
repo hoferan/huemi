@@ -354,6 +354,13 @@ describe('FieldList', () => {
     expect(screen.getByRole('button', { name: 'Export' })).toBeDisabled();
   });
 
+  it('names the pair votes beside the size when there are any', async () => {
+    setup(await withRuns(0, 3));
+
+    expect(await screen.findByText('0 captures, about 0.0 MB, 3 pair votes')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Export' })).toBeEnabled();
+  });
+
   it('downloads in one step without a share sheet', async () => {
     const store = fakeFieldStore();
     await store.saveCapture(capture('c1', 'g1'), PIXELS);

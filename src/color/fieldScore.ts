@@ -100,8 +100,8 @@ function scoreCapture(capture: Capture, truth: NonNullable<ReturnType<typeof tru
  * Reads every capture in the set and scores it against its truth. A capture
  * whose garment is no longer in the set, or that has neither a garment nor a
  * settled color, has nothing to be scored against and is counted as skipped.
- * A guided-run capture the reader missed outright has no color to judge it
- * by and is counted as missed instead, so it stays out of skipped.
+ * A guided-run capture the person skipped ("I can't say") has no true color
+ * to judge it by and is counted as missed instead, so it stays out of skipped.
  */
 export function scoreFieldSet(data: FieldExport): {
   scores: CaptureScore[];
@@ -246,11 +246,14 @@ export function fieldReport(
       ? [
           '',
           ...table('Against the color judged in the same light', judged, 'wrong'),
-          `right first try ${first} of ${judged.length}`,
+          `right first try ${first} of ${judged.length + missed}`,
         ]
       : []),
     ...(missed
-      ? ['', `Missed ${missed} capture${missed === 1 ? '' : 's'} the reader found no color in.`]
+      ? [
+          '',
+          `${missed} capture${missed === 1 ? '' : 's'} skipped in a guided run (the person couldn't say), counted as misses.`,
+        ]
       : []),
     ...(skipped
       ? ['', `Skipped ${skipped} capture${skipped === 1 ? '' : 's'} with nothing to score against.`]

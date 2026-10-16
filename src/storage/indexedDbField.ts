@@ -4,7 +4,7 @@ import type { FieldStore, StorageResult } from './port';
 
 export const FIELD_DB = 'huemi-field';
 
-/* v8 ignore start -- jsdom has no indexedDB; e2e/features/field.feature drives it. */
+/* v8 ignore start -- jsdom has no indexedDB; e2e/features/field.feature and runs.feature drive it. */
 type FrameRecord = { id: string; width: number; height: number; data: Uint8ClampedArray };
 type MetaRecord = { id: 'setId'; value: string };
 

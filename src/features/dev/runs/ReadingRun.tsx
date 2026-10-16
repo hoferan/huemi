@@ -158,6 +158,7 @@ export function ReadingRun() {
           progress={progress}
           onUse={(hex) => void save(state.shot, 'corrected', hex)}
           onSkip={() => void save(state.shot, 'missed', null)}
+          onBack={() => move({ type: 'back' })}
         />
       );
     case 'summary': {

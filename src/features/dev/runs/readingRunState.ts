@@ -85,7 +85,9 @@ export function readingRun(state: ReadingState, action: ReadingAction): ReadingS
       if (state.step !== 'correct') return state;
       return { ...state, step: 'sliders' };
     case 'back':
-      // Only a single reading had a vote to go back to.
+      // From the sliders back to the swatches. From the swatches, only a
+      // single reading had a vote to go back to.
+      if (state.step === 'sliders') return { ...state, step: 'correct' };
       if (state.step !== 'correct' || state.shot.kind !== 'single') return state;
       return { ...state, step: 'vote' };
     case 'answered': {

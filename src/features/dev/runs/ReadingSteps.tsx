@@ -9,11 +9,13 @@ import { tokens } from '../../../styles/tokens.stylex';
 import { blockText } from '../../../ui/blockText';
 import { Button } from '../../../ui/Button';
 import { Screen } from '../../../ui/Screen';
+import { clearOfToasts } from '../../../ui/toastClearance';
 import { CorrectionPanel } from '../../confirm/CorrectionPanel';
 import { FramePhoto } from '../../confirm/FramePhoto';
 import { ColorSliders, type Hsl } from '../../pick/ColorSliders';
 import { MENU_BACK } from '../field/copy';
 import {
+  BACK,
   CLOSER,
   LOOK_AT_GARMENT,
   MATCH_GARMENT,
@@ -188,7 +190,7 @@ export function CorrectStep({
         // The reducer ignores it for a reading that had no vote.
         onClose={onBack}
       />
-      <div {...stylex.props(styles.actions)}>
+      <div {...clearOfToasts} {...stylex.props(styles.actions)}>
         {unchanged && <PickCloser />}
         <Button label={USE_THIS} onClick={use} />
         <Button label={NONE_OF_THESE} variant="secondary" onClick={onNoneOfThese} />
@@ -198,17 +200,22 @@ export function CorrectStep({
   );
 }
 
-/** None of the swatches was close: hue, saturation and lightness, starting from what the run showed. */
+/**
+ * None of the swatches was close: hue, saturation and lightness, starting
+ * from what the run showed. Back returns to the swatches.
+ */
 export function SlidersStep({
   shot,
   progress,
   onUse,
   onSkip,
+  onBack,
 }: {
   shot: Shot;
   progress: ReactNode;
   onUse: (hex: Hex) => void;
   onSkip: () => void;
+  onBack: () => void;
 }) {
   const [hsl, setHsl] = useState<Hsl>(() => {
     // Rounded, since the sliders step in whole units.
@@ -247,10 +254,11 @@ export function SlidersStep({
         }}
         idPrefix="reading-"
       />
-      <div {...stylex.props(styles.actions)}>
+      <div {...clearOfToasts} {...stylex.props(styles.actions)}>
         {unchanged && <PickCloser />}
         <Button label={USE_THIS} onClick={use} />
         <Button label={SKIP} variant="quiet" onClick={onSkip} />
+        <Button label={BACK} variant="quiet" onClick={onBack} />
       </div>
     </Screen>
   );

@@ -288,7 +288,7 @@ function Ready({
           snapshot={[garments, captures, votes]}
           onPreparing={setPreparing}
         />
-        <p {...stylex.props(styles.text)}>{exportSize(captures.length, bytes)}</p>
+        <p {...stylex.props(styles.text)}>{exportSize(captures.length, bytes, votes.length)}</p>
       </div>
       {garments.length === 0 ? (
         <p {...stylex.props(styles.text)}>{NO_GARMENTS}</p>

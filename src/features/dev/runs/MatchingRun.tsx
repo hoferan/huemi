@@ -119,6 +119,7 @@ export function MatchingRun({ random = Math.random }: { random?: () => number })
           key={key}
           pair={pair!}
           progress={progress}
+          onBack={() => move({ type: 'back' })}
           onPick={(changed) => {
             // The block that stays decides what the swatches suit, and the
             // one that goes is kept out of them.
@@ -141,6 +142,7 @@ export function MatchingRun({ random = Math.random }: { random?: () => number })
           changed={changed}
           offered={offered}
           progress={progress}
+          onBack={() => move({ type: 'back' })}
           onReplace={(hex: Hex) => void save(pair!, { ...no, replacement: hex, noneWorks: false })}
           onNoneWorks={() => void save(pair!, { ...no, replacement: null, noneWorks: true })}
           onSkip={() => void save(pair!, { ...no, replacement: null, noneWorks: false })}

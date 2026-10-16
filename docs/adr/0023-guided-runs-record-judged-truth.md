@@ -42,9 +42,9 @@ build, which tuning cannot move.
 **`'missed'` captures are kept.** Skip means "I can't say". The garments people skip
 are the reader's worst cases, so dropping them would make the reader look better than
 it is. A missed capture has no truth to measure against, so the benchmark counts it
-and does not score it. A No followed by "Use this color" on a color equal to the
-rejected reading saves nothing and says "Pick a closer color, or skip.", since that
-answer would record a correction that equals what was rejected.
+as a miss in the first-try figure and does not score it. A No followed by "Use this color" on a color equal to the
+rejected reading saves nothing and says "Pick a closer color, or skip.": a correction
+equal to the rejected reading tells nothing.
 
 **Pair votes live in a `votes` store in `huemi-field`, at database version 2.** A
 `PairVote` holds the id, time, build, the two colors, whether they were liked, which
@@ -79,8 +79,7 @@ the run's counter is not kept.
 **Both benchmarks use one tie-correct AUC.** `aucByRank` in `src/color/voteScore.ts`
 ranks by average rank, so tied scores count half. The vote benchmark and
 `engine.benchmark.test.ts` both use it. It moved the Polyvore dress-outfit
-compatibility AUC from 0.577 to 0.586. That is a change in how it is measured, and
-the engine is the same.
+compatibility AUC from 0.577 to 0.586. The engine did not change; the measure did.
 
 ## Consequences
 
@@ -101,3 +100,7 @@ card's colors are StyleX, which emits no CSS under Vitest (ADR 0002).
 Locking developer mode leaves runs' data where it is, as it does the rest of the
 field set. The two deletes on the field list are the only way to clear it short of
 clearing site data.
+
+After the version 2 upgrade, a tab still running an older build gets a `VersionError`
+opening the field database at version 1, and the field list shows its error state until
+the tab is reloaded.

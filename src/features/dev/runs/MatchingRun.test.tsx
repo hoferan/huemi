@@ -104,9 +104,7 @@ beforeEach(() => {
 describe('MatchingRun', () => {
   it('asks only for the length first', () => {
     setup();
-    expect(
-      screen.getByRole('heading', { level: 1, name: 'Check color matching' }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: 'Rate color pairs' })).toBeInTheDocument();
     expect(screen.getByRole('group', { name: 'Number of questions' })).toBeInTheDocument();
     expect(screen.queryByRole('group', { name: 'Light' })).not.toBeInTheDocument();
   });
@@ -219,6 +217,21 @@ describe('MatchingRun', () => {
     ).toBeInTheDocument();
     expect(screen.getByText('1 of 20')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Nothing works with it' })).toBeEnabled();
+  });
+
+  it('goes back from which and from replace to the pair, saving nothing', async () => {
+    const { user, store } = setup();
+    await start(user);
+    const [pair] = drawn(20);
+    await user.click(screen.getByRole('button', { name: 'No' }));
+    await user.click(screen.getByRole('button', { name: 'Back' }));
+    expect(screen.getByText('Would you wear these together?')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'No' }));
+    await user.click(screen.getByRole('button', { name: colorName(pair!.bottom) }));
+    await user.click(screen.getByRole('button', { name: 'Back' }));
+    expect(screen.getByText('Would you wear these together?')).toBeInTheDocument();
+    expect(screen.getByText('1 of 20')).toBeInTheDocument();
+    expect(await saved(store, 0)).toEqual([]);
   });
 
   it('saves a Skip as a No with the block named and no replacement', async () => {

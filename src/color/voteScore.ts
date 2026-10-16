@@ -5,8 +5,8 @@ import { rate } from './engine';
 
 /**
  * Scores the engine against the yes/no votes on color pairs that the guided
- * matching run records (#114's sibling for the matching side). Pure functions
- * over the merged votes, so the benchmark prints and the tests can assert.
+ * matching run records. Pure functions over the merged votes, so the
+ * benchmark prints and the tests can assert.
  */
 
 /**
