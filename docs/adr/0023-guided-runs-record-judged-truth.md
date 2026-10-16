@@ -42,9 +42,10 @@ build, which tuning cannot move.
 **`'missed'` captures are kept.** Skip means "I can't say". The garments people skip
 are the reader's worst cases, so dropping them would make the reader look better than
 it is. A missed capture has no truth to measure against, so the benchmark counts it
-as a miss in the first-try figure and does not score it. A No followed by "Use this color" on a color equal to the
-rejected reading saves nothing and says "Pick a closer color, or skip.": a correction
-equal to the rejected reading tells nothing.
+as a miss in the first-try figure and does not score it. A No followed by
+"Use this color" on a color equal to the rejected reading saves nothing and says
+"Pick a closer color, or skip.": a correction equal to the rejected reading tells
+nothing.
 
 **Pair votes live in a `votes` store in `huemi-field`, at database version 2.** A
 `PairVote` holds the id, time, build, the two colors, whether they were liked, which
