@@ -56,6 +56,16 @@ describe('useUpdateReady', () => {
     expect(result.current.ready).toBe(false);
   });
 
+  it('offers nothing when the new version is gone before its update is seen', () => {
+    // A worker that fails to install becomes redundant, and the browser can
+    // clear `installing` before the page handles updatefound.
+    const registration = fakeRegistration({ active: fakeWorker('activated') });
+    watch(registration);
+    const { result } = renderHook(() => useUpdateReady());
+    act(() => void registration.dispatchEvent(new Event('updatefound')));
+    expect(result.current.ready).toBe(false);
+  });
+
   it('asks the waiting version to take over, and reloads only once it has', () => {
     const waiting = fakeWorker('installed');
     const container = new EventTarget();

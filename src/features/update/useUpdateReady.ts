@@ -42,7 +42,10 @@ export function watchForUpdates(
   registration: Registration,
   {
     container = navigator.serviceWorker,
+    // jsdom cannot reload a page, so every test passes its own.
+    /* v8 ignore start */
     reload = () => window.location.reload(),
+    /* v8 ignore stop */
     now = Date.now,
   }: {
     container?: Pick<EventTarget, 'addEventListener'>;
