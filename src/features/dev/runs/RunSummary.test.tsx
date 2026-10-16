@@ -49,4 +49,18 @@ describe('RunSummary', () => {
     expect(onAgain).toHaveBeenCalledTimes(1);
     expect(onUndo).toHaveBeenCalledTimes(1);
   });
+
+  it('holds Another run and Undo when told to', () => {
+    render(
+      <RunSummary
+        headline="Done"
+        exportControl={<button type="button">Export</button>}
+        onAgain={vi.fn()}
+        onUndo={vi.fn()}
+        held
+      />,
+    );
+    expect(screen.getByRole('button', { name: 'Another run' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Undo' })).toBeDisabled();
+  });
 });

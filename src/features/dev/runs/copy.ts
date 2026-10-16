@@ -31,6 +31,7 @@ export const RUN_PROGRESS = 'Progress';
 
 export const progressText = (index: number, length: number): string => `${index + 1} of ${length}`;
 
+export const PICK_CLOSER = 'Pick a closer color, or skip.';
 export const UNDO_FAILED = "Couldn't take that answer back.";
 export const MISSES = 'Misses';
 export const SKIPPED = 'Skipped';

@@ -108,6 +108,33 @@ function stopTracks(stream: MediaStream) {
 }
 
 /**
+ * Where the hand-entry link goes and what it says, or `offerHandEntry: false`
+ * for a screen with no hand entry at all. False hides the link in every
+ * state, low light and `alwaysOfferHandEntry` included: a guided run has no
+ * hand entry to go to, so it need not name a destination or a label.
+ */
+type HandEntryProps =
+  | {
+      offerHandEntry?: true;
+      copy: CaptureCopy;
+      /** Where the hand-entry link goes. */
+      handEntry: string;
+      /**
+       * Show the hand-entry link while the camera is live, not only in low
+       * light. The outfit check sets it: entering colors is a peer route there.
+       */
+      alwaysOfferHandEntry?: boolean;
+    }
+  | {
+      offerHandEntry: false;
+      // The link's words and destination are optional here and unused, so
+      // a caller can switch hand entry off and keep passing the rest.
+      copy: Pick<CaptureCopy, 'panels'> & Partial<Pick<CaptureCopy, 'handEntry'>>;
+      handEntry?: string;
+      alwaysOfferHandEntry?: boolean;
+    };
+
+/**
  * Framing a garment or an outfit, or choosing a photo of one.
  *
  * Denied, unavailable and too dark are designed states rather than errors,
@@ -118,45 +145,23 @@ function stopTracks(stream: MediaStream) {
  * the same for an outfit. Blocking the shutter would punish the common case
  * on a threshold nobody has tuned yet.
  */
-export function CaptureScreen({
-  title,
-  back,
-  guide,
-  copy,
-  handEntry,
-  alwaysOfferHandEntry = false,
-  header,
-  offerPhoto = true,
-  offerHandEntry = true,
-  onFrame,
-}: {
-  title: string;
-  back: BackTo;
-  guide: 'garment' | 'outfit';
-  copy: CaptureCopy;
-  /** Where the hand-entry link goes. */
-  handEntry: string;
-  /**
-   * Show the hand-entry link while the camera is live, not only in low
-   * light. The outfit check sets it: entering colors is a peer route there.
-   */
-  alwaysOfferHandEntry?: boolean;
-  /** Shown above the viewfinder, and above the panel when the camera is not available. */
-  header?: ReactNode;
-  /** Whether to offer choosing a photo. The guided runs read the live camera only. */
-  offerPhoto?: boolean;
-  /**
-   * Whether the hand-entry link shows at all. False hides it in every state,
-   * low light and `alwaysOfferHandEntry` included: a guided run has no hand
-   * entry to go to.
-   */
-  offerHandEntry?: boolean;
-  /**
-   * `lowLight` is the warning showing at the shutter, and `null` for a chosen
-   * photo, which was not lit by this camera.
-   */
-  onFrame: (frame: Frame, lowLight: boolean | null) => void;
-}) {
+export function CaptureScreen(
+  props: {
+    title: string;
+    back: BackTo;
+    guide: 'garment' | 'outfit';
+    /** Shown above the viewfinder, and above the panel when the camera is not available. */
+    header?: ReactNode;
+    /** Whether to offer choosing a photo. The guided runs read the live camera only. */
+    offerPhoto?: boolean;
+    /**
+     * `lowLight` is the warning showing at the shutter, and `null` for a chosen
+     * photo, which was not lit by this camera.
+     */
+    onFrame: (frame: Frame, lowLight: boolean | null) => void;
+  } & HandEntryProps,
+) {
+  const { title, back, guide, copy, header, offerPhoto = true, onFrame } = props;
   const camera = use(CameraContext);
   const announce = useAnnounce();
   const video = useRef<HTMLVideoElement>(null);
@@ -265,11 +270,14 @@ export function CaptureScreen({
     setAttempt((n) => n + 1);
   }
 
-  const handEntryLink = (
-    <Link to={handEntry} {...stylex.props(styles.link)}>
-      {copy.handEntry}
-    </Link>
-  );
+  // Null when the screen offers no hand entry, so neither place below shows it.
+  const handEntryLink =
+    props.offerHandEntry === false ? null : (
+      <Link to={props.handEntry} {...stylex.props(styles.link)}>
+        {props.copy.handEntry}
+      </Link>
+    );
+  const alwaysOfferHandEntry = props.alwaysOfferHandEntry ?? false;
 
   const choosePhoto = (
     <>
@@ -302,7 +310,7 @@ export function CaptureScreen({
           </h2>
           <p {...stylex.props(styles.body)}>{panel.body}</p>
           {status === 'failed' && <Button label="Try again" onClick={retry} />}
-          {offerHandEntry && handEntryLink}
+          {handEntryLink}
           {offerPhoto && choosePhoto}
         </section>
       </Screen>
@@ -323,7 +331,7 @@ export function CaptureScreen({
         <div {...stylex.props(styles.guide, guide === 'outfit' && styles.outfitGuide)} />
       </div>
       <div {...clearOfToasts} {...stylex.props(styles.controls)}>
-        {offerHandEntry && (dark || alwaysOfferHandEntry) && handEntryLink}
+        {(dark || alwaysOfferHandEntry) && handEntryLink}
         {status === 'live' && (
           <button
             type="button"

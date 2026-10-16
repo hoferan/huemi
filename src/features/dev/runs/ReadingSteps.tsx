@@ -19,6 +19,7 @@ import {
   MATCH_GARMENT,
   MISSES,
   NONE_OF_THESE,
+  PICK_CLOSER,
   QUESTION_READING,
   READING_TITLE,
   SKIP,
@@ -78,6 +79,18 @@ const styles = stylex.create({
   color: { display: 'flex', alignItems: 'center', gap: '8px' },
   swatch: { width: '32px', height: '32px', flexShrink: 0, borderRadius: tokens.radiusMedia },
 });
+
+/**
+ * Says why Use did nothing, the way RunSetup says what is missing: Use stays
+ * enabled, since a disabled button gives no reason (A11Y.md).
+ */
+function PickCloser() {
+  return (
+    <p role="status" {...stylex.props(styles.hint)}>
+      {PICK_CLOSER}
+    </p>
+  );
+}
 
 /** The shot's photo with a color block beside it, named on the block. */
 function PhotoAndColor({ shot, color }: { shot: Shot; color: Hex }) {
@@ -142,7 +155,16 @@ export function CorrectStep({
 }) {
   const [selected, setSelected] = useState<Hex>(shot.shown);
   const [shift, setShift] = useState(0);
+  const [unchanged, setUnchanged] = useState(false);
   const picked = shift === 0 ? selected : withLightness(selected, shift);
+
+  // After No on a single reading, the reading itself is the one answer Use
+  // cannot mean: it would record a correction that equals what was rejected.
+  // For several and unclear, the largest color is a real correction.
+  function use() {
+    if (shot.kind === 'single' && picked === shot.shown) setUnchanged(true);
+    else onUse(picked);
+  }
 
   return (
     <Screen title={CLOSER} back={MENU_BACK}>
@@ -157,13 +179,18 @@ export function CorrectStep({
         onSelect={(hex) => {
           setSelected(hex);
           setShift(0);
+          setUnchanged(false);
         }}
-        onShift={setShift}
+        onShift={(delta) => {
+          setShift(delta);
+          setUnchanged(false);
+        }}
         // The reducer ignores it for a reading that had no vote.
         onClose={onBack}
       />
       <div {...stylex.props(styles.actions)}>
-        <Button label={USE_THIS} onClick={() => onUse(picked)} />
+        {unchanged && <PickCloser />}
+        <Button label={USE_THIS} onClick={use} />
         <Button label={NONE_OF_THESE} variant="secondary" onClick={onNoneOfThese} />
         <Button label={SKIP} variant="quiet" onClick={onSkip} />
       </div>
@@ -192,16 +219,37 @@ export function SlidersStep({
       lightness: Math.round(lightness),
     };
   });
+  // Whether any slider has moved. The seed is rounded to whole units, so an
+  // untouched set can differ from the reading by a rounding step, and
+  // comparing colors would let that through as a correction.
+  const [moved, setMoved] = useState(false);
+  const [unchanged, setUnchanged] = useState(false);
   const hex = hslToHex(hsl.hue, hsl.saturation, hsl.lightness);
+
+  // As on the correct step: a single reading rejected and then used as it was
+  // is no correction.
+  function use() {
+    if (shot.kind === 'single' && !moved) setUnchanged(true);
+    else onUse(hex);
+  }
 
   return (
     <Screen title={MATCH_GARMENT} back={MENU_BACK}>
       {progress}
       <p {...stylex.props(styles.hint)}>{LOOK_AT_GARMENT}</p>
       <PhotoAndColor shot={shot} color={hex} />
-      <ColorSliders hsl={hsl} onChange={setHsl} idPrefix="reading-" />
+      <ColorSliders
+        hsl={hsl}
+        onChange={(next) => {
+          setHsl(next);
+          setMoved(true);
+          setUnchanged(false);
+        }}
+        idPrefix="reading-"
+      />
       <div {...stylex.props(styles.actions)}>
-        <Button label={USE_THIS} onClick={() => onUse(hex)} />
+        {unchanged && <PickCloser />}
+        <Button label={USE_THIS} onClick={use} />
         <Button label={SKIP} variant="quiet" onClick={onSkip} />
       </div>
     </Screen>

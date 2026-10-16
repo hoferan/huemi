@@ -1,4 +1,4 @@
-import { use, useReducer, useRef } from 'react';
+import { use, useReducer, useRef, useState } from 'react';
 import * as stylex from '@stylexjs/stylex';
 import { LIGHT_LABELS, type FieldCapture, type Verdict } from '../../../model/field';
 import type { Hex } from '../../../model/hex';
@@ -29,9 +29,8 @@ const styles = stylex.create({
   header: { display: 'flex', flexDirection: 'column', gap: '8px' },
 });
 
-// The run has no hand entry, so `CaptureScreen` is told to hide the link and
-// its label is never shown.
-const CAMERA_COPY = { panels: RUN_CAMERA_PANELS, handEntry: '' };
+// The run has no hand entry, so the camera's words are its panels alone.
+const CAMERA_COPY = { panels: RUN_CAMERA_PANELS };
 
 /**
  * The reading run: a length and a light, then a plain garment photographed
@@ -49,6 +48,10 @@ export function ReadingRun() {
   // Set while a save or an undo is out. A double tap then stores one answer,
   // and nothing moves the run on until the store has answered.
   const busy = useRef(false);
+  // True while the summary's export is building its file. The build reads
+  // the captures one at a time, so an undo landing then would fail it, as a
+  // delete does on the field list.
+  const [exporting, setExporting] = useState(false);
 
   const toast = (message: string) => session({ type: 'toastShown', message });
   // A step's own moves wait for the store too: a No tapped while a Yes is
@@ -134,7 +137,6 @@ export function ReadingRun() {
           back={MENU_BACK}
           guide="garment"
           copy={CAMERA_COPY}
-          handEntry={MENU_BACK.to}
           header={
             <div {...stylex.props(styles.header)}>
               {progress}
@@ -190,9 +192,10 @@ export function ReadingRun() {
         <Screen key={key} title={READING_TITLE} back={MENU_BACK}>
           <RunSummary
             headline={readingHeadline(right, length, LIGHT_LABELS[light])}
-            exportControl={<ExportButton />}
+            exportControl={<ExportButton onPreparing={setExporting} />}
             onAgain={() => move({ type: 'again' })}
             onUndo={() => void undo()}
+            held={exporting}
           >
             <Misses answers={answers} />
           </RunSummary>

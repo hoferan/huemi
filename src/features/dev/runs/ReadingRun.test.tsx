@@ -215,6 +215,47 @@ describe('ReadingRun', () => {
     expect(capture).toMatchObject({ verdict: 'missed', settled: null });
   });
 
+  it('saves nothing when the rejected reading is used unchanged', async () => {
+    const { user, store } = setup();
+    await start(user);
+    await shoot(user);
+    await user.click(await screen.findByRole('button', { name: 'No' }));
+    await user.click(screen.getByRole('button', { name: 'Use this color' }));
+    expect(screen.getByText('Pick a closer color, or skip.')).toHaveAttribute('role', 'status');
+    expect(screen.getByRole('heading', { level: 1, name: 'Which is closer?' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Use this color' })).toBeEnabled();
+    expect(value(await store.listCaptures())).toEqual([]);
+    // Choosing another swatch takes the hint away.
+    const swatches = within(screen.getByRole('group', { name: 'Closer to one of these?' }));
+    await user.click(swatches.getAllByRole('button')[1]!);
+    expect(screen.queryByText('Pick a closer color, or skip.')).not.toBeInTheDocument();
+  });
+
+  it('saves nothing when the sliders are used without moving', async () => {
+    const { user, store } = setup();
+    await start(user);
+    await shoot(user);
+    await user.click(await screen.findByRole('button', { name: 'No' }));
+    await user.click(screen.getByRole('button', { name: 'None of these' }));
+    await user.click(screen.getByRole('button', { name: 'Use this color' }));
+    expect(screen.getByText('Pick a closer color, or skip.')).toHaveAttribute('role', 'status');
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Match the garment' }),
+    ).toBeInTheDocument();
+    expect(value(await store.listCaptures())).toEqual([]);
+    fireEvent.change(screen.getByRole('slider', { name: 'Hue' }), { target: { value: '200' } });
+    expect(screen.queryByText('Pick a closer color, or skip.')).not.toBeInTheDocument();
+  });
+
+  it('takes the largest color as the correction of a reading that was not single', async () => {
+    const { user, store } = setup({ port: camera(striped) });
+    await start(user);
+    await shoot(user);
+    await user.click(await screen.findByRole('button', { name: 'Use this color' }));
+    const [capture] = await saved(store);
+    expect(capture).toMatchObject({ verdict: 'corrected', settled: shownFor(striped) });
+  });
+
   it('saves a Skip as a miss with no color', async () => {
     const { user, store } = setup();
     await start(user);
@@ -334,9 +375,13 @@ describe('ReadingRun', () => {
       const { user, store } = setup();
       await start(user);
       for (let n = 0; n < 17; n++) await yes(user);
-      // One correction and two skips.
+      // One correction to a neighbouring swatch, and two skips.
       await shoot(user);
       await user.click(await screen.findByRole('button', { name: 'No' }));
+      const swatches = within(screen.getByRole('group', { name: 'Closer to one of these?' }));
+      const neighbour = swatches.getAllByRole('button')[1]!;
+      const named = neighbour.textContent;
+      await user.click(neighbour);
       await user.click(screen.getByRole('button', { name: 'Use this color' }));
       for (let n = 0; n < 2; n++) {
         await shoot(user);
@@ -349,6 +394,8 @@ describe('ReadingRun', () => {
       expect(misses.getAllByRole('img', { name: 'Your photo' })).toHaveLength(3);
       expect(misses.getAllByText(/^Read /)).toHaveLength(3);
       expect(misses.getAllByText(/^True /)).toHaveLength(1);
+      expect(misses.getByText(`True ${named}`)).toBeInTheDocument();
+      expect(misses.queryByText(`Read ${named}`)).not.toBeInTheDocument();
       expect(misses.getAllByText('Skipped')).toHaveLength(2);
       expect(screen.getByRole('button', { name: 'Export' })).toBeEnabled();
 
@@ -359,6 +406,36 @@ describe('ReadingRun', () => {
       expect(value(await store.listCaptures())).toHaveLength(19);
     },
   );
+
+  it('holds Undo and Another run while the export builds', { timeout: 15_000 }, async () => {
+    const inner = fakeFieldStore();
+    // Holds the frame reads until released, so the build stays in progress.
+    let release = () => {};
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const store: FieldStore = {
+      ...inner,
+      readPixels: async (id) => {
+        await held;
+        return inner.readPixels(id);
+      },
+    };
+    const { user } = setup({ store });
+    await start(user, '10');
+    for (let n = 0; n < 9; n++) await yes(user);
+    await shoot(user);
+    await user.click(await screen.findByRole('button', { name: 'Yes' }));
+    await user.click(await screen.findByRole('button', { name: 'Export' }));
+    expect(screen.getByRole('button', { name: 'Undo' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Another run' })).toBeDisabled();
+    await user.click(screen.getByRole('button', { name: 'Undo' }));
+    expect(value(await store.listCaptures())).toHaveLength(10);
+    release();
+    expect(await screen.findByRole('button', { name: 'Share the export' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Undo' })).toBeEnabled();
+    expect(screen.getByText('10 of 10 right under Lamp')).toBeInTheDocument();
+  });
 
   it(
     'exports the field set from the summary, and starts another run',

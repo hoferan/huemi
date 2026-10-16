@@ -20,6 +20,7 @@ export function RunSummary({
   exportControl,
   onAgain,
   onUndo,
+  held = false,
 }: {
   headline: string;
   children?: ReactNode;
@@ -27,14 +28,16 @@ export function RunSummary({
   onAgain: () => void;
   /** Null when there is no answer left to take back. */
   onUndo: (() => void) | null;
+  /** Disables Another run and Undo, while the export is reading the set. */
+  held?: boolean;
 }) {
   return (
     <section aria-label={headline} {...stylex.props(styles.summary)}>
       <p {...stylex.props(styles.headline)}>{headline}</p>
       {children}
       {exportControl}
-      <Button label={AGAIN} variant="secondary" onClick={onAgain} />
-      {onUndo && <Button label={UNDO} variant="quiet" onClick={onUndo} />}
+      <Button label={AGAIN} variant="secondary" disabled={held} onClick={onAgain} />
+      {onUndo && <Button label={UNDO} variant="quiet" disabled={held} onClick={onUndo} />}
     </section>
   );
 }
