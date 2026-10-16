@@ -215,6 +215,19 @@ describe('DevMenu', () => {
     expect(await screen.findByText('No saved outfits.')).toBeInTheDocument();
   });
 
+  it('opens the reading run', async () => {
+    const { user } = setup();
+    expect(screen.getByRole('heading', { name: 'Guided runs' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Check color reading' }));
+    expect(screen.getByTestId('where')).toHaveTextContent(/^\/dev\/runs\/reading$/);
+  });
+
+  it('opens the matching run', async () => {
+    const { user } = setup();
+    await user.click(screen.getByRole('button', { name: 'Rate color pairs' }));
+    expect(screen.getByTestId('where')).toHaveTextContent(/^\/dev\/runs\/matching$/);
+  });
+
   it('opens the field recorder', async () => {
     const { user } = setup();
     await user.click(screen.getByRole('button', { name: 'Open the field recorder' }));

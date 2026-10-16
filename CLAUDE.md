@@ -75,7 +75,9 @@ developer feature adds a slot there and lists its component in
 `src/features/dev/registry.tsx`. The field recorder at `/dev/field` records camera
 frames of real garments with their true colors, for measuring the color reader in real
 light. It keeps them on the device until someone deletes them there, and exports them
-as one file (ADR 0020). Over the confirm screen's photo, a reader panel shows what
+as one file (ADR 0020). Two guided runs, at `/dev/runs/reading` and `/dev/runs/matching`,
+record judged answers (ADR 0023) that feed `read.benchmark.test.ts` and
+`vote.benchmark.test.ts`. Over the confirm screen's photo, a reader panel shows what
 the color reader saw: the circle it sampled, each cluster's share, and the threshold
 behind the verdict. Its readout and drawing live in `src/features/dev/reader/`, which
 the harness's Read mode also uses. Over the suggestions screen's blocks, an engine

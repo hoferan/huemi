@@ -128,6 +128,8 @@ describe('AppRoutes', () => {
     '/dev/field/new': 'Page not found',
     '/dev/field/garment?id=missing': 'Page not found',
     '/dev/field/capture?id=missing&light=dim': 'Page not found',
+    '/dev/runs/reading': 'Page not found',
+    '/dev/runs/matching': 'Page not found',
   };
 
   it.each(covered)('serves a real screen at %s', async (route) => {
@@ -145,6 +147,7 @@ describe('AppRoutes with developer mode on', () => {
   // findByRole's one-second wait, so it is loaded once before the tests.
   beforeAll(async () => {
     await import('../features/dev/field/screens');
+    await import('../features/dev/runs/screens');
   });
 
   const FIELD_HEADINGS: Record<string, string> = {
@@ -152,6 +155,8 @@ describe('AppRoutes with developer mode on', () => {
     '/dev/field/new': 'Add garment',
     '/dev/field/garment?id=missing': 'Field recorder',
     '/dev/field/capture?id=missing&light=dim': 'Field recorder',
+    '/dev/runs/reading': 'Check color reading',
+    '/dev/runs/matching': 'Check color matching',
   };
 
   it.each(Object.entries(FIELD_HEADINGS))('serves %s', async (route, heading) => {

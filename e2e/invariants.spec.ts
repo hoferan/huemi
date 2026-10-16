@@ -61,6 +61,9 @@ const READY: Readonly<Record<string, (page: Page) => Promise<void>>> = {
   '/dev/field/new': (page) => expect(page.locator('main h1')).toBeVisible(),
   '/dev/field/garment?id=missing': fieldList,
   '/dev/field/capture?id=missing&light=dim': fieldList,
+  // Locked, the not-found screen; unlocked, a run's setup, a lazy chunk.
+  '/dev/runs/reading': (page) => expect(page.locator('main h1')).toBeVisible(),
+  '/dev/runs/matching': (page) => expect(page.locator('main h1')).toBeVisible(),
 };
 
 // Onboarding has no bar and so no developer chip (see `src/ui/Screen.tsx`).

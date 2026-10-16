@@ -127,6 +127,12 @@ Then(
   },
 );
 
+Then('that export holds {int} pair vote(s)', ({ page }, n: number) => {
+  const set = exports.get(page);
+  expect(set, 'no export was read').toBeDefined();
+  expect(set!.votes).toHaveLength(n);
+});
+
 Then("that capture's frame has width × height × 4 bytes", ({ page }) => {
   const set = exports.get(page);
   expect(set, 'no export was read').toBeDefined();

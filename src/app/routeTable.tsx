@@ -8,6 +8,7 @@ import { Confirm } from '../features/confirm/Confirm';
 import { DevOnly } from '../features/dev/DevOnly';
 import { DevRoute } from '../features/dev/DevRoute';
 import { CaptureGarment, FieldList, GarmentPage, NewGarment } from '../features/dev/field/routes';
+import { MatchingRun, ReadingRun } from '../features/dev/runs/routes';
 import { Entry } from '../features/entry/Entry';
 import { Onboarding } from '../features/onboarding/Onboarding';
 import { OnboardingGate } from '../features/onboarding/OnboardingGate';
@@ -82,6 +83,22 @@ export const APP_ROUTES: readonly AppRoute[] = [
     element: (
       <DevOnly>
         <CaptureGarment />
+      </DevOnly>
+    ),
+  },
+  {
+    path: '/dev/runs/reading',
+    element: (
+      <DevOnly>
+        <ReadingRun />
+      </DevOnly>
+    ),
+  },
+  {
+    path: '/dev/runs/matching',
+    element: (
+      <DevOnly>
+        <MatchingRun />
       </DevOnly>
     ),
   },
