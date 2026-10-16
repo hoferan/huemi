@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { parseHex } from './hex';
 import {
   FULL_SHAPE,
+  checkSlots,
   dressBesideSeparates,
   dressFixedBy,
   isWorn,
@@ -14,6 +15,16 @@ const navy = parseHex('#1f2a44');
 const tan = parseHex('#c9ad86');
 const camel = parseHex('#b58a5a');
 const rust = parseHex('#a4522d');
+
+describe('checkSlots', () => {
+  it('checks a top and a bottom without a dress, four steps head to toe', () => {
+    expect(checkSlots(false)).toEqual(['outerwear', 'top', 'bottom', 'shoes']);
+  });
+
+  it('checks a dress in their place, three steps', () => {
+    expect(checkSlots(true)).toEqual(['outerwear', 'dress', 'shoes']);
+  });
+});
 
 describe('wornSlots', () => {
   it('leaves out the optional pieces that are off, head to toe', () => {

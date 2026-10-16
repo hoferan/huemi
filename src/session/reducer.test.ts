@@ -377,7 +377,7 @@ describe('sessionReducer', () => {
     it('starts empty and is cleared by reset', () => {
       expect(initialSession.check).toBeNull();
       const started = sessionReducer(initialSession, { type: 'checkStarted' });
-      expect(started.check).toEqual({ photo: null, pieces: {}, swaps: {} });
+      expect(started.check).toEqual({ photo: null, pieces: {}, swaps: {}, dress: false });
       expect(sessionReducer(started, { type: 'reset' }).check).toBeNull();
     });
 
@@ -391,6 +391,7 @@ describe('sessionReducer', () => {
         photo: null,
         pieces: {},
         swaps: {},
+        dress: false,
       });
     });
 
@@ -401,7 +402,7 @@ describe('sessionReducer', () => {
         hex: cream,
       });
       const next = sessionReducer(withPiece, { type: 'checkPhotoTaken', frame });
-      expect(next.check).toEqual({ photo: frame, pieces: {}, swaps: {} });
+      expect(next.check).toEqual({ photo: frame, pieces: {}, swaps: {}, dress: false });
     });
 
     it('creates the record when a piece is set with none there', () => {
@@ -410,7 +411,40 @@ describe('sessionReducer', () => {
         slot: 'shoes',
         hex: navy,
       });
-      expect(next.check).toEqual({ photo: null, pieces: { shoes: { hex: navy } }, swaps: {} });
+      expect(next.check).toEqual({
+        photo: null,
+        pieces: { shoes: { hex: navy } },
+        swaps: {},
+        dress: false,
+      });
+    });
+
+    describe('dress', () => {
+      it('wears a dress, and keeps the top and the bottom for a change of mind', () => {
+        const withTop = sessionReducer(initialSession, {
+          type: 'checkPieceSet',
+          slot: 'top',
+          hex: cream,
+        });
+        const dressed = sessionReducer(withTop, { type: 'checkDressChosen', dress: true });
+        expect(dressed.check?.dress).toBe(true);
+        expect(dressed.check?.pieces.top).toEqual({ hex: cream });
+        const back = sessionReducer(dressed, { type: 'checkDressChosen', dress: false });
+        expect(back.check?.dress).toBe(false);
+        expect(back.check?.pieces.top).toEqual({ hex: cream });
+      });
+
+      it('creates the record when the choice comes with none there', () => {
+        const next = sessionReducer(initialSession, { type: 'checkDressChosen', dress: true });
+        expect(next.check).toEqual({ photo: null, pieces: {}, swaps: {}, dress: true });
+      });
+
+      it('starts a new photo without a dress', () => {
+        const dressed = sessionReducer(initialSession, { type: 'checkDressChosen', dress: true });
+        expect(sessionReducer(dressed, { type: 'checkPhotoTaken', frame }).check?.dress).toBe(
+          false,
+        );
+      });
     });
 
     describe('swaps', () => {

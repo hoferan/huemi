@@ -31,6 +31,9 @@ function Seed({ pieces, start }: { pieces: Seeded[]; start: boolean }) {
   const navigate = useNavigate();
   useEffect(() => {
     if (start) dispatch({ type: 'checkStarted' });
+    if (pieces.some((piece) => piece.slot === 'dress')) {
+      dispatch({ type: 'checkDressChosen', dress: true });
+    }
     for (const piece of pieces) dispatch({ type: 'checkPieceSet', ...piece });
     void navigate('/check/result');
   }, [dispatch, navigate, pieces, start]);
@@ -97,6 +100,28 @@ describe('CheckResult', () => {
       await screen.findByRole('heading', { level: 1, name: 'How it works together' }),
     ).toBeInTheDocument();
     expect(screen.queryByText(/\d+\s*(\/|out of)\s*10/)).not.toBeInTheDocument();
+  });
+
+  it('shows a dress as one block, calls it a dress, and offers it a swap', async () => {
+    const user = userEvent.setup();
+    renderWith([
+      { slot: 'outerwear', hex: charcoal },
+      { slot: 'dress', hex: rust },
+      { slot: 'shoes', hex: burgundy },
+    ]);
+    await screen.findByRole('heading', { level: 1 });
+    const names = screen
+      .getAllByRole('button', { name: /, swap$/ })
+      .map((button) => button.getAttribute('aria-label'));
+    expect(names).toEqual([
+      'Outerwear: Charcoal, swap',
+      'Dress: Rust, swap',
+      'Shoes: Burgundy, swap',
+    ]);
+    const list = screen.getByRole('list', { name: 'How it works together' });
+    expect(within(list).getAllByText(/rust dress/).length).toBeGreaterThan(0);
+    await user.click(screen.getByRole('button', { name: 'Dress: Rust, swap' }));
+    expect(await screen.findByRole('dialog', { name: 'Other options for Dress' })).toBeVisible();
   });
 
   it('shows each piece head to toe as a swap button', async () => {
@@ -283,5 +308,24 @@ describe('CheckResult: sharing', () => {
     ).toBe(true);
     expect(text).toContain('bottom=1f2a44');
     expect(text).not.toContain('base=');
+  });
+
+  it('shares a dress as a dress, with no top or bottom', async () => {
+    const port = fakeSharePort();
+    renderWith(
+      [
+        { slot: 'top', hex: cream },
+        { slot: 'dress', hex: rust },
+        { slot: 'shoes', hex: burgundy },
+      ],
+      true,
+      port,
+    );
+    fireEvent.click(await screen.findByRole('button', { name: 'Share outfit' }));
+    await waitFor(() => expect(port.calls.share).toHaveLength(1));
+    const text = port.calls.share[0]!.text!;
+    expect(text.startsWith(shareText({ dress: rust, shoes: burgundy }))).toBe(true);
+    expect(text).toContain('dress=a4522d');
+    expect(text).not.toContain('top=');
   });
 });

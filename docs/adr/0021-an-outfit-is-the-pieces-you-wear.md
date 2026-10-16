@@ -89,4 +89,12 @@ until its service worker updates, on the next load.
 Stored outfits keep `version: 1`, for the reason above: every outfit stored so far
 reads the same, and a bump would not change what an older build does.
 
-The outfit check has no dress yet. #137 adds one.
+The outfit check takes a dress too (#137). Its top step has an "It's a dress" button
+that turns the step into "Tap your dress" and drops the bottom's step, so the count
+covers the steps actually walked: three with a dress, four without. The dress step has
+a "Top and bottom" button to go back. The list asks with the Pieces sheet's radios, in
+the same head-to-toe place. The product owner chose both from mocks. The result shows
+one Dress block, sized by its area, and its sentences call it a dress. A check keeps
+the colors of whichever answer is not chosen, out of sight, so changing your mind
+finds them set. The check doesn't remember the answer between checks: a new photo
+starts with a top and a bottom, and the top step asks.

@@ -35,12 +35,16 @@ export const TAP_PROMPTS: Readonly<Record<CheckSlot, string>> = {
   outerwear: 'Tap your jacket or coat',
   top: 'Tap your top',
   bottom: 'Tap your trousers or skirt',
+  dress: 'Tap your dress',
   shoes: 'Tap your shoes',
 };
 
 export const TAP_UNCLEAR = "Couldn't read that. Tap the middle of the piece, or skip.";
 
 export const SKIP = 'Skip';
+
+/** Beside Skip on the top step. The dress step offers "Top and bottom" back. */
+export const IT_IS_A_DRESS = "It's a dress";
 
 export const PIECES_TITLE = 'What are you wearing?';
 
@@ -66,6 +70,7 @@ const PIECE: Readonly<Record<CheckSlot, { noun: string; plural: boolean }>> = {
   outerwear: { noun: 'jacket', plural: false },
   top: { noun: 'top', plural: false },
   bottom: { noun: 'trousers', plural: true },
+  dress: { noun: 'dress', plural: false },
   shoes: { noun: 'shoes', plural: true },
 };
 

@@ -59,6 +59,55 @@ describe('CheckPieces', () => {
     expect(screen.getByRole('button', { name: 'Shoes: not set' })).toBeInTheDocument();
   });
 
+  it('asks top and bottom or a dress between the outerwear and the top, top and bottom first', async () => {
+    renderWith();
+    const group = await screen.findByRole('radiogroup', { name: 'Top and bottom, or a dress' });
+    expect(within(group).getByRole('radio', { name: 'Top and bottom' })).toBeChecked();
+    expect(screen.queryByRole('button', { name: 'Dress: not set' })).not.toBeInTheDocument();
+    const outerwear = screen.getByRole('button', { name: 'Outerwear: not set' });
+    const top = screen.getByRole('button', { name: 'Top: not set' });
+    expect(outerwear.compareDocumentPosition(group)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(group.compareDocumentPosition(top)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+  });
+
+  it('shows one dress row in place of the top and the bottom', async () => {
+    const user = userEvent.setup();
+    renderWith();
+    await user.click(await screen.findByRole('radio', { name: 'Dress' }));
+    expect(screen.queryByRole('button', { name: 'Top: not set' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Bottom: not set' })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Dress: not set' }));
+    const sheet = await screen.findByRole('dialog', { name: 'Dress' });
+    await user.click(within(sheet).getByRole('button', { name: 'Rust' }));
+    expect(await screen.findByRole('button', { name: 'Dress: Rust' })).toHaveFocus();
+  });
+
+  it('keeps focus on the radio the user chose', async () => {
+    const user = userEvent.setup();
+    renderWith();
+    await user.click(await screen.findByRole('radio', { name: 'Dress' }));
+    expect(screen.getByRole('radio', { name: 'Dress' })).toHaveFocus();
+  });
+
+  it('keeps the top and the bottom for a change of mind', async () => {
+    const user = userEvent.setup();
+    renderWith([{ slot: 'top', hex: cream }]);
+    await user.click(await screen.findByRole('radio', { name: 'Dress' }));
+    await user.click(screen.getByRole('radio', { name: 'Top and bottom' }));
+    expect(screen.getByRole('button', { name: 'Top: Cream' })).toBeInTheDocument();
+  });
+
+  it('counts only the pieces worn toward the two', async () => {
+    const user = userEvent.setup();
+    renderWith([
+      { slot: 'top', hex: cream },
+      { slot: 'bottom', hex: rust },
+    ]);
+    await user.click(await screen.findByRole('radio', { name: 'Dress' }));
+    await user.click(screen.getByRole('button', { name: CHECK_IT }));
+    expect(await screen.findAllByText(NEED_TWO)).toHaveLength(2);
+  });
+
   it('sets a piece from the palette', async () => {
     const user = userEvent.setup();
     renderWith();

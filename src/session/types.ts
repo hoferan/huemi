@@ -64,6 +64,12 @@ export type Check = {
    * not a correction of what the camera read.
    */
   swaps: Partial<Record<CheckSlot, Hex>>;
+  /**
+   * Whether the outfit is a dress rather than a top and a bottom (#137). The
+   * pieces of the other answer stay in `pieces`, unused, so changing your mind
+   * back finds them where they were.
+   */
+  dress: boolean;
 };
 
 export type SessionState = {
@@ -103,6 +109,7 @@ export type SessionAction =
   | { type: 'checkPhotoTaken'; frame: Frame }
   | { type: 'checkPieceSet'; slot: CheckSlot; hex: Hex }
   | { type: 'checkPieceCleared'; slot: CheckSlot }
+  | { type: 'checkDressChosen'; dress: boolean }
   | { type: 'checkSwapped'; slot: CheckSlot; hex: Hex }
   | { type: 'checkSwapCleared'; slot: CheckSlot }
   | { type: 'reset' };

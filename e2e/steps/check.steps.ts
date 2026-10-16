@@ -88,3 +88,15 @@ Then("the sheet's options are set in {string}", async ({ page }, family: string)
   const options = page.getByRole('dialog').getByRole('button', { name: /, \d+ of \d+$/ });
   await expect(options.first()).toHaveCSS('font-family', new RegExp(`^"${family}"`));
 });
+
+// The result sizes each block by how much of the outfit its piece covers, and
+// a dress covers a top and a bottom together (#137). Checked here, not in a
+// unit test: StyleX emits no CSS under Vitest (ADR 0002).
+Then(
+  'the block {string} is taller than the block {string}',
+  async ({ page }, taller: string, shorter: string) => {
+    const height = async (name: string) =>
+      (await page.getByRole('group', { name, exact: true }).boundingBox())!.height;
+    expect(await height(taller)).toBeGreaterThan(await height(shorter));
+  },
+);

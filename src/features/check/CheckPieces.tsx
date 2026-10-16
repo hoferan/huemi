@@ -4,7 +4,8 @@ import * as stylex from '@stylexjs/stylex';
 import { needsBorder, readableForeground } from '../../color/contrast';
 import { blockLabel, colorName, PALETTE } from '../../color/palette';
 import type { Hex } from '../../model/hex';
-import { CHECK_SLOTS, SLOT_LABELS, type CheckSlot } from '../../model/types';
+import { checkSlots } from '../../model/shape';
+import { SLOT_LABELS, type CheckSlot } from '../../model/types';
 import { useSession } from '../../session/useSession';
 import { tokens } from '../../styles/tokens.stylex';
 import { Button } from '../../ui/Button';
@@ -13,6 +14,7 @@ import { Sheet } from '../../ui/Sheet';
 import { Swatch } from '../../ui/Swatch';
 import { swatchGrid } from '../../ui/swatchGrid';
 import { useAnnounce } from '../../ui/useAnnounce';
+import { BodyChoice } from '../suggest/BodyChoice';
 import {
   CAPTURE_TITLE,
   CHECK_IT,
@@ -63,6 +65,11 @@ const styles = stylex.create({
  * a check end here: a photo arrives with the rows it read filled in, and
  * entering by hand arrives with them empty.
  *
+ * Between the outerwear and the top, the Pieces sheet's two radios ask whether
+ * it is a top and a bottom or a dress (#137), and the rows below follow the
+ * answer. The rows of the other answer keep their colors, hidden, so changing
+ * back finds them set.
+ *
  * The button stays enabled below two pieces and says why it did nothing,
  * rather than fading out. A faded button is low contrast, and on a touch
  * screen it cannot say what it is waiting for.
@@ -74,7 +81,9 @@ export function CheckPieces() {
   const [open, setOpen] = useState<CheckSlot | null>(null);
   const [tooFew, setTooFew] = useState(false);
   const pieces = state.check?.pieces ?? {};
-  const filled = CHECK_SLOTS.filter((slot) => pieces[slot]).length;
+  const dress = state.check?.dress ?? false;
+  const slots = checkSlots(dress);
+  const filled = slots.filter((slot) => pieces[slot]).length;
 
   function choose(slot: CheckSlot, hex: Hex) {
     dispatch({ type: 'checkPieceSet', slot, hex });
@@ -84,6 +93,26 @@ export function CheckPieces() {
   function clear(slot: CheckSlot) {
     dispatch({ type: 'checkPieceCleared', slot });
     setOpen(null);
+  }
+
+  function row(slot: CheckSlot) {
+    const hex = pieces[slot]?.hex;
+    return (
+      <button
+        key={slot}
+        type="button"
+        aria-label={hex ? blockLabel(slot, hex) : `${SLOT_LABELS[slot]}: not set`}
+        onClick={() => setOpen(slot)}
+        {...stylex.props(
+          styles.row,
+          hex ? styles.fill(hex, readableForeground(hex).color) : styles.empty,
+          hex && needsBorder(hex) && styles.hairline,
+        )}
+      >
+        <span {...stylex.props(styles.label)}>{SLOT_LABELS[slot]}</span>
+        <span>{hex ? colorName(hex) : NOT_SET}</span>
+      </button>
+    );
   }
 
   function check() {
@@ -99,25 +128,17 @@ export function CheckPieces() {
     <Screen title={PIECES_TITLE} back={{ to: '/check', title: CAPTURE_TITLE }}>
       <p {...stylex.props(styles.body)}>{PIECES_BODY}</p>
       <div {...stylex.props(styles.rows)}>
-        {CHECK_SLOTS.map((slot) => {
-          const hex = pieces[slot]?.hex;
-          return (
-            <button
-              key={slot}
-              type="button"
-              aria-label={hex ? blockLabel(slot, hex) : `${SLOT_LABELS[slot]}: not set`}
-              onClick={() => setOpen(slot)}
-              {...stylex.props(
-                styles.row,
-                hex ? styles.fill(hex, readableForeground(hex).color) : styles.empty,
-                hex && needsBorder(hex) && styles.hairline,
-              )}
-            >
-              <span {...stylex.props(styles.label)}>{SLOT_LABELS[slot]}</span>
-              <span>{hex ? colorName(hex) : NOT_SET}</span>
-            </button>
-          );
-        })}
+        {row('outerwear')}
+        {/*
+          Head to toe, as in the Pieces sheet: the choice sits where the top
+          and the bottom, or the dress, begin. Outside the mapped rows, so
+          answering it does not remount the radio that has focus.
+        */}
+        <BodyChoice
+          dress={dress}
+          onChange={(next) => dispatch({ type: 'checkDressChosen', dress: next })}
+        />
+        {slots.filter((slot) => slot !== 'outerwear').map(row)}
       </div>
       {tooFew && filled < 2 && <p {...stylex.props(styles.body)}>{NEED_TWO}</p>}
       <div {...clearOfToasts}>
