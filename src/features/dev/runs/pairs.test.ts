@@ -75,18 +75,28 @@ describe('drawPairs', () => {
 
 describe('replacementOptions', () => {
   const navy = parseHex('#1f2a44');
+  const cream = parseHex('#e9dfc9');
 
-  it('offers three engine picks and three other colors, all distinct', () => {
-    const options = replacementOptions(navy, 'top', mulberry32(5));
-    expect(options).toHaveLength(6);
-    expect(new Set(options).size).toBe(6);
-    const picks = suggest(navy, 'bottom', 'top')
-      .filter((s) => !isNearDuplicate(navy, s.hex))
-      .slice(0, 3)
-      .map((s) => s.hex);
-    for (const pick of picks) expect(options).toContain(pick);
-    const others = options.filter((hex: Hex) => !picks.includes(hex));
-    expect(others).toHaveLength(3);
-    for (const hex of others) expect(isNearDuplicate(navy, hex)).toBe(false);
-  });
+  it.each([
+    ['top', 'bottom'],
+    ['bottom', 'top'],
+  ] as const)(
+    'offers three engine picks and three others when keeping the %s',
+    (keepSlot, otherSlot) => {
+      const options = replacementOptions(navy, keepSlot, cream, mulberry32(5));
+      expect(options).toHaveLength(6);
+      expect(new Set(options).size).toBe(6);
+      const picks = suggest(navy, otherSlot, keepSlot)
+        .map((s) => s.hex)
+        .filter((hex) => !isNearDuplicate(navy, hex) && !isNearDuplicate(cream, hex))
+        .slice(0, 3);
+      for (const pick of picks) expect(options).toContain(pick);
+      const others = options.filter((hex: Hex) => !picks.includes(hex));
+      expect(others).toHaveLength(3);
+      for (const hex of options) {
+        expect(isNearDuplicate(navy, hex)).toBe(false);
+        expect(isNearDuplicate(cream, hex)).toBe(false);
+      }
+    },
+  );
 });

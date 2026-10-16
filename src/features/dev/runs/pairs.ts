@@ -78,23 +78,22 @@ export function drawPairs(count: 10 | 20 | 30, random: () => number = Math.rando
  *
  * Three are the engine's best picks for the replaced slot and three are random
  * palette colors, so a vote on them says whether the engine's favorites beat
- * chance. Colors too close to the kept block are left out of both groups, and
- * a random color never repeats an engine pick. The replaced block's current
- * color is not known here, so only the kept one is excluded. The six are
- * shuffled so position gives nothing away.
+ * chance. Colors too close to either block, the kept one or the one being
+ * replaced (`replacing`), are left out of both groups, and a random color never
+ * repeats an engine pick. The six are shuffled so position gives nothing away.
  */
 export function replacementOptions(
   keep: Hex,
   keepSlot: Slot,
+  replacing: Hex,
   random: () => number = Math.random,
 ): Hex[] {
   const otherSlot: Slot = keepSlot === 'top' ? 'bottom' : 'top';
+  const usable = (hex: Hex) => !isNearDuplicate(keep, hex) && !isNearDuplicate(replacing, hex);
   const picks = suggest(keep, otherSlot, keepSlot)
     .map((s) => s.hex)
-    .filter((hex) => !isNearDuplicate(keep, hex))
+    .filter(usable)
     .slice(0, ENGINE_PICKS);
-  const pool = PALETTE.map((c) => c.hex).filter(
-    (hex) => !isNearDuplicate(keep, hex) && !picks.includes(hex),
-  );
+  const pool = PALETTE.map((c) => c.hex).filter((hex) => usable(hex) && !picks.includes(hex));
   return shuffle([...picks, ...sample(pool, RANDOM_PICKS, random)], random);
 }
