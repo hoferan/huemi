@@ -1,9 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { readCaption, readingHeadline, trueCaption } from './copy';
+import { matchingHeadline, readCaption, readingHeadline, trueCaption } from './copy';
 
 describe('reading run copy', () => {
   it('heads the summary with the right answers and the light', () => {
     expect(readingHeadline(17, 20, 'Lamp')).toBe('17 of 20 right under Lamp');
+  });
+
+  it('heads the matching summary with the pairs liked', () => {
+    expect(matchingHeadline(12, 20)).toBe('You liked 12 of 20');
   });
 
   it('says what the reader made of a miss', () => {

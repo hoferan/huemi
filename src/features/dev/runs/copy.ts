@@ -5,6 +5,7 @@ import type { CameraFailure } from '../../camera/port';
 
 export const READING_TITLE = 'Check color reading';
 export const MATCH_GARMENT = 'Match the garment';
+export const MATCHING_TITLE = 'Check color matching';
 
 export const QUESTION_READING = 'Is this its color?';
 export const QUESTION_PAIR = 'Would you wear these together?';
@@ -33,6 +34,10 @@ export const progressText = (index: number, length: number): string => `${index 
 
 export const PICK_CLOSER = 'Pick a closer color, or skip.';
 export const UNDO_FAILED = "Couldn't take that answer back.";
+export const VOTE_FAILED = "Couldn't record this answer.";
+export const REPLACING = 'Replacing';
+export const KEEPING = 'Keeping';
+export const BETTER_COLORS = 'Better colors';
 export const MISSES = 'Misses';
 export const SKIPPED = 'Skipped';
 
@@ -63,3 +68,6 @@ export const readCaption = (kind: 'single' | 'several' | 'unclear', name: string
       : `Unclear, mostly ${name}`;
 
 export const trueCaption = (name: string): string => `True ${name}`;
+
+export const matchingHeadline = (liked: number, length: number): string =>
+  `You liked ${liked} of ${length}`;
