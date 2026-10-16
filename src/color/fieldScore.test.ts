@@ -40,10 +40,11 @@ const capture = (
 });
 
 const set = (garments: FieldGarment[], captures: FieldExport['captures']): FieldExport => ({
-  version: 1,
+  version: 2,
   exportedAt: '2026-10-02T00:00:00.000Z',
   setId: 's1',
   garments,
+  votes: [],
   captures,
 });
 

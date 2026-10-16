@@ -17,7 +17,7 @@ export function exportFileName(now: Date): string {
 type Chunks = AsyncIterable<Uint8Array<ArrayBuffer>>;
 
 /**
- * The export's JSON in pieces: the head with the garments, then each capture
+ * The export's JSON in pieces: the head with the garments and votes, then each capture
  * with its frame, then the tail. A frame is read only when the piece before
  * it has been taken, so memory holds one frame at a time.
  * The text is what `encodeFieldExport` writes for the same set, which its
@@ -30,9 +30,9 @@ async function* exportChunks(
 ): Chunks {
   const text = new TextEncoder();
   yield text.encode(
-    `{"version":1,"exportedAt":${JSON.stringify(head.exportedAt)},` +
+    `{"version":2,"exportedAt":${JSON.stringify(head.exportedAt)},` +
       `"setId":${JSON.stringify(head.setId)},` +
-      `"garments":${JSON.stringify(head.garments)},"captures":[`,
+      `"garments":${JSON.stringify(head.garments)},"votes":[],"captures":[`,
   );
   for (const [i, capture] of captures.entries()) {
     const read = await store.readPixels(capture.id);

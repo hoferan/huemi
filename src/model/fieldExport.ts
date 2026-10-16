@@ -1,5 +1,5 @@
-import type { FieldCapture, FieldExport, FieldGarment } from './field';
-import { LIGHTS } from './field';
+import type { FieldCapture, FieldExport, FieldGarment, PairVote, Verdict } from './field';
+import { LIGHTS, VERDICTS } from './field';
 import { parseHex } from './hex';
 import type { Pixels } from './frame';
 
@@ -49,6 +49,7 @@ export function encodeFieldExport(data: FieldExport): string {
     exportedAt: data.exportedAt,
     setId: data.setId,
     garments: data.garments,
+    votes: data.votes,
     captures: data.captures.map(wireCapture),
   });
 }
@@ -109,7 +110,10 @@ function decodePixels(v: unknown): Pixels {
 function decodeCapture(v: unknown): ExportedCapture {
   const c = obj(v);
   const light = c.light;
-  if (c.source !== 'kit' && c.source !== 'flow') reject();
+  if (c.source !== 'kit' && c.source !== 'flow' && c.source !== 'run') reject();
+  // Only a capture from a run carries a verdict, and an older file has none.
+  const verdict = c.verdict;
+  if (verdict !== undefined && !VERDICTS.some((v) => v === verdict)) reject();
   if (!LIGHTS.some((l) => l === light)) reject();
   if (c.garmentId !== null && typeof c.garmentId !== 'string') reject();
   if (c.lowLight !== null && typeof c.lowLight !== 'boolean') reject();
@@ -124,7 +128,28 @@ function decodeCapture(v: unknown): ExportedCapture {
     height: num(c.height),
     takenAt: str(c.takenAt),
     build: str(c.build),
+    ...(verdict === undefined ? {} : { verdict: verdict as Verdict }),
     pixels: decodePixels(c.pixels),
+  };
+}
+
+function decodeVote(v: unknown): PairVote {
+  const p = obj(v);
+  if (typeof p.liked !== 'boolean' || typeof p.noneWorks !== 'boolean') reject();
+  if (p.changed !== null && p.changed !== 'top' && p.changed !== 'bottom') reject();
+  const offered = list(p.offered);
+  if (offered.length > 6) reject();
+  return {
+    id: str(p.id),
+    takenAt: str(p.takenAt),
+    build: str(p.build),
+    top: hex(p.top),
+    bottom: hex(p.bottom),
+    liked: p.liked as boolean,
+    changed: p.changed as PairVote['changed'],
+    replacement: p.replacement === null ? null : hex(p.replacement),
+    offered: offered.map(hex),
+    noneWorks: p.noneWorks as boolean,
   };
 }
 
@@ -142,12 +167,13 @@ export function decodeFieldExport(json: string): FieldExport {
     return reject();
   }
   const r = obj(raw);
-  if (r.version !== 1) reject();
+  if (r.version !== 1 && r.version !== 2) reject();
   return {
-    version: 1,
+    version: 2,
     exportedAt: str(r.exportedAt),
     setId: str(r.setId),
     garments: list(r.garments).map(decodeGarment),
+    votes: r.version === 1 ? [] : list(r.votes).map(decodeVote),
     captures: list(r.captures).map(decodeCapture),
   };
 }
@@ -167,16 +193,19 @@ export function mergeFieldExports(exports: readonly FieldExport[]): FieldExport 
   for (const e of [...exports].sort(byTime)) newest.set(e.setId, e);
   const ordered = [...newest.values()].sort(byTime);
   const garments = new Map<string, FieldGarment>();
+  const votes = new Map<string, PairVote>();
   const captures = new Map<string, ExportedCapture>();
   for (const e of ordered) {
     for (const g of e.garments) garments.set(g.id, g);
+    for (const v of e.votes) votes.set(v.id, v);
     for (const c of e.captures) captures.set(c.id, c);
   }
   return {
-    version: 1,
+    version: 2,
     exportedAt: ordered.at(-1)?.exportedAt ?? new Date(0).toISOString(),
     setId: [...newest.keys()].sort().join('+'),
     garments: [...garments.values()],
+    votes: [...votes.values()],
     captures: [...captures.values()],
   };
 }

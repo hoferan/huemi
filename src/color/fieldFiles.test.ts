@@ -11,7 +11,8 @@ import { encodeFieldExport } from '../model/fieldExport';
 import { loadFieldDir } from './fieldFiles';
 
 const exportOf = (exportedAt: string, captureIds: string[]): FieldExport => ({
-  version: 1,
+  version: 2,
+  votes: [],
   exportedAt,
   setId: 's1',
   garments: [

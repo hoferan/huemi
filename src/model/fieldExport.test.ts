@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { isHex, parseHex } from './hex';
-import type { FieldCapture, FieldExport, FieldGarment } from './field';
+import type { FieldCapture, FieldExport, FieldGarment, PairVote } from './field';
 import {
   decodeFieldExport,
   encodeFieldCapture,
@@ -30,8 +30,9 @@ const meta = (id: string): FieldCapture => ({
 
 type Wire = {
   setId?: unknown;
-  captures: { light: string; pixels: { width: number; data: string } }[];
+  captures: { light: string; verdict?: string; pixels: { width: number; data: string } }[];
   garments: { truth: string[] }[];
+  votes: { offered: string[] }[];
 };
 const wire = (): Wire => JSON.parse(encodeFieldExport(file('2026-10-02T00:00:00.000Z'))) as Wire;
 const rejects = (parsed: Wire) =>
@@ -46,11 +47,26 @@ const shot = (id: string, over: Partial<FieldCapture> = {}) => ({
   pixels: { width: 3, height: 2, data: bytes() },
 });
 
+const vote = (id: string, over: Partial<PairVote> = {}): PairVote => ({
+  id,
+  takenAt: '2026-10-01T10:06:00.000Z',
+  build: 'abc1234',
+  top: parseHex('#336699'),
+  bottom: parseHex('#996633'),
+  liked: true,
+  changed: null,
+  replacement: null,
+  offered: [],
+  noneWorks: false,
+  ...over,
+});
+
 const file = (exportedAt: string, over: Partial<FieldExport> = {}): FieldExport => ({
-  version: 1,
+  version: 2,
   exportedAt,
   setId: 'phone',
   garments: [garment('g1', 'Blue shirt')],
+  votes: [],
   captures: [shot('c1')],
   ...over,
 });
@@ -99,7 +115,7 @@ describe('field export', () => {
   it('rejects a file with another version', () => {
     const json = JSON.stringify({
       ...JSON.parse(encodeFieldExport(file('2026-10-02T00:00:00.000Z'))),
-      version: 2,
+      version: 3,
     });
     expect(() => decodeFieldExport(json)).toThrow('Not a field export');
   });
@@ -151,6 +167,64 @@ describe('field export', () => {
     const three = wire();
     three.garments[0]!.truth = ['#111111', '#222222', '#333333'];
     expect(decodeFieldExport(JSON.stringify(three)).garments[0]!.truth).toHaveLength(3);
+  });
+
+  it('decodes a version 1 file as version 2 with no votes', () => {
+    const parsed: Record<string, unknown> = {
+      ...wire(),
+      version: 1,
+    };
+    delete parsed.votes;
+    const out = decodeFieldExport(JSON.stringify(parsed));
+    expect(out.version).toBe(2);
+    expect(out.votes).toEqual([]);
+    expect(out.captures.map((c) => c.id)).toEqual(['c1']);
+  });
+
+  it('round-trips a run capture with its verdict', () => {
+    const input = file('2026-10-02T00:00:00.000Z', {
+      captures: [shot('c1', { source: 'run', settled: null, verdict: 'missed' })],
+    });
+    const out = decodeFieldExport(encodeFieldExport(input));
+    expect(out.captures[0]).toMatchObject({ source: 'run', settled: null, verdict: 'missed' });
+  });
+
+  it('leaves the verdict off a capture that has none', () => {
+    const out = decodeFieldExport(encodeFieldExport(file('2026-10-02T00:00:00.000Z')));
+    expect('verdict' in out.captures[0]!).toBe(false);
+  });
+
+  it('round-trips a pair vote', () => {
+    const v = vote('v1', {
+      liked: false,
+      changed: 'bottom',
+      replacement: parseHex('#c7894f'),
+      offered: ['#111111', '#222222', '#333333', '#444444', '#555555', '#666666'].map(parseHex),
+      noneWorks: false,
+    });
+    const out = decodeFieldExport(
+      encodeFieldExport(file('2026-10-02T00:00:00.000Z', { votes: [v] })),
+    );
+    expect(out.votes).toEqual([v]);
+  });
+
+  it('writes the keys in the order the streamed export uses', () => {
+    const keys = Object.keys(wire());
+    expect(keys).toEqual(['version', 'exportedAt', 'setId', 'garments', 'votes', 'captures']);
+  });
+
+  it('rejects a run capture with an unknown verdict', () => {
+    const parsed = wire();
+    parsed.captures[0]!.verdict = 'maybe';
+    rejects(parsed);
+  });
+
+  it('rejects a vote with a bad hex in offered', () => {
+    const parsed = JSON.parse(
+      encodeFieldExport(file('2026-10-02T00:00:00.000Z', { votes: [vote('v1')] })),
+    ) as Wire;
+    parsed.votes[0]!.offered = ['red'];
+    rejects(parsed);
   });
 
   it('keeps truth and settled hexes as hexes', () => {
@@ -205,6 +279,18 @@ describe('mergeFieldExports', () => {
     const merged = mergeFieldExports([tablet, phone]);
     expect(merged.garments.map((g) => g.label)).toEqual(['New label']);
     expect(merged.captures.map((c) => [c.id, c.light])).toEqual([['c1', 'lamp']]);
+  });
+
+  it('merges votes by id, newest export of each set winning', () => {
+    const older = file('2026-10-01T00:00:00.000Z', { votes: [vote('a'), vote('b')] });
+    const newer = file('2026-10-03T00:00:00.000Z', { votes: [vote('b', { liked: false })] });
+    const merged = mergeFieldExports([newer, older]);
+    expect(merged.version).toBe(2);
+    expect(merged.votes.map((v) => [v.id, v.liked])).toEqual([['b', false]]);
+
+    const tablet = file('2026-10-02T00:00:00.000Z', { setId: 'tablet', votes: [vote('c')] });
+    const union = mergeFieldExports([tablet, older]);
+    expect(union.votes.map((v) => v.id).sort()).toEqual(['a', 'b', 'c']);
   });
 
   it('names the sets it came from', () => {

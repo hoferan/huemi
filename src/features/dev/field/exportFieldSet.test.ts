@@ -151,10 +151,11 @@ describe('buildFieldExport', () => {
 
     expect(await written(store)).toBe(
       encodeFieldExport({
-        version: 1,
+        version: 2,
         exportedAt: NOW.toISOString(),
         setId: setId.value,
         garments: [GARMENT],
+        votes: [],
         // Newest first, as the store lists them.
         captures: [
           {
