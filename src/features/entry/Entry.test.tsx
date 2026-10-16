@@ -1,7 +1,7 @@
 import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router';
-import { beforeAll, describe, expect, it } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { SessionProvider } from '../../session/SessionProvider';
 import { useSession } from '../../session/useSession';
 import { DevModeProvider } from '../dev/DevModeProvider';
@@ -9,6 +9,8 @@ import { DevSlotHost } from '../dev/DevSlotHost';
 import { fakeDevModeStore } from '../dev/testing';
 import { InitialLocationContext } from '../../ui/InitialLocationContext';
 import { installOffer } from '../install/installOffer.testing';
+import { fakeRegistration, fakeWorker } from '../update/registration.testing';
+import { watchForUpdates } from '../update/useUpdateReady';
 import { Entry } from './Entry';
 
 function SlotProbe() {
@@ -203,6 +205,26 @@ describe('Entry', () => {
     renderAt();
     await user.click(screen.getByRole('button', { name: 'Already dressed? Check your outfit' }));
     expect(await screen.findByText('outfit camera')).toBeInTheDocument();
+  });
+
+  describe('with a new version waiting', () => {
+    let stop: (() => void) | undefined;
+    afterEach(() => act(() => stop?.()));
+
+    it('shows no update link while none waits', () => {
+      stop = watchForUpdates(fakeRegistration({ active: fakeWorker('activated') }));
+      renderAt();
+      expect(screen.queryByRole('button', { name: 'Update huemi' })).not.toBeInTheDocument();
+    });
+
+    it('shows the update link right below the outfit check', () => {
+      stop = watchForUpdates(
+        fakeRegistration({ active: fakeWorker('activated'), waiting: fakeWorker('installed') }),
+      );
+      renderAt();
+      const names = screen.getAllByRole('button').map((button) => button.textContent);
+      expect(names.slice(-2)).toEqual(['Already dressed? Check your outfit', 'Update huemi']);
+    });
   });
 
   it('shows no install link until the browser offers one', () => {

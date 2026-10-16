@@ -1,6 +1,7 @@
 # 0016. Precache the build with a hand-written service worker
 
-Status: Accepted, 2026-09-30
+Status: Accepted, 2026-09-30. [ADR 0022](0022-offer-a-waiting-update-on-the-start-screen.md)
+amends it: the start screen offers a waiting version, for apps a phone keeps suspended.
 
 ## Context
 

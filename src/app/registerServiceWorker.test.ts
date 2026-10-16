@@ -9,6 +9,13 @@ describe('registerServiceWorker', () => {
     expect(register).toHaveBeenCalledWith('/sw.js', { scope: '/' });
   });
 
+  it('watches the registration for a new version', async () => {
+    const registration = {};
+    const watch = vi.fn();
+    await registerServiceWorker(true, { register: vi.fn().mockResolvedValue(registration) }, watch);
+    expect(watch).toHaveBeenCalledWith(registration);
+  });
+
   it('does nothing when disabled', async () => {
     const register = vi.fn();
     await registerServiceWorker(false, { register });

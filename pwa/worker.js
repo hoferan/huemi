@@ -3,10 +3,15 @@
 // this file reads them as globals and cannot run on its own.
 
 self.addEventListener('install', (event) => {
-  // No skipWaiting: a new version waits until every window on the old one has
-  // closed. Taking over mid-session would swap the code under someone who is in
-  // the middle of building an outfit.
+  // No skipWaiting here: a new version waits until every window on the old one
+  // has closed, or until someone taps Update on the start screen (the message
+  // below). Taking over by itself would swap the code under someone who is in
+  // the middle of building an outfit. See ADR 0022.
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(PRECACHE)));
+});
+
+self.addEventListener('message', (event) => {
+  if (event.data?.type === 'skip-waiting') self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
