@@ -222,3 +222,51 @@ Then('the field store holds {int} frame(s)', async ({ page }, n: number) => {
   );
   expect(count).toBe(n);
 });
+
+// The database as the first release left it: version 1, without the votes
+// store. It runs on the welcome screen, which never opens the field database,
+// so the app's first open is the upgrade. The callback runs in the browser and
+// cannot close over this module, so the store names are repeated as literals;
+// they are `STORES` in `src/storage/indexedDbField.ts`.
+Given('a version 1 field database holds the garment {string}', async ({ page }, label: string) => {
+  await page.goto('/');
+  await page.evaluate(
+    (name) =>
+      new Promise<void>((resolve, reject) => {
+        const open = indexedDB.open('huemi-field', 1);
+        open.onupgradeneeded = () => {
+          for (const store of ['garments', 'captures', 'frames', 'meta']) {
+            open.result.createObjectStore(store, { keyPath: 'id' });
+          }
+        };
+        open.onerror = () => reject(open.error ?? new Error('open failed'));
+        open.onsuccess = () => {
+          const db = open.result;
+          const tx = db.transaction('garments', 'readwrite');
+          tx.objectStore('garments').put({
+            id: 'g1',
+            label: name,
+            truth: ['#1f2a44'],
+            createdAt: '2026-10-01T10:00:00.000Z',
+          });
+          tx.oncomplete = () => {
+            db.close();
+            resolve();
+          };
+          tx.onerror = () => reject(tx.error ?? new Error('put failed'));
+        };
+      }),
+    label,
+  );
+});
+
+When('I open the field recorder', async ({ page }) => {
+  await openList(page);
+});
+
+Then('the field recorder counts {int} pair vote(s)', async ({ page }, n: number) => {
+  await openList(page);
+  await expect(
+    page.getByText(n === 1 ? '1 pair vote' : `${n} pair votes`, { exact: true }),
+  ).toBeVisible();
+});

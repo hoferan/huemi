@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { FieldCapture, FieldGarment } from '../../../model/field';
+import type { FieldCapture, FieldGarment, PairVote } from '../../../model/field';
 import type { FieldStore } from '../../../storage/port';
 import { decodeFieldExport, encodeFieldExport } from '../../../model/fieldExport';
 import { parseHex } from '../../../model/hex';
@@ -28,6 +28,19 @@ const CAPTURE: FieldCapture = {
   takenAt: '2026-10-05T10:00:00.000Z',
   build: 'test',
 };
+
+const VOTE = (id: string, takenAt: string): PairVote => ({
+  id,
+  takenAt,
+  build: 'test',
+  top: parseHex('#1f2a44'),
+  bottom: parseHex('#f2ead8'),
+  liked: false,
+  changed: 'bottom',
+  replacement: parseHex('#a83232'),
+  offered: [parseHex('#a83232'), parseHex('#2f5d3a')],
+  noneWorks: false,
+});
 
 const PIXELS = {
   width: 2,
@@ -146,6 +159,20 @@ describe('buildFieldExport', () => {
       { ...CAPTURE, id: 'c2', takenAt: '2026-10-06T10:00:00.000Z', width: 1, height: 1 },
       { width: 1, height: 1, data: new Uint8ClampedArray([9, 8, 7, 255]) },
     );
+    await store.saveCapture(
+      {
+        ...CAPTURE,
+        id: 'c3',
+        source: 'run',
+        verdict: 'corrected',
+        takenAt: '2026-10-07T10:00:00.000Z',
+        width: 1,
+        height: 1,
+      },
+      { width: 1, height: 1, data: new Uint8ClampedArray([5, 6, 7, 255]) },
+    );
+    await store.saveVote(VOTE('v1', '2026-10-02T10:00:00.000Z'));
+    await store.saveVote(VOTE('v2', '2026-10-03T10:00:00.000Z'));
     const setId = await store.setId();
     if (!setId.ok) throw new Error('no set id');
 
@@ -155,9 +182,19 @@ describe('buildFieldExport', () => {
         exportedAt: NOW.toISOString(),
         setId: setId.value,
         garments: [GARMENT],
-        votes: [],
         // Newest first, as the store lists them.
+        votes: [VOTE('v2', '2026-10-03T10:00:00.000Z'), VOTE('v1', '2026-10-02T10:00:00.000Z')],
         captures: [
+          {
+            ...CAPTURE,
+            id: 'c3',
+            source: 'run',
+            verdict: 'corrected',
+            takenAt: '2026-10-07T10:00:00.000Z',
+            width: 1,
+            height: 1,
+            pixels: { width: 1, height: 1, data: new Uint8ClampedArray([5, 6, 7, 255]) },
+          },
           {
             ...CAPTURE,
             id: 'c2',
@@ -170,6 +207,12 @@ describe('buildFieldExport', () => {
         ],
       }),
     );
+  });
+
+  it('reports a vote list that cannot be read', async () => {
+    const store = await seeded();
+    store.listVotes = () => Promise.resolve({ ok: false, reason: 'test' });
+    expect(await buildFieldExport({ store, compress: identity })).toBe('failed');
   });
 
   it('streams an empty set as a whole document', async () => {

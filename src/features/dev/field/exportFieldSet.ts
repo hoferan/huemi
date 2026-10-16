@@ -1,4 +1,4 @@
-import type { FieldCapture, FieldGarment } from '../../../model/field';
+import type { FieldCapture, FieldGarment, PairVote } from '../../../model/field';
 import { encodeFieldCapture } from '../../../model/fieldExport';
 import type { FieldStore } from '../../../storage/port';
 import type { SharePort, ShareResult } from '../../share/port';
@@ -25,14 +25,14 @@ type Chunks = AsyncIterable<Uint8Array<ArrayBuffer>>;
  */
 async function* exportChunks(
   store: FieldStore,
-  head: { exportedAt: string; setId: string; garments: FieldGarment[] },
+  head: { exportedAt: string; setId: string; garments: FieldGarment[]; votes: PairVote[] },
   captures: readonly FieldCapture[],
 ): Chunks {
   const text = new TextEncoder();
   yield text.encode(
     `{"version":2,"exportedAt":${JSON.stringify(head.exportedAt)},` +
       `"setId":${JSON.stringify(head.setId)},` +
-      `"garments":${JSON.stringify(head.garments)},"votes":[],"captures":[`,
+      `"garments":${JSON.stringify(head.garments)},"votes":${JSON.stringify(head.votes)},"captures":[`,
   );
   for (const [i, capture] of captures.entries()) {
     const read = await store.readPixels(capture.id);
@@ -59,18 +59,24 @@ export async function buildFieldExport({
   compress?: (chunks: Chunks) => Promise<Uint8Array<ArrayBuffer>>;
   now?: Date;
 }): Promise<File | 'failed'> {
-  const [garments, captures, setId] = await Promise.all([
+  const [garments, captures, setId, votes] = await Promise.all([
     store.listGarments(),
     store.listCaptures(),
     store.setId(),
+    store.listVotes(),
   ]);
-  if (!garments.ok || !captures.ok || !setId.ok) return 'failed';
+  if (!garments.ok || !captures.ok || !setId.ok || !votes.ok) return 'failed';
   let bytes: Uint8Array<ArrayBuffer>;
   try {
     bytes = await compress(
       exportChunks(
         store,
-        { exportedAt: now.toISOString(), setId: setId.value, garments: garments.value },
+        {
+          exportedAt: now.toISOString(),
+          setId: setId.value,
+          garments: garments.value,
+          votes: votes.value,
+        },
         captures.value,
       ),
     );
