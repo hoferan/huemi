@@ -44,3 +44,4 @@ supersedes it, in which case both say so.
 | [0019](0019-a-developer-mode-inside-the-shipped-app.md)               | Ship a developer mode in the app, behind a passphrase     |
 | [0020](0020-field-captures-are-stored-on-the-device.md)               | Store field captures on the device, in developer mode     |
 | [0021](0021-an-outfit-is-the-pieces-you-wear.md)                      | An outfit is the pieces you wear                          |
+| [0022](0022-offer-a-waiting-update-on-the-start-screen.md)            | Offer a waiting update on the start screen                |

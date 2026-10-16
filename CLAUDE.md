@@ -164,6 +164,9 @@ The app works offline through a service worker that `pwa/vite-plugin.ts` writes 
 registered in production builds only, so `npm run dev` never serves a cached copy.
 Test it against `npm run preview`, or the browser suite, which does. See
 [ADR 0016](docs/adr/0016-precache-the-build-with-a-hand-written-service-worker.md).
+A new version waits for the old one to close, or for a tap on the start screen's
+Update button, which shows only while one waits
+([ADR 0022](docs/adr/0022-offer-a-waiting-update-on-the-start-screen.md)).
 
 CodeQL runs through GitHub's default setup, so its configuration lives in
 repository settings rather than in a committed workflow. Default setup has no path

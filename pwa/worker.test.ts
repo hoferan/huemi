@@ -70,10 +70,24 @@ describe('service worker', () => {
     ).toBe(true);
   });
 
-  it('never skips waiting or claims clients', async () => {
+  it('never skips waiting or claims clients on its own', async () => {
     const scope = await installed();
     await scope.activate();
     expect(scope.skipWaitingCalled).toBe(false);
     expect(scope.claimCalled).toBe(false);
+  });
+
+  it('skips waiting when a page asks it to', async () => {
+    const scope = await installed();
+    scope.message({ type: 'skip-waiting' });
+    expect(scope.skipWaitingCalled).toBe(true);
+  });
+
+  it('ignores any other message', async () => {
+    const scope = await installed();
+    scope.message({ type: 'something-else' });
+    scope.message('skip-waiting');
+    scope.message(null);
+    expect(scope.skipWaitingCalled).toBe(false);
   });
 });

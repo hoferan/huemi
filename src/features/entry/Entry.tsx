@@ -14,6 +14,7 @@ import { useDevMode } from '../dev/useDevMode';
 import { useTapUnlock } from '../dev/useTapUnlock';
 import { InstallButton } from '../install/InstallButton';
 import { clearOfToasts } from '../../ui/toastClearance';
+import { UpdateButton } from '../update/UpdateButton';
 import { WayIn } from './WayIn';
 
 const styles = stylex.create({
@@ -130,6 +131,11 @@ export function Entry() {
           compete with them (PO, 2026-09-26).
         */}
         <Button variant="quiet" label={CHECK_ENTRY} onClick={() => void navigate('/check')} />
+        {/*
+          Here and nowhere else: the start screen has nothing in progress, so
+          switching versions here cannot lose an outfit (PO, 2026-10-16).
+        */}
+        <UpdateButton />
         <InstallButton />
       </div>
     </Screen>

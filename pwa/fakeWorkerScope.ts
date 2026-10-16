@@ -22,6 +22,8 @@ type Listener = (event: unknown) => void;
 export interface FakeScope {
   install(): Promise<void>;
   activate(): Promise<void>;
+  /** A page's `postMessage` to the worker. */
+  message(data: unknown): void;
   /** The response the worker gave, or null when it did not call `respondWith`. */
   fetchEvent(input: string | Partial<FakeRequest>): Promise<FakeResponse | null>;
   cacheNames(): string[];
@@ -51,6 +53,7 @@ export function loadWorker({
     seedCache: (name) => void stores.set(name, new Map()),
     install: () => dispatch('install'),
     activate: () => dispatch('activate'),
+    message: (data) => listeners.get('message')?.({ data }),
     async fetchEvent(input) {
       const request: FakeRequest =
         typeof input === 'string'
