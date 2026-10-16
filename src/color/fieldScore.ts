@@ -1,4 +1,10 @@
-import { LIGHTS, type FieldExport, type FieldGarment, type Light } from '../model/field';
+import {
+  LIGHTS,
+  type FieldExport,
+  type FieldGarment,
+  type Light,
+  type Verdict,
+} from '../model/field';
 import type { Hex } from '../model/hex';
 import { oklabDistance } from './oklab';
 import { colorsIn, defaultRegion, explain, type ColorReading } from './read';
@@ -19,9 +25,10 @@ export const WRONG_AT = 0.06;
 /**
  * Where a capture's truth came from: a garment's colors, fixed in daylight in
  * the kit, or the color someone settled on in normal use, which is weaker
- * because it went through the same camera.
+ * because it went through the same camera. A judged color is one the user
+ * confirmed or corrected during a guided run, in the light of that capture.
  */
-export type TruthSource = 'garment' | 'settled';
+export type TruthSource = 'garment' | 'settled' | 'judged';
 
 /** How the reader did on one capture. */
 export type CaptureScore = {
@@ -40,6 +47,8 @@ export type CaptureScore = {
   /** Null when the region gave no samples. */
   distance: number | null;
   verdictRight: boolean;
+  /** The user's verdict on the first read of a guided-run capture, else null. */
+  verdict: Verdict | null;
 };
 
 type Capture = FieldExport['captures'][number];
@@ -52,8 +61,9 @@ function truthOf(
     const garment = garments.get(capture.garmentId);
     return garment ? { label: garment.label, source: 'garment', truth: [...garment.truth] } : null;
   }
-  return capture.settled === null
-    ? null
+  if (capture.settled === null) return null;
+  return capture.source === 'run'
+    ? { label: null, source: 'judged', truth: [capture.settled] }
     : { label: null, source: 'settled', truth: [capture.settled] };
 }
 
@@ -72,11 +82,11 @@ function scoreCapture(capture: Capture, truth: NonNullable<ReturnType<typeof tru
         : found.slice(0, 1).map((c) => c.color);
   // Each color is matched to the truth color nearest it. Against a garment,
   // every part offered has to be one of its colors, so the worst match
-  // stands for the reading. A settled color is the one part the user chose
-  // from what was offered, so there the best match does.
+  // stands for the reading. A settled or judged color is the one part the
+  // user chose from what was offered, so there the best match does.
   const matches = scored.map((c) => Math.min(...truth.truth.map((t) => oklabDistance(c, t))));
   const distance = matches.length
-    ? truth.source === 'settled'
+    ? truth.source !== 'garment'
       ? Math.min(...matches)
       : Math.max(...matches)
     : null;
@@ -90,21 +100,42 @@ function scoreCapture(capture: Capture, truth: NonNullable<ReturnType<typeof tru
  * Reads every capture in the set and scores it against its truth. A capture
  * whose garment is no longer in the set, or that has neither a garment nor a
  * settled color, has nothing to be scored against and is counted as skipped.
+ * A guided-run capture the reader missed outright has no color to judge it
+ * by and is counted as missed instead, so it stays out of skipped.
  */
-export function scoreFieldSet(data: FieldExport): { scores: CaptureScore[]; skipped: number } {
+export function scoreFieldSet(data: FieldExport): {
+  scores: CaptureScore[];
+  skipped: number;
+  missed: number;
+} {
   const garments = new Map(data.garments.map((g) => [g.id, g]));
   const scores: CaptureScore[] = [];
   let skipped = 0;
+  let missed = 0;
   for (const capture of data.captures) {
+    if (capture.source === 'run' && capture.verdict === 'missed') {
+      missed++;
+      continue;
+    }
     const truth = truthOf(capture, garments);
     if (!truth) {
       skipped++;
       continue;
     }
     const { id, light, lowLight, width, height } = capture;
-    scores.push({ id, light, lowLight, width, height, ...truth, ...scoreCapture(capture, truth) });
+    const verdict = capture.verdict ?? null;
+    scores.push({
+      id,
+      light,
+      lowLight,
+      width,
+      height,
+      verdict,
+      ...truth,
+      ...scoreCapture(capture, truth),
+    });
   }
-  return { scores, skipped };
+  return { scores, skipped, missed };
 }
 
 /** How the reader did across a group of captures. */
@@ -151,11 +182,13 @@ const distanceText = (n: number | null) => (n === null ? '–' : n.toFixed(3));
 const shareText = (n: number | null) => (n === null ? '–' : `${Math.round(n * 100)}%`);
 
 // One table: a heading, the column names, then a row per light that has
-// captures, in the order of LIGHTS, and a row for all of them.
-function table(heading: string, scores: readonly CaptureScore[], full: boolean): string[] {
+// captures, in the order of LIGHTS, and a row for all of them. `extra` names
+// the columns after the distances.
+type Extra = 'full' | 'wrong' | 'none';
+function table(heading: string, scores: readonly CaptureScore[], extra: Extra): string[] {
   if (!scores.length) return [heading, 'none'];
   const columns = ['light', 'n', 'median', 'p90', 'worst'].concat(
-    full ? ['verdict', 'wrong', 'caught'] : [],
+    extra === 'full' ? ['verdict', 'wrong', 'caught'] : extra === 'wrong' ? ['wrong'] : [],
   );
   const cells = (label: string, s: Summary) =>
     [
@@ -164,7 +197,13 @@ function table(heading: string, scores: readonly CaptureScore[], full: boolean):
       distanceText(s.median),
       distanceText(s.p90),
       distanceText(s.worst),
-    ].concat(full ? [shareText(s.verdictRight), String(s.wrong), shareText(s.caught)] : []);
+    ].concat(
+      extra === 'full'
+        ? [shareText(s.verdictRight), String(s.wrong), shareText(s.caught)]
+        : extra === 'wrong'
+          ? [String(s.wrong)]
+          : [],
+    );
   const groups: [string, readonly CaptureScore[]][] = LIGHTS.map(
     (light): [string, readonly CaptureScore[]] => [light, scores.filter((s) => s.light === light)],
   ).filter(([, group]) => group.length);
@@ -179,21 +218,40 @@ function table(heading: string, scores: readonly CaptureScore[], full: boolean):
 /**
  * The benchmark's printout: the reader against the garments' true colors,
  * per light, then against the colors settled in normal use, which went
- * through the same camera and so only show distance.
+ * through the same camera and so only show distance, then against the colors
+ * judged in a guided run, which add how often the first read was right. A
+ * run's missed captures are named last, with the skipped ones.
  */
-export function fieldReport(scores: readonly CaptureScore[], skipped: number): string {
+export function fieldReport(
+  scores: readonly CaptureScore[],
+  skipped: number,
+  missed: number,
+): string {
+  const judged = scores.filter((s) => s.source === 'judged');
+  const first = judged.filter((s) => s.verdict === 'right').length;
   return [
     ...table(
       "Against the garment's true colors",
       scores.filter((s) => s.source === 'garment'),
-      true,
+      'full',
     ),
     '',
     ...table(
       'Against the color settled in use (weaker truth)',
       scores.filter((s) => s.source === 'settled'),
-      false,
+      'none',
     ),
+    // A set with no guided run has no judged table, so older reports read as before.
+    ...(judged.length
+      ? [
+          '',
+          ...table('Against the color judged in the same light', judged, 'wrong'),
+          `right first try ${first} of ${judged.length}`,
+        ]
+      : []),
+    ...(missed
+      ? ['', `Missed ${missed} capture${missed === 1 ? '' : 's'} the reader found no color in.`]
+      : []),
     ...(skipped
       ? ['', `Skipped ${skipped} capture${skipped === 1 ? '' : 's'} with nothing to score against.`]
       : []),

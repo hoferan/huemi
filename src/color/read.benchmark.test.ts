@@ -25,7 +25,7 @@ const { data } = loadFieldDir();
 describe.skipIf(!data)('the color reader against the field set', () => {
   it('reads every capture with a truth', () => {
     expect(data!.captures.length).toBeGreaterThan(0);
-    const { scores, skipped } = scoreFieldSet(data!);
-    console.log(`\n${fieldReport(scores, skipped)}\n`);
+    const { scores, skipped, missed } = scoreFieldSet(data!);
+    console.log(`\n${fieldReport(scores, skipped, missed)}\n`);
   });
 });

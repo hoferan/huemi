@@ -94,7 +94,10 @@ function Row({ score }: { score: CaptureScore }) {
       <canvas ref={canvas} {...stylex.props(styles.canvas)} />
       <div {...stylex.props(styles.details)}>
         <p {...stylex.props(styles.heading)}>
-          {score.label ?? 'Unlinked, against the color settled in use'}
+          {score.label ??
+            (score.source === 'judged'
+              ? 'Guided run, judged in the same light'
+              : 'Unlinked, against the color settled in use')}
         </p>
         <p {...stylex.props(styles.numbers)}>
           <span {...stylex.props(wrong && styles.wrong)}>
@@ -103,6 +106,7 @@ function Row({ score }: { score: CaptureScore }) {
           · {verdictText(score.reading)} ·{' '}
           {/* A settled color is one color whatever the garment, so it cannot judge the verdict. */}
           {score.source === 'garment' && `verdict ${score.verdictRight ? 'right' : 'wrong'} · `}
+          {score.verdict && `first try ${score.verdict} · `}
           {LIGHT_LABELS[score.light]} · {viewfinder}
         </p>
         <Blocks label="True" colors={score.truth} />

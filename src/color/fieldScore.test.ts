@@ -50,8 +50,11 @@ const set = (garments: FieldGarment[], captures: FieldExport['captures']): Field
 
 // The one score a single-capture set produces.
 const only = (truth: Hex[], pixels: Pixels, over: Partial<FieldCapture> = {}) => {
-  const { scores, skipped } = scoreFieldSet(set([garment('g1', truth)], [capture(pixels, over)]));
+  const { scores, skipped, missed } = scoreFieldSet(
+    set([garment('g1', truth)], [capture(pixels, over)]),
+  );
   expect(skipped).toBe(0);
+  expect(missed).toBe(0);
   expect(scores).toHaveLength(1);
   return scores[0]!;
 };
@@ -130,6 +133,49 @@ describe('scoreFieldSet', () => {
     expect(scores[0]!.distance).toBeLessThan(0.02);
   });
 
+  it('scores a run capture as judged, by the best match like a settled one', () => {
+    const { scores, missed } = scoreFieldSet(
+      set(
+        [],
+        [
+          capture(stripes(), {
+            source: 'run',
+            garmentId: null,
+            settled: navy,
+            verdict: 'corrected',
+          }),
+        ],
+      ),
+    );
+    expect(missed).toBe(0);
+    expect(scores[0]!.source).toBe('judged');
+    expect(scores[0]!.label).toBeNull();
+    expect(scores[0]!.truth).toEqual([navy]);
+    expect(scores[0]!.verdict).toBe('corrected');
+    expect(scores[0]!.reading.kind).toBe('several');
+    expect(scores[0]!.distance).toBeLessThan(0.02);
+  });
+
+  it('counts a missed run capture apart from skipped', () => {
+    const { scores, skipped, missed } = scoreFieldSet(
+      set(
+        [],
+        [
+          capture(solid(NAVY), {
+            id: 'c1',
+            source: 'run',
+            garmentId: null,
+            settled: null,
+            verdict: 'missed',
+          }),
+        ],
+      ),
+    );
+    expect(scores).toEqual([]);
+    expect(skipped).toBe(0);
+    expect(missed).toBe(1);
+  });
+
   it('skips a capture whose garment is gone, and one with no truth at all', () => {
     const { scores, skipped } = scoreFieldSet(
       set(
@@ -159,6 +205,7 @@ const scoreOf = (over: Partial<CaptureScore> = {}): CaptureScore => ({
   scored: [navy],
   distance: 0.01,
   verdictRight: true,
+  verdict: null,
   ...over,
 });
 
@@ -217,6 +264,7 @@ describe('fieldReport', () => {
         scoreOf({ id: 'c', source: 'settled', label: null, light: 'shop' }),
       ],
       0,
+      0,
     );
     const [garment, settled] = report.split('Against the color settled in use (weaker truth)');
     expect(garment).toContain("Against the garment's true colors");
@@ -230,28 +278,39 @@ describe('fieldReport', () => {
   });
 
   it('prints distances to three places and shares as whole percentages', () => {
-    const report = fieldReport([scoreOf({ distance: 0.0123 })], 0);
+    const report = fieldReport([scoreOf({ distance: 0.0123 })], 0, 0);
     expect(row(report, 'daylight')).toMatch(
       /^daylight\s+1\s+0\.012\s+0\.012\s+0\.012\s+100%\s+0\s+–$/,
     );
   });
 
   it('prints a dash, never NaN, where a light had nothing wrong', () => {
-    const report = fieldReport([scoreOf({ distance: 0.01 })], 0);
+    const report = fieldReport([scoreOf({ distance: 0.01 })], 0, 0);
     expect(report).not.toContain('NaN');
     expect(row(report, 'all')).toMatch(/–$/);
   });
 
+  it('reports judged captures in their own table with a first-try line', () => {
+    const judged = (verdict: 'right' | 'corrected') =>
+      scoreOf({ source: 'judged', label: null, verdict });
+    const report = fieldReport([judged('right'), judged('right'), judged('corrected')], 0, 0);
+    const text = report.split('Against the color judged in the same light')[1]!;
+    expect(text).toBeDefined();
+    expect(lines(text).find((l) => l.startsWith('light'))).toContain('wrong');
+    expect(lines(text).find((l) => l.startsWith('light'))).not.toContain('verdict');
+    expect(text).toContain('right first try 2 of 3');
+  });
+
   it('says none for a table with no captures', () => {
-    const report = fieldReport([scoreOf()], 0);
+    const report = fieldReport([scoreOf()], 0, 0);
     expect(report.split('Against the color settled in use (weaker truth)')[1]!.trim()).toBe('none');
   });
 
   it('ends with the skipped count when captures were skipped', () => {
-    expect(fieldReport([scoreOf()], 2).trimEnd()).toMatch(
+    expect(fieldReport([scoreOf()], 2, 0).trimEnd()).toMatch(
       /Skipped 2 captures with nothing to score against\.$/,
     );
-    expect(fieldReport([scoreOf()], 1)).toContain('Skipped 1 capture with');
-    expect(fieldReport([scoreOf()], 0)).not.toContain('Skipped');
+    expect(fieldReport([scoreOf()], 1, 0)).toContain('Skipped 1 capture with');
+    expect(fieldReport([scoreOf()], 0, 0)).not.toContain('Skipped');
   });
 });
