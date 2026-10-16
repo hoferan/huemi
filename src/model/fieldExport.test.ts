@@ -227,6 +227,19 @@ describe('field export', () => {
     rejects(parsed);
   });
 
+  it.each<[string, unknown]>([
+    ['liked', 'yes'],
+    ['noneWorks', null],
+    ['changed', 'left'],
+    ['offered', Array.from({ length: 7 }, () => '#1b1b1b')],
+  ])('rejects a vote whose %s is %j', (key, value) => {
+    const parsed = JSON.parse(
+      encodeFieldExport(file('2026-10-02T00:00:00.000Z', { votes: [vote('v1')] })),
+    ) as Wire;
+    (parsed.votes[0] as Record<string, unknown>)[key] = value;
+    rejects(parsed);
+  });
+
   it('keeps truth and settled hexes as hexes', () => {
     const out = decodeFieldExport(encodeFieldExport(file('2026-10-02T00:00:00.000Z')));
     expect(isHex(out.garments[0]?.truth[0] ?? '')).toBe(true);

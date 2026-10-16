@@ -142,4 +142,23 @@ describe('voteReport', () => {
     expect(text).toContain('2 votes');
     expect(text).toMatch(/AUC/);
   });
+
+  it('says what is missing when there is nothing to measure', () => {
+    expect(voteReport([vote({ liked: true })])).toBe(
+      [
+        'Pair votes: 1 vote, 1 liked, 0 disliked',
+        'Pair AUC: needs a liked and a disliked vote',
+        'Swaps: none',
+      ].join('\n'),
+    );
+  });
+
+  it('leaves out the mean rank when no replacement was among the offered colors', () => {
+    const text = voteReport([
+      vote({ liked: false, changed: 'bottom', replacement: color('Black'), offered: [] }),
+    ]);
+    expect(text).toMatch(
+      /^Swaps: 1, the engine rated the replacement above the replaced color in [01]$/m,
+    );
+  });
 });

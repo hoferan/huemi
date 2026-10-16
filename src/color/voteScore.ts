@@ -92,7 +92,7 @@ export function voteReport(votes: readonly PairVote[]): string {
   const { liked, disliked, auc } = pairAuc(votes);
   const { swaps, preferred, meanRank } = swapAgreement(votes);
   return [
-    `Pair votes: ${votes.length} votes, ${liked} liked, ${disliked} disliked`,
+    `Pair votes: ${votes.length} vote${votes.length === 1 ? '' : 's'}, ${liked} liked, ${disliked} disliked`,
     auc === null
       ? 'Pair AUC: needs a liked and a disliked vote'
       : `Pair AUC: ${auc.toFixed(3)} (0.5 is chance)`,
