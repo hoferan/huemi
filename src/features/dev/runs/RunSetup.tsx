@@ -14,7 +14,7 @@ const styles = stylex.create({
 
 /** The lengths a run can have. Exactly these three. */
 const LENGTHS = [10, 20, 30] as const;
-type RunLength = (typeof LENGTHS)[number];
+export type RunLength = (typeof LENGTHS)[number];
 const LENGTH_OPTIONS = LENGTHS.map((length) => ({ value: length, label: String(length) }));
 
 /**
