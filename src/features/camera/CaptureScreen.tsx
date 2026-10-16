@@ -1,5 +1,5 @@
 import { use, useEffect, useRef, useState } from 'react';
-import type { ChangeEvent } from 'react';
+import type { ChangeEvent, ReactNode } from 'react';
 import { Link } from 'react-router';
 import * as stylex from '@stylexjs/stylex';
 import type { Frame } from '../../model/frame';
@@ -125,6 +125,9 @@ export function CaptureScreen({
   copy,
   handEntry,
   alwaysOfferHandEntry = false,
+  header,
+  offerPhoto = true,
+  offerHandEntry = true,
   onFrame,
 }: {
   title: string;
@@ -138,6 +141,16 @@ export function CaptureScreen({
    * light. The outfit check sets it: entering colors is a peer route there.
    */
   alwaysOfferHandEntry?: boolean;
+  /** Shown above the viewfinder, and above the panel when the camera is not available. */
+  header?: ReactNode;
+  /** Whether to offer choosing a photo. The guided runs read the live camera only. */
+  offerPhoto?: boolean;
+  /**
+   * Whether the hand-entry link shows at all. False hides it in every state,
+   * low light and `alwaysOfferHandEntry` included: a guided run has no hand
+   * entry to go to.
+   */
+  offerHandEntry?: boolean;
   /**
    * `lowLight` is the warning showing at the shutter, and `null` for a chosen
    * photo, which was not lit by this camera.
@@ -282,14 +295,15 @@ export function CaptureScreen({
   if (panel) {
     return (
       <Screen title={title} back={back}>
+        {header}
         <section aria-labelledby="camera-panel" {...stylex.props(styles.panel)}>
           <h2 id="camera-panel" {...stylex.props(styles.panelHeading)}>
             {panel.heading}
           </h2>
           <p {...stylex.props(styles.body)}>{panel.body}</p>
           {status === 'failed' && <Button label="Try again" onClick={retry} />}
-          {handEntryLink}
-          {choosePhoto}
+          {offerHandEntry && handEntryLink}
+          {offerPhoto && choosePhoto}
         </section>
       </Screen>
     );
@@ -297,6 +311,7 @@ export function CaptureScreen({
 
   return (
     <Screen title={title} back={back}>
+      {header}
       {dark && <p {...stylex.props(styles.banner)}>{DARK_MESSAGE}</p>}
       {/* Hidden from assistive technology: the screen works without seeing
           the picture, and a video announced as "video" tells nobody
@@ -308,7 +323,7 @@ export function CaptureScreen({
         <div {...stylex.props(styles.guide, guide === 'outfit' && styles.outfitGuide)} />
       </div>
       <div {...clearOfToasts} {...stylex.props(styles.controls)}>
-        {(dark || alwaysOfferHandEntry) && handEntryLink}
+        {offerHandEntry && (dark || alwaysOfferHandEntry) && handEntryLink}
         {status === 'live' && (
           <button
             type="button"
@@ -318,7 +333,7 @@ export function CaptureScreen({
           />
         )}
       </div>
-      {choosePhoto}
+      {offerPhoto && choosePhoto}
     </Screen>
   );
 }
