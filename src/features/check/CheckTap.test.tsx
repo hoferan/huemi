@@ -13,7 +13,8 @@ import { useSession } from '../../session/useSession';
 import { Announcer } from '../../ui/Announcer';
 import { InitialLocationContext } from '../../ui/InitialLocationContext';
 import { CheckTap } from './CheckTap';
-import { ENTER_COLORS, SKIP, TAP_PROMPTS, TAP_UNCLEAR } from './copy';
+import { TOP_AND_BOTTOM } from '../suggest/copy';
+import { ENTER_COLORS, IT_IS_A_DRESS, SKIP, TAP_PROMPTS, TAP_UNCLEAR } from './copy';
 
 // Palette colors, so each band reads back under its palette name.
 const CHARCOAL: Rgb = [61, 61, 63];
@@ -58,6 +59,7 @@ function Where() {
   return (
     <p>
       {pathname} {pieces}
+      {state.check?.dress && ' (dress)'}
     </p>
   );
 }
@@ -122,8 +124,56 @@ describe('CheckTap', () => {
     tapBand(3);
     expect(
       await screen.findByText(
-        '/check/pieces outerwear=Charcoal top=Cream bottom=Rust shoes=Burgundy',
+        '/check/pieces outerwear=Charcoal top=Cream bottom=Rust dress=- shoes=Burgundy',
       ),
+    ).toBeInTheDocument();
+  });
+
+  it('asks for a dress in place of the top and the bottom, in three steps', async () => {
+    const user = userEvent.setup();
+    renderWith(outfit);
+    await screen.findByRole('heading', { level: 1, name: `${TAP_PROMPTS.outerwear}, 1 of 4` });
+    tapBand(0);
+    await screen.findByRole('heading', { level: 1, name: `${TAP_PROMPTS.top}, 2 of 4` });
+    await user.click(screen.getByRole('button', { name: IT_IS_A_DRESS }));
+    expect(
+      await screen.findByRole('heading', { level: 1, name: `${TAP_PROMPTS.dress}, 2 of 3` }),
+    ).toHaveFocus();
+    tapBand(1);
+    await screen.findByRole('heading', { level: 1, name: `${TAP_PROMPTS.shoes}, 3 of 3` });
+    tapBand(3);
+    expect(
+      await screen.findByText(
+        '/check/pieces outerwear=Charcoal top=- bottom=- dress=Cream shoes=Burgundy (dress)',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('offers the dress on the top step only', async () => {
+    const user = userEvent.setup();
+    renderWith(outfit);
+    await screen.findByRole('heading', { level: 1, name: `${TAP_PROMPTS.outerwear}, 1 of 4` });
+    expect(screen.queryByRole('button', { name: IT_IS_A_DRESS })).not.toBeInTheDocument();
+    tapBand(0);
+    await screen.findByRole('heading', { level: 1, name: `${TAP_PROMPTS.top}, 2 of 4` });
+    await user.click(screen.getByRole('button', { name: SKIP }));
+    await screen.findByRole('heading', { level: 1, name: `${TAP_PROMPTS.bottom}, 3 of 4` });
+    expect(screen.queryByRole('button', { name: IT_IS_A_DRESS })).not.toBeInTheDocument();
+  });
+
+  it('goes back to the top from the dress step', async () => {
+    const user = userEvent.setup();
+    renderWith(outfit);
+    await user.click(await screen.findByRole('button', { name: SKIP }));
+    await user.click(await screen.findByRole('button', { name: IT_IS_A_DRESS }));
+    await screen.findByRole('heading', { level: 1, name: `${TAP_PROMPTS.dress}, 2 of 3` });
+    await user.click(screen.getByRole('button', { name: TOP_AND_BOTTOM }));
+    expect(
+      await screen.findByRole('heading', { level: 1, name: `${TAP_PROMPTS.top}, 2 of 4` }),
+    ).toHaveFocus();
+    await user.click(screen.getByRole('link', { name: ENTER_COLORS }));
+    expect(
+      await screen.findByText('/check/pieces outerwear=- top=- bottom=- dress=- shoes=-'),
     ).toBeInTheDocument();
   });
 
@@ -137,7 +187,7 @@ describe('CheckTap', () => {
     await screen.findByRole('heading', { level: 1, name: `${TAP_PROMPTS.shoes}, 4 of 4` });
     await user.click(screen.getByRole('button', { name: SKIP }));
     expect(
-      await screen.findByText('/check/pieces outerwear=- top=Cream bottom=Rust shoes=-'),
+      await screen.findByText('/check/pieces outerwear=- top=Cream bottom=Rust dress=- shoes=-'),
     ).toBeInTheDocument();
   });
 
@@ -173,7 +223,7 @@ describe('CheckTap', () => {
     tapBand(0);
     await user.click(await screen.findByRole('link', { name: ENTER_COLORS }));
     expect(
-      await screen.findByText('/check/pieces outerwear=Charcoal top=- bottom=- shoes=-'),
+      await screen.findByText('/check/pieces outerwear=Charcoal top=- bottom=- dress=- shoes=-'),
     ).toBeInTheDocument();
   });
 });

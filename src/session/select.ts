@@ -4,8 +4,8 @@ import { chroma } from '../color/classify';
 import { colorName } from '../color/palette';
 import { chromaLoad } from '../color/score';
 import type { Hex } from '../model/hex';
-import { wornSlots, type Shape } from '../model/shape';
-import { CHECK_SLOTS, SLOTS, type Slot } from '../model/types';
+import { checkSlots, wornSlots, type Shape } from '../model/shape';
+import { SLOTS, type Slot } from '../model/types';
 import type { Base, Check, SlotPick } from './types';
 import type { Suggestion } from '../model/types';
 
@@ -202,12 +202,13 @@ export function whyNotChosen(pieces: Partial<Record<Slot, Hex>>, slot: Slot, hex
 
 /**
  * The outfit the result screen describes: what is worn, with each what-if
- * swap laid over its slot. Here because this file is the session's one join
+ * swap laid over its slot. A dress or a top and a bottom, never both, by the
+ * check's own answer. Here because this file is the session's one join
  * with the engine, and the screen hands the result to `checkOutfit`.
  */
 export function checkedPieces(check: Check): WornPieces {
   const pieces: WornPieces = {};
-  for (const slot of CHECK_SLOTS) {
+  for (const slot of checkSlots(check.dress)) {
     const hex = check.swaps[slot] ?? check.pieces[slot]?.hex;
     if (hex) pieces[slot] = hex;
   }

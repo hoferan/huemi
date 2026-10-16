@@ -240,12 +240,25 @@ describe('checkedPieces', () => {
         photo: null,
         pieces: { top: { hex: navy }, bottom: { hex: rust } },
         swaps: { bottom: navy },
+        dress: false,
       }),
     ).toEqual({ top: navy, bottom: navy });
   });
 
+  it('wears the dress alone when the check is a dress, and the top and bottom otherwise', () => {
+    const check = {
+      photo: null,
+      pieces: { top: { hex: navy }, bottom: { hex: rust }, dress: { hex: rust } },
+      swaps: { dress: navy },
+    };
+    expect(checkedPieces({ ...check, dress: true })).toEqual({ dress: navy });
+    expect(checkedPieces({ ...check, dress: false })).toEqual({ top: navy, bottom: rust });
+  });
+
   it('leaves out slots with no piece', () => {
-    expect(checkedPieces({ photo: null, pieces: { top: { hex: navy } }, swaps: {} })).toEqual({
+    expect(
+      checkedPieces({ photo: null, pieces: { top: { hex: navy } }, swaps: {}, dress: false }),
+    ).toEqual({
       top: navy,
     });
   });

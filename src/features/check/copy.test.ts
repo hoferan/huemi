@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { parseHex, type Hex } from '../../model/hex';
 import type { CheckSlot } from '../../model/types';
 import { PALETTE } from '../../color/palette';
-import { CHECK_TITLE, observationText } from './copy';
+import { CHECK_TITLE, TAP_PROMPTS, observationText } from './copy';
 
 const hex = (name: string): Hex => {
   const found = PALETTE.find((color) => color.name === name);
@@ -14,6 +14,12 @@ const piece = (slot: CheckSlot, name: string) => ({ slot, hex: hex(name) });
 describe('CHECK_TITLE', () => {
   it('uses the words the copy guidance asks for', () => {
     expect(CHECK_TITLE).toBe('How it works together');
+  });
+});
+
+describe('TAP_PROMPTS', () => {
+  it('asks for the dress by name', () => {
+    expect(TAP_PROMPTS.dress).toBe('Tap your dress');
   });
 });
 
@@ -73,6 +79,18 @@ describe('observationText', () => {
       pieces: [piece('top', 'Cream'), piece('outerwear', 'Charcoal')],
     });
     expect(text).toBe('The cream top and the charcoal jacket give it clear light and dark.');
+  });
+
+  it('calls a dress a dress, with a singular verb', () => {
+    expect(
+      observationText({ term: 'color', kind: 'colorful', pieces: [piece('dress', 'Rust')] }),
+    ).toBe('Plenty of color, and the rust dress carries the most.');
+    const text = observationText({
+      term: 'lightness',
+      kind: 'contrast',
+      pieces: [piece('dress', 'Cream'), piece('shoes', 'Burgundy')],
+    });
+    expect(text).toBe('The cream dress and the burgundy shoes give it clear light and dark.');
   });
 
   it('keeps a two-word name in lower case', () => {

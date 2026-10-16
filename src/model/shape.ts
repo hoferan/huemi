@@ -1,5 +1,5 @@
 import type { Hex } from './hex';
-import { SLOTS, type Slot } from './types';
+import { CHECK_SLOTS, SLOTS, type CheckSlot, type Slot } from './types';
 
 /** The pieces an outfit can leave out. */
 export type OptionalSlot = 'outerwear' | 'accessory';
@@ -31,6 +31,16 @@ export function isWorn(shape: Shape, slot: Slot): boolean {
 /** The slots the shape wears, head to toe. */
 export function wornSlots(shape: Shape): Slot[] {
   return SLOTS.filter((slot) => isWorn(shape, slot));
+}
+
+/**
+ * The slots an outfit check asks for, head to toe: a top and a bottom, or a
+ * dress in their place (#137). Outerwear and shoes are always asked for, since
+ * the check can skip any piece anyway.
+ */
+export function checkSlots(dress: boolean): CheckSlot[] {
+  const shape: Shape = { outerwear: true, accessory: false, dress };
+  return CHECK_SLOTS.filter((slot) => isWorn(shape, slot));
 }
 
 /**

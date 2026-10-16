@@ -22,6 +22,24 @@ Feature: Capturing an outfit to check
     And I see the button "Bottom: Rust"
     And I see the button "Shoes: Burgundy"
 
+  # A dress takes the top's step, and the bottom's step goes (#137).
+  Scenario: Photographing a dress
+    Given my camera shows an outfit
+    When I open the outfit check
+    And I take a photo of the outfit
+    And I tap piece 1 on the photo
+    Then I see the heading "Tap your top, 2 of 4"
+    When I press "It's a dress"
+    Then I see the heading "Tap your dress, 2 of 3"
+    When I tap piece 2 on the photo
+    Then I see the heading "Tap your shoes, 3 of 3"
+    When I tap piece 4 on the photo
+    Then I see the heading "What are you wearing?"
+    And I see the button "Dress: Cream"
+    And I see the button "Shoes: Burgundy"
+    And I do not see the button "Top: not set"
+    And I do not see the button "Bottom: not set"
+
   Scenario: Skipping a piece
     Given my camera shows an outfit
     When I open the outfit check
@@ -203,3 +221,34 @@ Feature: Capturing an outfit to check
     And I press "Engine"
     Then the screen has no detectable accessibility violations
     And every link and button is at least 44 by 44
+
+  Scenario: A dress entered by hand is one block, sized by its area
+    Given my camera shows an outfit
+    When I open the outfit check
+    And I follow the link "Enter the colors"
+    And I choose the radio "Dress"
+    And I set "Outerwear: not set" to "Charcoal"
+    And I set "Dress: not set" to "Cream"
+    And I set "Shoes: not set" to "Navy"
+    And I press "How does it work together?"
+    Then I am taken to the result
+    And the check says "Warm and cool together: the cream dress and the navy shoes."
+    And I see no "Top" block
+    And I see no "Bottom" block
+    And the block "Dress: Cream" is filled with "#e9dfc9"
+    And the block "Dress: Cream" is taller than the block "Outerwear: Charcoal"
+
+  Scenario: The dress step and the list with a dress pass the accessibility checks
+    Given my camera shows an outfit
+    When I open the outfit check
+    And I take a photo of the outfit
+    And I tap piece 1 on the photo
+    Then the screen has no detectable accessibility violations
+    And every link and button is at least 44 by 44
+    When I press "It's a dress"
+    Then the screen has no detectable accessibility violations
+    And every link and button is at least 44 by 44
+    When I follow the link "Enter the colors"
+    Then the screen has no detectable accessibility violations
+    And every link and button is at least 44 by 44
+    And the "Top and bottom" radio stands out from the page at 3:1

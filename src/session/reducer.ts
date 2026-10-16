@@ -1,9 +1,20 @@
-import type { SessionAction, SessionState, Toast } from './types';
+import type { Check, SessionAction, SessionState, Toast } from './types';
 import { isWorn } from '../model/shape';
 import { SLOTS, type Slot } from '../model/types';
 import type { SlotPick } from './types';
 
 export type { SlotPick, SessionAction, SessionState } from './types';
+
+/**
+ * A check with nothing in it yet, worn as a top and a bottom until the user
+ * says it is a dress. Frozen for the reason `initialSession` gives.
+ */
+const EMPTY_CHECK: Check = Object.freeze({
+  photo: null,
+  pieces: Object.freeze({}),
+  swaps: Object.freeze({}),
+  dress: false,
+});
 
 /**
  * The outfit-building session. Pure, and deliberately free of the colour
@@ -124,17 +135,17 @@ export function sessionReducer(state: SessionState, action: SessionAction): Sess
       };
 
     case 'checkStarted':
-      return { ...state, check: { photo: null, pieces: {}, swaps: {} } };
+      return { ...state, check: EMPTY_CHECK };
 
     case 'checkPhotoTaken':
       // A new photo is a different outfit, or the same one framed again:
       // either way, readings from the last photo no longer describe it.
-      return { ...state, check: { photo: action.frame, pieces: {}, swaps: {} } };
+      return { ...state, check: { ...EMPTY_CHECK, photo: action.frame } };
 
     case 'checkPieceSet': {
       // Created here if missing, since the list can be reached by hand after
       // a refresh has emptied the session.
-      const check = state.check ?? { photo: null, pieces: {}, swaps: {} };
+      const check = state.check ?? EMPTY_CHECK;
       // A what-if about the old piece says nothing about a new one. Setting
       // the same color again, from the list, is not a new piece.
       const swaps = { ...check.swaps };
@@ -153,6 +164,10 @@ export function sessionReducer(state: SessionState, action: SessionAction): Sess
       delete swaps[action.slot];
       return { ...state, check: { ...state.check, pieces, swaps } };
     }
+
+    case 'checkDressChosen':
+      // Created here if missing, for the reason `checkPieceSet` gives.
+      return { ...state, check: { ...(state.check ?? EMPTY_CHECK), dress: action.dress } };
 
     case 'checkSwapped': {
       const piece = state.check?.pieces[action.slot];

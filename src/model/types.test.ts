@@ -15,9 +15,9 @@ describe('SLOTS', () => {
 
 describe('CHECK_SLOTS', () => {
   // Head to toe, because it is the order the tap screen asks in and the
-  // order the list shows. Accessory is out: rating uses four slots (#23).
-  // The dress is out until the check learns it (#137).
-  it('lists the four rated slots head to toe', () => {
-    expect(CHECK_SLOTS).toEqual(['outerwear', 'top', 'bottom', 'shoes']);
+  // order the list shows. Accessory is out (#23). The dress sits where the
+  // top and the bottom do, and a check wears one or the other (#137).
+  it('lists the checked slots head to toe, the dress among them', () => {
+    expect(CHECK_SLOTS).toEqual(['outerwear', 'top', 'bottom', 'dress', 'shoes']);
   });
 });

@@ -1,4 +1,4 @@
-import { expect } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
 import { createBdd } from 'playwright-bdd';
 import { hexToRgb } from './entry.steps';
 import { BLOCK_NAME } from './share.steps';
@@ -30,8 +30,10 @@ When('I open the suggestions for tan shoes', async ({ page }) => {
   await expect(page.getByRole('group', { name: /^Shoes:/ })).toBeVisible();
 });
 
+// Not scoped to the sheet: the check's list asks the same question on the page
+// (#137), and an open sheet hides the page behind it from the accessibility tree.
 When('I choose the radio {string}', async ({ page }, name: string) => {
-  const radio = page.getByRole('dialog').getByRole('radio', { name, exact: true });
+  const radio = page.getByRole('radio', { name, exact: true });
   await radio.click();
   await expect(radio).toBeChecked();
 });
@@ -185,27 +187,33 @@ Then('the {string} switch stands out from the sheet at 3:1', async ({ page }, na
 });
 
 // The same 3:1 for a radio. Unchosen is the state that matters, for the
-// reason it is off for a switch: the ring is all there is to find it by.
-Then('the {string} radio stands out from the sheet at 3:1', async ({ page }, name: string) => {
-  const colors = await page
-    .getByRole('dialog')
-    .getByRole('radio', { name, exact: true })
-    .evaluate((control) => {
-      const opaque = (el: Element | null): string => {
-        for (let at = el; at; at = at.parentElement) {
-          const color = getComputedStyle(at).backgroundColor;
-          if (!/rgba\(.*, 0\)$/.test(color) && color !== 'transparent') return color;
-        }
-        return 'rgb(255, 255, 255)';
-      };
-      return {
-        sheet: opaque(control.parentElement),
-        ring: getComputedStyle(control.children[0]!).borderTopColor,
-      };
-    });
+// reason it is off for a switch: the ring is all there is to find it by. The
+// radios sit in the Pieces sheet and on the check's list (#137).
+Then('the {string} radio stands out from the sheet at 3:1', ({ page }, name: string) =>
+  radioStandsOut(page, name),
+);
+
+Then('the {string} radio stands out from the page at 3:1', ({ page }, name: string) =>
+  radioStandsOut(page, name),
+);
+
+async function radioStandsOut(page: Page, name: string) {
+  const colors = await page.getByRole('radio', { name, exact: true }).evaluate((control) => {
+    const opaque = (el: Element | null): string => {
+      for (let at = el; at; at = at.parentElement) {
+        const color = getComputedStyle(at).backgroundColor;
+        if (!/rgba\(.*, 0\)$/.test(color) && color !== 'transparent') return color;
+      }
+      return 'rgb(255, 255, 255)';
+    };
+    return {
+      sheet: opaque(control.parentElement),
+      ring: getComputedStyle(control.children[0]!).borderTopColor,
+    };
+  });
   const sheet = solid(colors.sheet, '#ffffff');
   expect(contrastRatio(solid(colors.ring, sheet), sheet)).toBeGreaterThanOrEqual(3);
-});
+}
 
 /** A computed `rgb()` or `rgba()` color, laid over `under` and written as a hex. */
 function solid(css: string, under: string): Hex {

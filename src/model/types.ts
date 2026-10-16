@@ -10,11 +10,12 @@ export const SLOTS: readonly Slot[] = ['outerwear', 'top', 'bottom', 'dress', 's
 
 /**
  * The slots an outfit check reads, head to toe. Rating leaves out accessories
- * (#23), and the check has no dress yet (#137).
+ * (#23). A check wears a top and a bottom or a dress (#137), and `checkSlots`
+ * in `shape.ts` says which.
  */
-export type CheckSlot = Exclude<Slot, 'accessory' | 'dress'>;
+export type CheckSlot = Exclude<Slot, 'accessory'>;
 
-export const CHECK_SLOTS: readonly CheckSlot[] = ['outerwear', 'top', 'bottom', 'shoes'];
+export const CHECK_SLOTS: readonly CheckSlot[] = ['outerwear', 'top', 'bottom', 'dress', 'shoes'];
 
 export const SLOT_LABELS: Readonly<Record<Slot, string>> = {
   outerwear: 'Outerwear',

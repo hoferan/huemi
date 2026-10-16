@@ -5,7 +5,8 @@ import * as stylex from '@stylexjs/stylex';
 import { needsBorder } from '../../color/contrast';
 import { readColor, tapRegion } from '../../color/read';
 import type { Pixels } from '../../model/frame';
-import { CHECK_SLOTS, type CheckSlot } from '../../model/types';
+import { checkSlots } from '../../model/shape';
+import type { CheckSlot } from '../../model/types';
 import { useSession } from '../../session/useSession';
 import type { CheckPiece } from '../../session/types';
 import { tokens } from '../../styles/tokens.stylex';
@@ -13,7 +14,8 @@ import { Button } from '../../ui/Button';
 import { Screen } from '../../ui/Screen';
 import { useAnnounce } from '../../ui/useAnnounce';
 import { FramePhoto } from '../confirm/FramePhoto';
-import { CAPTURE_TITLE, ENTER_COLORS, SKIP, TAP_PROMPTS, TAP_UNCLEAR } from './copy';
+import { TOP_AND_BOTTOM } from '../suggest/copy';
+import { CAPTURE_TITLE, ENTER_COLORS, IT_IS_A_DRESS, SKIP, TAP_PROMPTS, TAP_UNCLEAR } from './copy';
 import { tapOutcome } from './sequence';
 import { clearOfToasts } from '../../ui/toastClearance';
 
@@ -28,6 +30,7 @@ const styles = stylex.create({
   // Dynamic: the color is a runtime value (ADR 0002).
   chipFill: (background: string) => ({ backgroundColor: background }),
   hairline: { boxShadow: `inset 0 0 0 1px ${tokens.line}` },
+  actions: { display: 'flex', gap: '8px' },
   body: { color: tokens.ink2, fontSize: tokens.textBody, lineHeight: 1.5, margin: 0 },
   // Picker.tsx's link style: a link is a hit target (A11Y.md).
   link: {
@@ -54,6 +57,11 @@ const styles = stylex.create({
  * model, which is heavy to download and works against offline use. Tapping
  * in any order costs two steps per piece. Recorded on #23.
  *
+ * The top step offers "It's a dress", which asks for a dress in place of the
+ * top and the bottom (#137), and the dress step offers "Top and bottom" back.
+ * Both swap the step in place, so the count is of the steps actually walked:
+ * four with a top and a bottom, three with a dress.
+ *
  * Tapping needs a pointer. Skip and "Enter the colors" are always on screen,
  * so a keyboard or switch user reaches the list, where every piece can be set.
  */
@@ -63,26 +71,31 @@ export function CheckTap() {
   // The photo lives only in the in-memory session, so a refresh lands here
   // with nothing to tap.
   if (!check?.photo) return <Redirect to="/check" />;
-  return <TapPieces pixels={check.photo.pixels} pieces={check.pieces} />;
+  return <TapPieces pixels={check.photo.pixels} pieces={check.pieces} dress={check.dress} />;
 }
 
 function TapPieces({
   pixels,
   pieces,
+  dress,
 }: {
   pixels: Pixels;
   pieces: Partial<Record<CheckSlot, CheckPiece>>;
+  dress: boolean;
 }) {
   const { dispatch } = useSession();
   const navigate = useNavigate();
   const announce = useAnnounce();
   const [index, setIndex] = useState(0);
   const [miss, setMiss] = useState<{ x: number; y: number } | null>(null);
-  const slot = CHECK_SLOTS[index]!;
+  const steps = checkSlots(dress);
+  // The dress takes the top's place in the steps, so switching between them
+  // keeps the index and lands on the other one.
+  const slot = steps[index]!;
 
   function advance() {
     setMiss(null);
-    if (index + 1 < CHECK_SLOTS.length) {
+    if (index + 1 < steps.length) {
       setIndex(index + 1);
       return;
     }
@@ -101,6 +114,11 @@ function TapPieces({
     advance();
   }
 
+  function chooseDress(next: boolean) {
+    setMiss(null);
+    dispatch({ type: 'checkDressChosen', dress: next });
+  }
+
   return (
     // The key remounts Screen on each new slot, which moves focus to the new
     // prompt, as the confirm screen does on a change of state.
@@ -108,12 +126,12 @@ function TapPieces({
       key={slot}
       title={TAP_PROMPTS[slot]}
       back={{ to: '/check', title: CAPTURE_TITLE }}
-      headingNote={`${index + 1} of ${CHECK_SLOTS.length}`}
+      headingNote={`${index + 1} of ${steps.length}`}
     >
       <FramePhoto pixels={pixels} fit="contain" onTap={onTap} {...(miss && { mark: miss })} />
       {/* Drawn progress. The heading note says the same in words. */}
       <div aria-hidden="true" {...stylex.props(styles.strip)}>
-        {CHECK_SLOTS.map((each) => {
+        {steps.map((each) => {
           const hex = pieces[each]?.hex;
           return (
             <span
@@ -128,7 +146,13 @@ function TapPieces({
         })}
       </div>
       {miss && <p {...stylex.props(styles.body)}>{TAP_UNCLEAR}</p>}
-      <div {...clearOfToasts}>
+      <div {...clearOfToasts} {...stylex.props(styles.actions)}>
+        {slot === 'top' && (
+          <Button variant="secondary" label={IT_IS_A_DRESS} onClick={() => chooseDress(true)} />
+        )}
+        {slot === 'dress' && (
+          <Button variant="secondary" label={TOP_AND_BOTTOM} onClick={() => chooseDress(false)} />
+        )}
         <Button variant="secondary" label={SKIP} onClick={advance} />
       </div>
       <Link to="/check/pieces" {...clearOfToasts} {...stylex.props(styles.link)}>
