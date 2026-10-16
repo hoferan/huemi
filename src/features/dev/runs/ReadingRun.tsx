@@ -1,8 +1,7 @@
-import { use, useReducer, useRef, useState } from 'react';
+import { use, useReducer } from 'react';
 import * as stylex from '@stylexjs/stylex';
 import { LIGHT_LABELS, type FieldCapture, type Verdict } from '../../../model/field';
 import type { Hex } from '../../../model/hex';
-import { useSession } from '../../../session/useSession';
 import { Button } from '../../../ui/Button';
 import { Screen } from '../../../ui/Screen';
 import { CaptureScreen } from '../../camera/CaptureScreen';
@@ -11,19 +10,13 @@ import { ExportButton } from '../field/ExportButton';
 import { FieldStoreContext } from '../field/FieldStoreContext';
 import { persistFieldSet } from '../field/persist';
 import { readBuild } from '../menu/build';
-import {
-  POINT_AT_PLAIN,
-  READING_TITLE,
-  RUN_CAMERA_PANELS,
-  UNDO,
-  UNDO_FAILED,
-  readingHeadline,
-} from './copy';
+import { POINT_AT_PLAIN, READING_TITLE, RUN_CAMERA_PANELS, UNDO, readingHeadline } from './copy';
 import { CorrectStep, Misses, SlidersStep, VoteStep } from './ReadingSteps';
-import { readingRun, shotOf, type ReadingAction, type Shot } from './readingRunState';
+import { readingRun, shotOf, type Shot } from './readingRunState';
 import { RunProgress } from './RunProgress';
 import { RunSetup } from './RunSetup';
 import { RunSummary } from './RunSummary';
+import { useRunGuard } from './useRunGuard';
 
 const styles = stylex.create({
   header: { display: 'flex', flexDirection: 'column', gap: '8px' },
@@ -43,22 +36,11 @@ const CAMERA_COPY = { panels: RUN_CAMERA_PANELS };
  */
 export function ReadingRun() {
   const store = use(FieldStoreContext);
-  const { dispatch: session } = useSession();
   const [state, dispatch] = useReducer(readingRun, { step: 'setup' });
-  // Set while a save or an undo is out. A double tap then stores one answer,
-  // and nothing moves the run on until the store has answered.
-  const busy = useRef(false);
-  // True while the summary's export is building its file. The build reads
-  // the captures one at a time, so an undo landing then would fail it, as a
-  // delete does on the field list.
-  const [exporting, setExporting] = useState(false);
-
-  const toast = (message: string) => session({ type: 'toastShown', message });
-  // A step's own moves wait for the store too: a No tapped while a Yes is
-  // saving would open the correction just as the saved Yes moves the run on.
-  const move = (action: ReadingAction) => {
-    if (!busy.current) dispatch(action);
-  };
+  // The guard that keeps one save or undo out at a time, and the export flag.
+  // The export reads the captures one at a time, so an undo landing then would
+  // fail it, as a delete does on the field list.
+  const { move, save: attempt, undo: attemptUndo, exporting, setExporting } = useRunGuard(dispatch);
 
   if (state.step === 'setup') {
     return (
@@ -79,10 +61,7 @@ export function ReadingRun() {
 
   // `answered` goes out only once the capture is stored, so the run never
   // counts an answer the set does not have.
-  async function save(shot: Shot, verdict: Verdict, truth: Hex | null) {
-    if (busy.current) return;
-    busy.current = true;
-    persistFieldSet();
+  function save(shot: Shot, verdict: Verdict, truth: Hex | null) {
     const capture: FieldCapture = {
       id: crypto.randomUUID(),
       source: 'run',
@@ -96,28 +75,23 @@ export function ReadingRun() {
       build: readBuild().commit,
       verdict,
     };
-    const saved = await store.saveCapture(capture, shot.pixels);
-    busy.current = false;
-    if (!saved.ok) {
-      toast(CAPTURE_FAILED);
-      return;
-    }
-    dispatch({ type: 'answered', answer: { captureId: capture.id, verdict, truth, shot } });
+    return attempt(
+      () => {
+        persistFieldSet();
+        return store.saveCapture(capture, shot.pixels);
+      },
+      () => dispatch({ type: 'answered', answer: { captureId: capture.id, verdict, truth, shot } }),
+      CAPTURE_FAILED,
+    );
   }
 
-  // Deletes the last answer's capture first, so the set never keeps an
-  // answer the run has taken back.
-  async function undo() {
+  function undo() {
     const last = answers.at(-1);
-    if (busy.current || !last) return;
-    busy.current = true;
-    const removed = await store.deleteCapture(last.captureId);
-    busy.current = false;
-    if (!removed.ok) {
-      toast(UNDO_FAILED);
-      return;
-    }
-    dispatch({ type: 'undo' });
+    if (!last) return;
+    return attemptUndo(
+      () => store.deleteCapture(last.captureId),
+      () => dispatch({ type: 'undo' }),
+    );
   }
 
   const undoButton = answers.length > 0 && (

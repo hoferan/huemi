@@ -1,7 +1,6 @@
-import { use, useReducer, useRef, useState } from 'react';
+import { use, useReducer } from 'react';
 import type { PairVote } from '../../../model/field';
 import type { Hex } from '../../../model/hex';
-import { useSession } from '../../../session/useSession';
 import { Button } from '../../../ui/Button';
 import { Screen } from '../../../ui/Screen';
 import { MENU_BACK } from '../field/copy';
@@ -9,13 +8,14 @@ import { ExportButton } from '../field/ExportButton';
 import { FieldStoreContext } from '../field/FieldStoreContext';
 import { persistFieldSet } from '../field/persist';
 import { readBuild } from '../menu/build';
-import { MATCHING_TITLE, UNDO, UNDO_FAILED, VOTE_FAILED, matchingHeadline } from './copy';
-import { matchingRun, type MatchingAction } from './matchingRunState';
+import { MATCHING_TITLE, UNDO, VOTE_FAILED, matchingHeadline } from './copy';
+import { matchingRun } from './matchingRunState';
 import { PairVoteStep, ReplaceStep, WhichStep } from './MatchingSteps';
 import { drawPairs, replacementOptions, type Pair } from './pairs';
 import { RunProgress } from './RunProgress';
 import { RunSetup } from './RunSetup';
 import { RunSummary } from './RunSummary';
+import { useRunGuard } from './useRunGuard';
 
 /** What a vote says about the change, as each way of answering fills it in. */
 type Answer = Pick<PairVote, 'liked' | 'changed' | 'replacement' | 'offered' | 'noneWorks'>;
@@ -41,21 +41,10 @@ const LIKED: Answer = {
  */
 export function MatchingRun({ random = Math.random }: { random?: () => number }) {
   const store = use(FieldStoreContext);
-  const { dispatch: session } = useSession();
   const [state, dispatch] = useReducer(matchingRun, { step: 'setup' });
-  // Set while a save or an undo is out. A double tap then stores one vote,
-  // and nothing moves the run on until the store has answered.
-  const busy = useRef(false);
-  // True while the summary's export is building its file, which reads the set
-  // and would fail if an undo changed it then.
-  const [exporting, setExporting] = useState(false);
-
-  const toast = (message: string) => session({ type: 'toastShown', message });
-  // A step's own moves wait for the store too: a No tapped while a Yes is
-  // saving would open the question of which block just as the Yes moves on.
-  const move = (action: MatchingAction) => {
-    if (!busy.current) dispatch(action);
-  };
+  // The guard that keeps one save or undo out at a time, and the export flag.
+  // The export reads the set, so an undo landing then would change it midway.
+  const { move, save: attempt, undo: attemptUndo, exporting, setExporting } = useRunGuard(dispatch);
 
   if (state.step === 'setup') {
     return (
@@ -74,10 +63,7 @@ export function MatchingRun({ random = Math.random }: { random?: () => number })
 
   // `voted` goes out only once the vote is stored, so the run never counts an
   // answer the set does not have.
-  async function save(asked: Pair, answer: Answer) {
-    if (busy.current) return;
-    busy.current = true;
-    persistFieldSet();
+  function save(asked: Pair, answer: Answer) {
     const vote: PairVote = {
       id: crypto.randomUUID(),
       takenAt: new Date().toISOString(),
@@ -86,28 +72,23 @@ export function MatchingRun({ random = Math.random }: { random?: () => number })
       bottom: asked.bottom,
       ...answer,
     };
-    const saved = await store.saveVote(vote);
-    busy.current = false;
-    if (!saved.ok) {
-      toast(VOTE_FAILED);
-      return;
-    }
-    dispatch({ type: 'voted', vote });
+    return attempt(
+      () => {
+        persistFieldSet();
+        return store.saveVote(vote);
+      },
+      () => dispatch({ type: 'voted', vote }),
+      VOTE_FAILED,
+    );
   }
 
-  // Deletes the last vote first, so the set never keeps an answer the run has
-  // taken back.
-  async function undo() {
+  function undo() {
     const last = votes.at(-1);
-    if (busy.current || !last) return;
-    busy.current = true;
-    const removed = await store.deleteVote(last.id);
-    busy.current = false;
-    if (!removed.ok) {
-      toast(UNDO_FAILED);
-      return;
-    }
-    dispatch({ type: 'undo' });
+    if (!last) return;
+    return attemptUndo(
+      () => store.deleteVote(last.id),
+      () => dispatch({ type: 'undo' }),
+    );
   }
 
   // Each step is keyed by its place in the run, so its screen mounts afresh
@@ -125,6 +106,8 @@ export function MatchingRun({ random = Math.random }: { random?: () => number })
             votes.length > 0 && <Button label={UNDO} variant="quiet" onClick={() => void undo()} />
           }
           onAnswer={(yes) => {
+            // Yes goes straight to the save, whose own guard drops a second tap.
+            // No is a move of the run's, so it waits for a save in flight.
             if (yes) void save(pair!, LIKED);
             else move({ type: 'no' });
           }}

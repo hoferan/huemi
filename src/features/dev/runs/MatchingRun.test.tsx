@@ -204,6 +204,23 @@ describe('MatchingRun', () => {
     expect(vote!.offered).toHaveLength(6);
   });
 
+  it('stays on the replacement when "Nothing works with it" cannot be saved', async () => {
+    const { user } = setup(fakeFieldStore({ failing: true }));
+    await start(user);
+    const [pair] = drawn(20);
+    await user.click(screen.getByRole('button', { name: 'No' }));
+    await user.click(screen.getByRole('button', { name: colorName(pair!.top) }));
+    await user.click(screen.getByRole('button', { name: 'Nothing works with it' }));
+    await waitFor(() =>
+      expect(screen.getByTestId('toast')).toHaveTextContent("Couldn't record this answer."),
+    );
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Pick a better one' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('1 of 20')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Nothing works with it' })).toBeEnabled();
+  });
+
   it('saves a Skip as a No with the block named and no replacement', async () => {
     const { user, store } = setup();
     await start(user);
