@@ -296,9 +296,18 @@ describe('fieldReport', () => {
     const report = fieldReport([judged('right'), judged('right'), judged('corrected')], 0, 0);
     const text = report.split('Against the color judged in the same light')[1]!;
     expect(text).toBeDefined();
-    expect(lines(text).find((l) => l.startsWith('light'))).toContain('wrong');
+    expect(lines(text).find((l) => l.startsWith('light'))).toMatch(/\bwrong\s+caught$/);
     expect(lines(text).find((l) => l.startsWith('light'))).not.toContain('verdict');
     expect(text).toContain('right first try 2 of 3');
+  });
+
+  it('shows how many wrong judged readings the low-light warning caught', () => {
+    const judged = (lowLight: boolean) =>
+      scoreOf({ source: 'judged', label: null, verdict: 'corrected', lowLight, light: 'dim' });
+    const wrongDim = (lowLight: boolean) => ({ ...judged(lowLight), distance: WRONG_AT + 0.01 });
+    const report = fieldReport([wrongDim(true), wrongDim(false), judged(false)], 0, 0);
+    const text = report.split('Against the color judged in the same light')[1]!;
+    expect(row(text, 'dim')).toMatch(/^dim\s+3(\s+\d\.\d{3}){3}\s+2\s+50%$/);
   });
 
   it('counts skipped run captures as misses in the first-try figure', () => {

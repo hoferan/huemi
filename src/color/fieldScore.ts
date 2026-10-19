@@ -183,12 +183,17 @@ const shareText = (n: number | null) => (n === null ? '–' : `${Math.round(n * 
 
 // One table: a heading, the column names, then a row per light that has
 // captures, in the order of LIGHTS, and a row for all of them. `extra` names
-// the columns after the distances.
+// the columns after the distances: 'wrong' is 'full' without the verdict,
+// for captures of plain garments, where one-or-several has no right answer.
 type Extra = 'full' | 'wrong' | 'none';
 function table(heading: string, scores: readonly CaptureScore[], extra: Extra): string[] {
   if (!scores.length) return [heading, 'none'];
   const columns = ['light', 'n', 'median', 'p90', 'worst'].concat(
-    extra === 'full' ? ['verdict', 'wrong', 'caught'] : extra === 'wrong' ? ['wrong'] : [],
+    extra === 'full'
+      ? ['verdict', 'wrong', 'caught']
+      : extra === 'wrong'
+        ? ['wrong', 'caught']
+        : [],
   );
   const cells = (label: string, s: Summary) =>
     [
@@ -201,7 +206,7 @@ function table(heading: string, scores: readonly CaptureScore[], extra: Extra): 
       extra === 'full'
         ? [shareText(s.verdictRight), String(s.wrong), shareText(s.caught)]
         : extra === 'wrong'
-          ? [String(s.wrong)]
+          ? [String(s.wrong), shareText(s.caught)]
           : [],
     );
   const groups: [string, readonly CaptureScore[]][] = LIGHTS.map(
@@ -219,8 +224,10 @@ function table(heading: string, scores: readonly CaptureScore[], extra: Extra): 
  * The benchmark's printout: the reader against the garments' true colors,
  * per light, then against the colors settled in normal use, which went
  * through the same camera and so only show distance, then against the colors
- * judged in a guided run, which add how often the first read was right. A
- * run's missed captures are named last, with the skipped ones.
+ * judged in a guided run. That table keeps wrong and caught but leaves out
+ * the verdict, since a run photographs plain garments, and adds how often
+ * the first read was right. A run's missed captures are named last, with the
+ * skipped ones.
  */
 export function fieldReport(
   scores: readonly CaptureScore[],
