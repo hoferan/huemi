@@ -9,7 +9,9 @@ import { fieldReport, scoreFieldSet } from './fieldScore';
  * garments whose true colors were picked by eye in daylight, then
  * photographed in whatever light came along. They are one person's
  * recordings and stay in the gitignored `tmp/field/`, so this test skips
- * without them and CI never runs it.
+ * without them and CI never runs it. The guided reading run at
+ * `/dev/runs/reading` records into the same set, and its captures get a
+ * table of their own, scored against the color judged in the same light.
  *
  * To run: export from `/dev/field` on the phone, move the `.json.gz` files
  * into `tmp/field/`, then `npx vitest run src/color/read.benchmark.test.ts`.

@@ -37,7 +37,9 @@ reading first also anchors the answer, and someone unsure tends to say Yes. So t
 reports keep the two apart: run captures are truth source `'judged'`, never mixed
 into `'kit'`, and the anchoring bias stays out of the daylight numbers. `verdict` is
 reported beside the distance from truth as the first-try rate at the capture's
-build, which tuning cannot move.
+build, which tuning cannot move. The judged table also counts the wrong readings and
+the share of them the low-light warning or an unclear reading flagged, but has no
+one-or-several column, because a run photographs plain garments.
 
 **`'missed'` captures are kept.** Skip means "I can't say". The garments people skip
 are the reader's worst cases, so dropping them would make the reader look better than
