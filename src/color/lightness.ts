@@ -30,7 +30,8 @@ export function meanLightness({ data }: Pixels): number {
  * dimming flattens its contrast. So the reader copes with the noise. Whether
  * a dim reading matches the garment itself depends on the phone's exposure,
  * which uniform dimming does not model, and no real dim photo has been
- * measured yet. Until one is, this number stays.
+ * measured yet. Until one is, this number stays. The low-light sweep at the
+ * end of `read.benchmark.test.ts` is where real dim captures will set it.
  *
  * The margin and the sample count stop the banner flickering when a scene
  * sits near the line. It takes two readings in a row to cross in either

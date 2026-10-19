@@ -6,6 +6,7 @@ import {
   type Verdict,
 } from '../model/field';
 import type { Hex } from '../model/hex';
+import { LOW_LIGHT, meanLightness } from './lightness';
 import { oklabDistance } from './oklab';
 import { colorsIn, defaultRegion, explain, type ColorReading } from './read';
 
@@ -38,6 +39,8 @@ export type CaptureScore = {
   source: TruthSource;
   light: Light;
   lowLight: boolean | null;
+  /** The frame's mean lightness, as the viewfinder measures it. */
+  lightness: number;
   width: number;
   height: number;
   truth: Hex[];
@@ -128,6 +131,7 @@ export function scoreFieldSet(data: FieldExport): {
       id,
       light,
       lowLight,
+      lightness: meanLightness(capture.pixels),
       width,
       height,
       verdict,
@@ -161,11 +165,13 @@ export type Summary = {
 const percentile = (sorted: readonly number[], p: number): number | null =>
   sorted.length ? sorted[Math.ceil(p * sorted.length) - 1]! : null;
 
+const isWrong = (s: CaptureScore) => s.distance === null || s.distance > WRONG_AT;
+
 export function summarize(scores: readonly CaptureScore[]): Summary {
   const distances = scores
     .flatMap((s) => (s.distance === null ? [] : [s.distance]))
     .sort((a, b) => a - b);
-  const wrong = scores.filter((s) => s.distance === null || s.distance > WRONG_AT);
+  const wrong = scores.filter(isWrong);
   const caught = wrong.filter((s) => s.lowLight === true || s.reading.kind === 'unclear');
   return {
     count: scores.length,
@@ -213,11 +219,54 @@ function table(heading: string, scores: readonly CaptureScore[], extra: Extra): 
     (light): [string, readonly CaptureScore[]] => [light, scores.filter((s) => s.light === light)],
   ).filter(([, group]) => group.length);
   groups.push(['all', scores]);
-  const rows = [columns, ...groups.map(([label, group]) => cells(label, summarize(group)))];
-  const widths = columns.map((_, i) => Math.max(...rows.map((r) => r[i]!.length)));
-  const line = (r: string[]) =>
-    r.map((cell, i) => (i === 0 ? cell.padEnd(widths[i]!) : cell.padStart(widths[i]!))).join('  ');
-  return [heading, ...rows.map(line)];
+  return [
+    heading,
+    ...aligned([columns, ...groups.map(([label, group]) => cells(label, summarize(group)))]),
+  ];
+}
+
+// Pads each column to its widest cell, the first to the left and the rest
+// to the right, so the numbers line up.
+function aligned(rows: string[][]): string[] {
+  const widths = rows[0]!.map((_, i) => Math.max(...rows.map((r) => r[i]!.length)));
+  return rows.map((r) =>
+    r.map((cell, i) => (i === 0 ? cell.padEnd(widths[i]!) : cell.padStart(widths[i]!))).join('  '),
+  );
+}
+
+// The thresholds the sweep tries, with the current one always among them.
+const SWEEP = [
+  ...new Set([10, 15, 20, 25, 30, 35, 40].map((n) => n / 100).concat(LOW_LIGHT.darkBelow)),
+].sort((a, b) => a - b);
+
+/**
+ * Where `LOW_LIGHT.darkBelow` should sit. For each threshold, how many
+ * captures were darker than it, so the viewfinder would have warned, and how
+ * many of the wrong readings and of the right ones that warning covers. It
+ * cuts straight at the stored frame's mean lightness, without the margin and
+ * the two-sample streak the viewfinder adds. Settled captures stay out:
+ * their truth came through the same camera, so a dim one can look right
+ * when it is not.
+ */
+function lowLightSweep(scores: readonly CaptureScore[]): string[] {
+  const heading = 'Low-light threshold (kit and run captures)';
+  const swept = scores.filter((s) => s.source !== 'settled');
+  if (!swept.length) return [heading, 'none'];
+  const wrong = swept.filter(isWrong);
+  const right = swept.filter((s) => !isWrong(s));
+  const below = (group: readonly CaptureScore[], t: number) =>
+    group.filter((s) => s.lightness < t).length;
+  const rows = SWEEP.map((t) => [
+    t.toFixed(2) + (t === LOW_LIGHT.darkBelow ? ' *' : ''),
+    String(below(swept, t)),
+    `${below(wrong, t)} of ${wrong.length}`,
+    `${below(right, t)} of ${right.length}`,
+  ]);
+  return [
+    heading,
+    ...aligned([['dark below', 'warned', 'wrong caught', 'right flagged'], ...rows]),
+    '* the current LOW_LIGHT.darkBelow',
+  ];
 }
 
 /**
@@ -226,8 +275,8 @@ function table(heading: string, scores: readonly CaptureScore[], extra: Extra): 
  * through the same camera and so only show distance, then against the colors
  * judged in a guided run. That table keeps wrong and caught but leaves out
  * the verdict, since a run photographs plain garments, and adds how often
- * the first read was right. A run's missed captures are named last, with the
- * skipped ones.
+ * the first read was right. Then a sweep of the low-light threshold. A
+ * run's missed captures are named last, with the skipped ones.
  */
 export function fieldReport(
   scores: readonly CaptureScore[],
@@ -256,6 +305,8 @@ export function fieldReport(
           `right first try ${first} of ${judged.length + missed}`,
         ]
       : []),
+    '',
+    ...lowLightSweep(scores),
     ...(missed
       ? [
           '',
