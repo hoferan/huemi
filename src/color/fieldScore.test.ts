@@ -4,6 +4,7 @@ import type { Pixels } from '../model/frame';
 import type { Hex } from '../model/hex';
 import { rgbToHex } from './convert';
 import { WRONG_AT, fieldReport, scoreFieldSet, summarize, type CaptureScore } from './fieldScore';
+import { meanLightness } from './lightness';
 import { oklabDistance } from './oklab';
 import { colorsIn } from './read';
 import { NAVY, RUST, WHITE, busy, paint, solid } from './testing';
@@ -156,6 +157,12 @@ describe('scoreFieldSet', () => {
     expect(scores[0]!.distance).toBeLessThan(0.02);
   });
 
+  it("records the frame's mean lightness, as the viewfinder measures it", () => {
+    const frame = solid(NAVY);
+    const { scores } = scoreFieldSet(set([garment('g1', [navy])], [capture(frame)]));
+    expect(scores[0]!.lightness).toBe(meanLightness(frame));
+  });
+
   it('counts a missed run capture apart from skipped', () => {
     const { scores, skipped, missed } = scoreFieldSet(
       set(
@@ -198,6 +205,7 @@ const scoreOf = (over: Partial<CaptureScore> = {}): CaptureScore => ({
   source: 'garment',
   light: 'daylight',
   lowLight: false,
+  lightness: 0.5,
   width: 10,
   height: 10,
   truth: [navy],
@@ -327,7 +335,45 @@ describe('fieldReport', () => {
 
   it('says none for a table with no captures', () => {
     const report = fieldReport([scoreOf()], 0, 0);
-    expect(report.split('Against the color settled in use (weaker truth)')[1]!.trim()).toBe('none');
+    const settled = report.split('Against the color settled in use (weaker truth)')[1]!;
+    expect(settled.split('\n\n')[0]!.trim()).toBe('none');
+  });
+
+  describe('the low-light sweep', () => {
+    const heading = 'Low-light threshold (kit and run captures)';
+    const sweep = (scores: CaptureScore[]) => fieldReport(scores, 0, 0).split(heading)[1]!;
+    const wrong = WRONG_AT + 0.01;
+
+    it('counts, per threshold, the wrong readings it would warn of and the right ones it would flag', () => {
+      const text = sweep([
+        scoreOf({ id: 'a', lightness: 0.12, distance: wrong }),
+        scoreOf({ id: 'b', lightness: 0.5, distance: wrong }),
+        scoreOf({ id: 'c', lightness: 0.22, distance: 0.01, source: 'judged', label: null }),
+        scoreOf({ id: 'd', lightness: 0.6, distance: 0.01 }),
+      ]);
+      expect(lines(text).find((l) => l.startsWith('dark below'))).toMatch(
+        /^dark below\s+warned\s+wrong caught\s+right flagged$/,
+      );
+      expect(row(text, '0.10')).toMatch(/^0\.10\s+0\s+0 of 2\s+0 of 2$/);
+      expect(row(text, '0.15')).toMatch(/^0\.15\s+1\s+1 of 2\s+0 of 2$/);
+      expect(row(text, '0.25')).toMatch(/^0\.25 \*\s+2\s+1 of 2\s+1 of 2$/);
+      expect(row(text, '0.40')).toMatch(/^0\.40\s+2\s+1 of 2\s+1 of 2$/);
+      expect(lines(text).filter((l) => /^0\.\d\d/.test(l))).toHaveLength(7);
+      expect(text).toContain('* the current LOW_LIGHT.darkBelow');
+    });
+
+    it('leaves settled captures out, since their truth went through the same camera', () => {
+      const text = sweep([
+        scoreOf({ lightness: 0.5 }),
+        scoreOf({ source: 'settled', label: null, lightness: 0.05, distance: wrong }),
+      ]);
+      expect(row(text, '0.10')).toMatch(/\s0\s+0 of 0\s+0 of 1$/);
+    });
+
+    it('says none when there is nothing to sweep', () => {
+      const text = sweep([scoreOf({ source: 'settled', label: null })]);
+      expect(lines(text.trim())[0]).toBe('none');
+    });
   });
 
   it('ends with the skipped count when captures were skipped', () => {

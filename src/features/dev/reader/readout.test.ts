@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { READ_TUNING, colorsIn, defaultRegion, explain } from '../../../color/read';
 import { NAVY, WHITE, paint, solid } from '../../../color/testing';
 import type { Hex } from '../../../model/hex';
-import { meanLightness } from '../../camera/lightness';
+import { meanLightness } from '../../../color/lightness';
 import { lightText, readout, ruleText, verdictText } from './readout';
 
 describe('readout', () => {

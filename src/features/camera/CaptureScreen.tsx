@@ -9,7 +9,8 @@ import { Screen, type BackTo } from '../../ui/Screen';
 import { useAnnounce } from '../../ui/useAnnounce';
 import { CameraContext } from './CameraContext';
 import { DARK_MESSAGE, PHOTO_FAILED, type CaptureCopy } from './copy';
-import { initialLowLight, meanLightness, nextLowLight } from './lightness';
+import { meanLightness } from '../../color/lightness';
+import { initialLowLight, nextLowLight } from './lightness';
 import { FRAME_MAX_SIDE, SAMPLE_INTERVAL_MS, SAMPLE_SIDE, type CameraFailure } from './port';
 import { clearOfToasts } from '../../ui/toastClearance';
 

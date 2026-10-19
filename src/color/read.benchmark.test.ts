@@ -19,8 +19,9 @@ import { fieldReport, scoreFieldSet } from './fieldScore';
  * after more captures is safe.
  *
  * It prints and asserts nothing about the numbers. M10 decides which of them
- * to hold. Run it before and after changing `READ_TUNING`, and see the
- * harness's Field mode for the captures behind them.
+ * to hold. Run it before and after changing `READ_TUNING` or
+ * `LOW_LIGHT.darkBelow`, and see the harness's Field mode for the captures
+ * behind them.
  */
 const { data } = loadFieldDir();
 
