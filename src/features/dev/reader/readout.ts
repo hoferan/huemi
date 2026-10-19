@@ -9,7 +9,7 @@ import {
   type Region,
 } from '../../../color/read';
 import type { Pixels } from '../../../model/frame';
-import { LOW_LIGHT, meanLightness } from '../../camera/lightness';
+import { LOW_LIGHT, meanLightness } from '../../../color/lightness';
 
 /**
  * What the reader saw in one region, for the harness's Read mode and the
